@@ -108,7 +108,7 @@ func (c *Client) DownloadAttachments(message Message) error {
 
 		// Si el adjunto es un ZIP, extraerlo automáticamente.
 			if strings.EqualFold(filepath.Ext(att.Name), ".zip") {
-			destination := filepath.Join(dir, "extracted")
+			destination := dir
 
 			if err := extractor.Extract(path, destination); err != nil {
 				return err
