@@ -1,5 +1,7 @@
 package graph
 
+import "time"
+
 type MessagesResponse struct {
 	Value []Message `json:"value"`
 }
@@ -17,7 +19,7 @@ type Message struct {
 	ID               string    `json:"id"`
 	Subject          string    `json:"subject"`
 	HasAttachments   bool      `json:"hasAttachments"`
-	ReceivedDateTime string    `json:"receivedDateTime"`
+	ReceivedDateTime time.Time `json:"receivedDateTime"`
 	From             Recipient `json:"from"`
 }
 
@@ -36,6 +38,6 @@ type Attachment struct {
 type MailMetadata struct {
 	ID string `json:"id"`
 	Subject string `json:"subject"`
-	ReceivedDateTime string `json:"receivedDateTime"`
+	ReceivedDateTime time.Time `json:"receivedDateTime"`
 	From string `json:"from"`	
 }

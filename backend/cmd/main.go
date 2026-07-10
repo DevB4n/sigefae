@@ -6,47 +6,67 @@ import (
 
 	env "sigefae/internal/.env"
 	"sigefae/internal/graph"
+	"sigefae/internal/sync"
 )
 
 func main() {
-	// Cargar variables de entorno
 	cfg, err := env.Load(".env")
 	if err != nil {
-		log.Fatalf("Error loading environment variables: %v", err)
+		log.Fatal(err)
 	}
 
 	fmt.Println("Environment variables loaded successfully.")
 
-	// Crear autenticación
 	auth := graph.NewAuth(
 		cfg.GraphClientID,
 		cfg.GraphClientSecret,
 		cfg.GraphTenantID,
 	)
 
-	// Crear cliente de Graph
 	client := graph.NewClient(
 		auth,
 		cfg.GraphUserEmail,
 	)
 
-	// Obtener correos
-	messages, err := client.ListMessages()
+	syncService := sync.New()
+
+	lastSync := syncService.LastSync()
+
+	messages, err := client.ListMessages(lastSync)
 	if err != nil {
 		log.Fatal(err)
 	}
 
+	var newestSync = lastSync
+
 	for _, msg := range messages {
+
 		fmt.Println("--------------------------------")
 		fmt.Println("Asunto:", msg.Subject)
 
 		if !msg.HasAttachments {
 			fmt.Println("Sin adjuntos")
+
+			if msg.ReceivedDateTime.After(newestSync) {
+				newestSync = msg.ReceivedDateTime
+			}
+
 			continue
 		}
 
 		if err := client.DownloadAttachments(msg); err != nil {
-			log.Println("Error descargando adjuntos:", err)
+			log.Println(err)
+			continue
+		}
+
+		if msg.ReceivedDateTime.After(newestSync) {
+			newestSync = msg.ReceivedDateTime
+		}
+	}
+
+	if !newestSync.IsZero() {
+		if err := syncService.Update(newestSync); err != nil {
+			log.Println(err)
 		}
 	}
 }
