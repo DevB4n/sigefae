@@ -63,7 +63,7 @@ func (c *Client) DownloadAttachments(message Message) error {
 		return nil
 	}
 
-	dir := filepath.Join("downloads", message.ID)
+	dir := filepath.Join("storage", "mails", message.ID)
 
 	// Si la carpeta ya existe, este correo ya fue procesado.
 	if _, err := os.Stat(dir); err == nil {
@@ -110,10 +110,6 @@ func (c *Client) DownloadAttachments(message Message) error {
 		if strings.EqualFold(filepath.Ext(att.Name), ".zip") {
 
 			if err := extractor.Extract(path, dir); err != nil {
-				return err
-			}
-
-			if err := os.Remove(path); err != nil {
 				return err
 			}
 
