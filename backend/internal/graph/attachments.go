@@ -7,6 +7,9 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"strings"
+
+	zipExtractor "sigefae/internal/zip"
 )
 
 func (c *Client) Attachments(messageID string) ([]Attachment, error) {
@@ -57,17 +60,17 @@ func (c *Client) DownloadAttachments(message Message) error {
 	}
 
 	if len(attachments) == 0 {
-		return nil // No attachments to download
+		return nil
 	}
 
 	dir := filepath.Join("downloads", message.ID)
 
-	// si ya existe esa carpeta con ese ID, el correo ha sido previamente procesado por lo que no se descargan los adjuntos nuevamente
+	// Si ya existe la carpeta, este correo ya fue procesado.
 	if _, err := os.Stat(dir); err == nil {
 		fmt.Printf("✓ Correo ya descargado: %s\n", message.Subject)
 		return nil
-
 	}
+
 	if err := os.MkdirAll(dir, 0755); err != nil {
 		return err
 	}
@@ -92,13 +95,28 @@ func (c *Client) DownloadAttachments(message Message) error {
 		return err
 	}
 
+	extractor := zipExtractor.NewExtractor()
+
 	for _, att := range attachments {
 		path := filepath.Join(dir, filepath.Base(att.Name))
 
-		if err := os.WriteFile(path, att.ContentBytes, 0644); err != nil{
+		if err := os.WriteFile(path, att.ContentBytes, 0644); err != nil {
 			return err
 		}
+
 		fmt.Printf("✓ Guardado: %s\n", path)
+
+		// Si el adjunto es un ZIP, extraerlo automáticamente.
+			if strings.EqualFold(filepath.Ext(att.Name), ".zip") {
+			destination := filepath.Join(dir, "extracted")
+
+			if err := extractor.Extract(path, destination); err != nil {
+				return err
+			}
+
+			fmt.Printf("✓ ZIP extraído en: %s\n", destination)
+		}
 	}
+
 	return nil
 }
