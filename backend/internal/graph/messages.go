@@ -36,9 +36,6 @@ func (c *Client) ListMessages(lastSync time.Time) ([]Message, error) {
 		values.Encode(),
 	)
 
-	fmt.Println("Graph URL:")
-	fmt.Println(graphURL)
-
 	req, err := http.NewRequest(http.MethodGet, graphURL, nil)
 	if err != nil {
 		return nil, err
