@@ -6,6 +6,7 @@ import (
 
 	env "sigefae/internal/.env"
 	"sigefae/internal/graph"
+	"sigefae/internal/sync"
 )
 
 func main() {
@@ -24,18 +25,25 @@ func main() {
 		cfg.GraphTenantID,
 	)
 
-	// Crear cliente de Graph
+	// Crear cliente de Microsoft Graph
 	client := graph.NewClient(
 		auth,
 		cfg.GraphUserEmail,
 	)
 
-	// Obtener correos
-	messages, err := client.ListMessages()
+	// Servicio de sincronización
+	syncService := sync.New()
+
+	// Obtener la fecha del último correo sincronizado
+	lastSync := syncService.LastSync()
+
+	// Consultar únicamente los correos nuevos
+	messages, err := client.ListMessages(lastSync)
 	if err != nil {
 		log.Fatal(err)
 	}
 
+	// Procesar correos
 	for _, msg := range messages {
 		fmt.Println("--------------------------------")
 		fmt.Println("Asunto:", msg.Subject)
@@ -47,6 +55,15 @@ func main() {
 
 		if err := client.DownloadAttachments(msg); err != nil {
 			log.Println("Error descargando adjuntos:", err)
+		}
+	}
+
+	// Actualizar la fecha del último correo procesado
+	if len(messages) > 0 {
+		if err := syncService.Update(
+			messages[len(messages)-1].ReceivedDateTime,
+		); err != nil {
+			log.Println(err)
 		}
 	}
 }

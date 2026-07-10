@@ -5,21 +5,41 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"net/url"
+	"time"
 )
 
-func (c *Client) ListMessages() ([]Message, error) {
+func (c *Client) ListMessages(lastSync time.Time) ([]Message, error) {
 	token, err := c.auth.GetToken()
 	if err != nil {
 		return nil, err
 	}
 
-	url := fmt.Sprintf(
-		"%s/users/%s/messages",
+	values := url.Values{}
+
+	values.Set("$orderby", "receivedDateTime asc")
+
+	if !lastSync.IsZero() {
+		values.Set(
+			"$filter",
+			fmt.Sprintf(
+				"receivedDateTime ge %s",
+				lastSync.UTC().Format(time.RFC3339),
+			),
+		)
+	}
+
+	graphURL := fmt.Sprintf(
+		"%s/users/%s/messages?%s",
 		baseURL,
 		c.userEmail,
+		values.Encode(),
 	)
 
-	req, err := http.NewRequest(http.MethodGet, url, nil)
+	fmt.Println("Graph URL:")
+	fmt.Println(graphURL)
+
+	req, err := http.NewRequest(http.MethodGet, graphURL, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -35,7 +55,11 @@ func (c *Client) ListMessages() ([]Message, error) {
 
 	if resp.StatusCode != http.StatusOK {
 		body, _ := io.ReadAll(resp.Body)
-		return nil, fmt.Errorf("graph request failed: %s\n%s", resp.Status, body)
+		return nil, fmt.Errorf(
+			"graph request failed: %s\n%s",
+			resp.Status,
+			body,
+		)
 	}
 
 	var result MessagesResponse
