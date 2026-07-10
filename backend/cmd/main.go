@@ -45,7 +45,7 @@ func main() {
 			continue
 		}
 
-		if err := client.DownloadAttachments(msg.ID); err != nil {
+		if err := client.DownloadAttachments(msg); err != nil {
 			log.Println("Error descargando adjuntos:", err)
 		}
 	}

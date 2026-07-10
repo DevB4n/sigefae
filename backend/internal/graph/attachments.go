@@ -50,37 +50,55 @@ func (c *Client) Attachments(messageID string) ([]Attachment, error) {
 	return result.Value, nil
 }
 
-func (c *Client) DownloadAttachments(messageID string) error {
-	attachments, err := c.Attachments(messageID)
+func (c *Client) DownloadAttachments(message Message) error {
+	attachments, err := c.Attachments(message.ID)
 	if err != nil {
 		return err
 	}
 
 	if len(attachments) == 0 {
-		return nil
+		return nil // No attachments to download
 	}
 
-	if err := os.MkdirAll("downloads", 0755); err != nil {
+	dir := filepath.Join("downloads", message.ID)
+
+	// si ya existe esa carpeta con ese ID, el correo ha sido previamente procesado por lo que no se descargan los adjuntos nuevamente
+	if _, err := os.Stat(dir); err == nil {
+		fmt.Printf("✓ Correo ya descargado: %s\n", message.Subject)
+		return nil
+
+	}
+	if err := os.MkdirAll(dir, 0755); err != nil {
+		return err
+	}
+
+	metadata := MailMetadata{
+		ID:               message.ID,
+		Subject:          message.Subject,
+		ReceivedDateTime: message.ReceivedDateTime,
+		From:             message.From.EmailAddress.Address,
+	}
+
+	data, err := json.MarshalIndent(metadata, "", "  ")
+	if err != nil {
+		return err
+	}
+
+	if err := os.WriteFile(
+		filepath.Join(dir, "correo.json"),
+		data,
+		0644,
+	); err != nil {
 		return err
 	}
 
 	for _, att := range attachments {
-		c.fileCounter++
+		path := filepath.Join(dir, filepath.Base(att.Name))
 
-		filename := fmt.Sprintf(
-			"archivo%d%s",
-			c.fileCounter,
-			filepath.Ext(att.Name),
-		)
-
-		path := filepath.Join("downloads", filename)
-
-		if err := os.WriteFile(path, att.ContentBytes, 0644); err != nil {
+		if err := os.WriteFile(path, att.ContentBytes, 0644); err != nil{
 			return err
 		}
-
 		fmt.Printf("✓ Guardado: %s\n", path)
 	}
-
 	return nil
 }

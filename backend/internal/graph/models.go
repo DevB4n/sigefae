@@ -32,3 +32,10 @@ type Attachment struct {
 	Size         int64  `json:"size"`
 	ContentBytes []byte `json:"contentBytes"`
 }
+
+type MailMetadata struct {
+	ID string `json:"id"`
+	Subject string `json:"subject"`
+	ReceivedDateTime string `json:"receivedDateTime"`
+	From string `json:"from`	
+}
