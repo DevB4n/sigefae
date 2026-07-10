@@ -18,6 +18,7 @@ func (c *Client) ListMessages(lastSync time.Time) ([]Message, error) {
 	values := url.Values{}
 
 	values.Set("$orderby", "receivedDateTime asc")
+	values.Set("$top", "100") // Adjust the number as needed
 
 	if !lastSync.IsZero() {
 		values.Set(

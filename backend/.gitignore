@@ -1,2 +1,3 @@
 .env
-downloads/*
+storage/*
+internal/sync/state.json
