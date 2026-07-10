@@ -37,5 +37,5 @@ type MailMetadata struct {
 	ID string `json:"id"`
 	Subject string `json:"subject"`
 	ReceivedDateTime string `json:"receivedDateTime"`
-	From string `json:"from`	
+	From string `json:"from"`	
 }
