@@ -13,6 +13,7 @@ import (
 type Auth struct {
 	clientID     string
 	clientSecret string
+	
 	tenantID     string
 
 	token     string

@@ -68,3 +68,37 @@ func (c *Client) ListMessages(lastSync time.Time) ([]Message, error) {
 
 	return result.Value, nil
 }
+
+func (c *Client) DownloadEML(messageID string) ([]byte, error) {
+	token, err := c.auth.GetToken()
+	if err != nil {
+		return nil, err
+	}
+
+	url := fmt.Sprintf(
+		"%s/users/%s/messages/%s/$value",
+		baseURL,
+		c.userEmail,
+		messageID,
+	)
+
+	req, err := http.NewRequest(http.MethodGet, url, nil)
+	if err != nil {
+		return nil, err
+	}
+
+	req.Header.Set("Authorization", "Bearer "+token)
+
+	resp, err := c.httpClient.Do(req)
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		body, _ := io.ReadAll(resp.Body)
+		return nil, fmt.Errorf("graph request failed: %s\n%s", resp.Status, body)
+	}
+
+	return io.ReadAll(resp.Body)
+}

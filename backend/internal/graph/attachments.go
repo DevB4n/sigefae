@@ -64,6 +64,7 @@ func (c *Client) DownloadAttachments(message Message) error {
 	}
 
 	dir := filepath.Join("storage", "mails", message.ID)
+	
 
 	// Si la carpeta ya existe, este correo ya fue procesado.
 	if _, err := os.Stat(dir); err == nil {
@@ -72,6 +73,18 @@ func (c *Client) DownloadAttachments(message Message) error {
 	}
 
 	if err := os.MkdirAll(dir, 0755); err != nil {
+		return err
+	}
+	eml, err := c.DownloadEML(message.ID)
+	if err != nil {
+		return err
+	}
+	
+	if err := os.WriteFile(
+		filepath.Join(dir, "correo.eml"),
+		eml,
+		0644,
+	); err != nil {
 		return err
 	}
 
