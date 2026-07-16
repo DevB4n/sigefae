@@ -4,19 +4,39 @@ import (
 	"fmt"
 	"log"
 
-	env "sigefae/internal/.env"
+	"sigefae/internal/db"
+	"sigefae/internal/env"
 	"sigefae/internal/graph"
 	"sigefae/internal/sync"
 )
 
 func main() {
+
+	// ========================================
+	// Configuración
+	// ========================================
 	cfg, err := env.Load(".env")
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	fmt.Println("Environment variables loaded successfully.")
+	// ========================================
+	// Base de datos
+	// ========================================
+	if _, err := db.Connect(cfg); err != nil {
+		log.Fatal(err)
+	}
 
+	if err := db.Migrate(); err != nil {
+		log.Fatal(err)
+	}
+
+	fmt.Println("Environment loaded successfully.")
+	fmt.Println("Database connected successfully.")
+
+	// ========================================
+	// Cliente Microsoft Graph
+	// ========================================
 	auth := graph.NewAuth(
 		cfg.GraphClientID,
 		cfg.GraphClientSecret,
@@ -28,6 +48,9 @@ func main() {
 		cfg.GraphUserEmail,
 	)
 
+	// ========================================
+	// Sincronización
+	// ========================================
 	syncService := sync.New()
 
 	lastSync := syncService.LastSync()
@@ -37,7 +60,7 @@ func main() {
 		log.Fatal(err)
 	}
 
-	var newestSync = lastSync
+	newestSync := lastSync
 
 	for _, msg := range messages {
 
@@ -45,6 +68,7 @@ func main() {
 		fmt.Println("Asunto:", msg.Subject)
 
 		if !msg.HasAttachments {
+
 			fmt.Println("Sin adjuntos")
 
 			if msg.ReceivedDateTime.After(newestSync) {
