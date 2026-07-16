@@ -36,6 +36,10 @@ func (s *Service) Login(email, password string) (*db.Usuario, string, error) {
 		return nil, "", err
 	}
 
+	if !user.Activo {
+	return nil, "", errors.New("usuario inactivo")
+	}
+
 	if err := Check(user.HashContrasena, password); err != nil {
 		return nil, "", errors.New("correo o contraseña incorrectos")
 	}

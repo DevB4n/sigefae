@@ -7,16 +7,19 @@ import "time"
 // ---------------------------------------------------------------------------
 
 type Usuario struct {
-	ID             uint         `gorm:"primaryKey;column:id" json:"id"`
-	Nombre         string       `gorm:"column:nombre;type:varchar(255)" json:"nombre"`
-	Email          string       `gorm:"column:email;type:varchar(255);uniqueIndex" json:"email"`
-	HashContrasena string       `gorm:"column:contrasena;type:varchar(255)" json:"-"`
-	Cargo          string       `gorm:"column:cargo;type:varchar(255)" json:"cargo"`
-	RolID          uint         `gorm:"column:rol_id;index:idx_usuario_rol_id" json:"rol_id"`
-	Rol            *Rol                     `gorm:"foreignKey:RolID;references:ID" json:"rol,omitempty"`
-	Comentarios    []Comentario             `gorm:"foreignKey:UsuarioID"`
-	Trazabilidades []Trazabilidad           `gorm:"foreignKey:UsuarioID"`
-	Asignaciones   []PasoRuta               `gorm:"foreignKey:UsuarioID"`
+	ID              uint   `gorm:"primaryKey;column:id" json:"id"`
+	Nombre          string `gorm:"column:nombre;type:varchar(255)" json:"nombre"`
+	Email           string `gorm:"column:email;type:varchar(255);uniqueIndex" json:"email"`
+	HashContrasena  string `gorm:"column:contrasena;type:varchar(255)" json:"-"`
+	Cargo           string `gorm:"column:cargo;type:varchar(255)" json:"cargo"`
+	Activo          bool   `gorm:"column:activo;default:true" json:"activo"`
+
+	RolID uint `gorm:"column:rol_id;index:idx_usuario_rol_id" json:"rol_id"`
+	Rol   *Rol `gorm:"foreignKey:RolID;references:ID" json:"rol,omitempty"`
+
+	Comentarios    []Comentario   `gorm:"foreignKey:UsuarioID" json:"-"`
+	Trazabilidades []Trazabilidad `gorm:"foreignKey:UsuarioID" json:"-"`
+	Asignaciones   []PasoRuta     `gorm:"foreignKey:UsuarioID" json:"-"`
 }
 
 func (Usuario) TableName() string { return "usuario" }

@@ -22,6 +22,10 @@ func New(database *gorm.DB) *Service {
 
 func (s *Service) Create(req CreateRequest) (*Response, error) {
 
+		// ==========================
+	// Validar correo
+	// ==========================
+
 	var existing db.Usuario
 
 	err := s.db.
@@ -36,11 +40,36 @@ func (s *Service) Create(req CreateRequest) (*Response, error) {
 		return nil, err
 	}
 
+	// ==========================
+	// Validar rol
+	// ==========================
+
+	var role db.Rol
+
+	err = s.db.
+		First(&role, req.RolID).Error
+
+	if errors.Is(err, gorm.ErrRecordNotFound) {
+		return nil, errors.New("el rol no existe")
+	}
+
+	if err != nil {
+		return nil, err
+	}
+
+	// ==========================
+	// Hash contraseña
+	// ==========================
+
 	hash, err := auth.Hash(req.Contrasena)
 
 	if err != nil {
 		return nil, err
 	}
+
+	// ==========================
+	// Crear usuario
+	// ==========================
 
 	user := db.Usuario{
 		Nombre:         req.Nombre,
@@ -54,15 +83,182 @@ func (s *Service) Create(req CreateRequest) (*Response, error) {
 		return nil, err
 	}
 
-	if err := s.db.Preload("Rol").First(&user, user.ID).Error; err != nil {
+	// ==========================
+	// Cargar relaciones
+	// ==========================
+
+	if err := s.db.
+		Preload("Rol").
+		First(&user, user.ID).Error; err != nil {
 		return nil, err
 	}
 
-	return &Response{
-		ID:     user.ID,
-		Nombre: user.Nombre,
-		Email:  user.Email,
-		Cargo:  user.Cargo,
-		Rol:    user.Rol.Nombre,
-	}, nil
+	// ==========================
+	// Respuesta
+	// ==========================
+
+	response := toResponse(user)
+	
+	return &response, nil
+	}
+
+
+
+func (s *Service) List() ([]Response, error) {
+
+	var users []db.Usuario
+
+	if err := s.db.
+		Preload("Rol").
+		Order("nombre ASC").
+		Find(&users).Error; err != nil {
+
+		return nil, err
+	}
+
+	response := make([]Response, 0, len(users))
+
+	for _, user := range users {
+		response = append(response, toResponse(user))
+	}
+
+	return response, nil
+}
+
+func (s *Service) GetByID(id uint) (*Response, error) {
+
+	var user db.Usuario
+
+	err := s.db.
+		Preload("Rol").
+		First(&user, id).Error
+
+	if errors.Is(err, gorm.ErrRecordNotFound) {
+		return nil, errors.New("usuario no encontrado")
+	}
+
+	if err != nil {
+		return nil, err
+	}
+
+	response := toResponse(user)
+
+	return &response, nil
+}
+
+
+func (s *Service) Update(id uint, req UpdateRequest) (*Response, error) {
+
+	var user db.Usuario
+
+	err := s.db.
+		First(&user, id).Error
+
+	if errors.Is(err, gorm.ErrRecordNotFound) {
+		return nil, errors.New("usuario no encontrado")
+	}
+
+	if err != nil {
+		return nil, err
+	}
+
+	// ==========================
+	// Validar correo repetido
+	// ==========================
+
+	var existing db.Usuario
+
+	err = s.db.
+		Where("email = ? AND id <> ?", req.Email, id).
+		First(&existing).Error
+
+	if err == nil {
+		return nil, errors.New("el correo ya existe")
+	}
+
+	if err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
+		return nil, err
+	}
+
+	// ==========================
+	// Validar rol
+	// ==========================
+
+	var role db.Rol
+
+	err = s.db.
+		First(&role, req.RolID).Error
+
+	if errors.Is(err, gorm.ErrRecordNotFound) {
+		return nil, errors.New("el rol no existe")
+	}
+
+	if err != nil {
+		return nil, err
+	}
+
+	user.Nombre = req.Nombre
+	user.Email = req.Email
+	user.Cargo = req.Cargo
+	user.RolID = req.RolID
+
+	if err := s.db.Save(&user).Error; err != nil {
+		return nil, err
+	}
+
+	if err := s.db.
+		Preload("Rol").
+		First(&user, user.ID).Error; err != nil {
+		return nil, err
+	}
+
+	response := toResponse(user)
+
+	return &response, nil
+}
+
+func (s *Service) UpdateStatus(id uint, activo bool) error {
+
+	var user db.Usuario
+
+	err := s.db.
+		First(&user, id).Error
+
+	if errors.Is(err, gorm.ErrRecordNotFound) {
+		return errors.New("usuario no encontrado")
+	}
+
+	if err != nil {
+		return err
+	}
+
+	user.Activo = activo
+
+	return s.db.Save(&user).Error
+}
+
+func (s *Service) UpdatePassword(id uint, password string) error {
+
+	var user db.Usuario
+
+	err := s.db.
+		First(&user, id).Error
+
+	if errors.Is(err, gorm.ErrRecordNotFound) {
+		return errors.New("usuario no encontrado")
+	}
+
+	if err != nil {
+		return err
+	}
+
+	hash, err := auth.Hash(password)
+
+	if err != nil {
+		return err
+	}
+
+	user.HashContrasena = hash
+
+	return s.db.Save(&user).Error
 }

@@ -6,8 +6,10 @@ import (
 	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
 
+	"sigefae/internal/user"
 	"sigefae/internal/db"
 	"sigefae/internal/auth"
+	"sigefae/internal/role"
 )
 
 func New(database *gorm.DB) *gin.Engine {
@@ -32,6 +34,11 @@ func New(database *gorm.DB) *gin.Engine {
 
 	authService := auth.New(database)
 	authHandler := auth.NewHandler(authService)
+
+	userService := user.New(database)
+	userHandler := user.NewHandler(userService)
+	roleService := role.New(database)
+	roleHandler := role.NewHandler(roleService)
 
 	api := router.Group("/api")
 	{
@@ -69,7 +76,26 @@ func New(database *gorm.DB) *gin.Engine {
 		admin.Use(auth.RequireRole("Superadministrador"))
 
 		{
-			// admin.POST("/usuarios", userHandler.Create)
+			
+
+			// ==========================
+			// Usuarios
+			// ==========================
+			
+			admin.POST("/usuarios", userHandler.Create)
+			admin.GET("/usuarios", userHandler.List)
+			admin.GET("/usuarios/:id", userHandler.GetByID)
+			admin.PUT("/usuarios/:id", userHandler.Update)
+			admin.PATCH("/usuarios/:id/activo", userHandler.UpdateStatus)
+			admin.PATCH("/usuarios/:id/password", userHandler.UpdatePassword)
+			
+			// ==========================
+			// Roles
+			// ==========================
+			
+			admin.POST("/roles", roleHandler.Create)
+			admin.GET("/roles", roleHandler.List)
+			admin.PATCH("/roles/:id/activo", roleHandler.UpdateStatus)
 		}
 	}
 

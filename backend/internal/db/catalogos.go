@@ -47,8 +47,9 @@ type EstadoDocumentoRadicado struct {
 func (EstadoDocumentoRadicado) TableName() string { return "estado_documento_radicado" }
 
 type Rol struct {
-	ID     uint   `gorm:"primaryKey;column:id" json:"id"`
-	Nombre string `gorm:"column:nombre;type:varchar(255)" json:"nombre"`
+	ID      uint   `gorm:"primaryKey;column:id" json:"id"`
+	Nombre  string `gorm:"column:nombre;type:varchar(255);uniqueIndex" json:"nombre"`
+	Activo  bool   `gorm:"column:activo;default:true" json:"activo"`
 }
 
 func (Rol) TableName() string { return "rol" }
