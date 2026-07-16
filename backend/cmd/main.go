@@ -4,10 +4,9 @@ import (
 	"fmt"
 	"log"
 
+	"sigefae/internal/api"
 	"sigefae/internal/db"
 	"sigefae/internal/env"
-	"sigefae/internal/graph"
-	"sigefae/internal/sync"
 )
 
 func main() {
@@ -15,6 +14,7 @@ func main() {
 	// ========================================
 	// Configuración
 	// ========================================
+
 	cfg, err := env.Load(".env")
 	if err != nil {
 		log.Fatal(err)
@@ -23,11 +23,17 @@ func main() {
 	// ========================================
 	// Base de datos
 	// ========================================
-	if _, err := db.Connect(cfg); err != nil {
+
+	database, err := db.Connect(cfg)
+	if err != nil {
 		log.Fatal(err)
 	}
 
 	if err := db.Migrate(); err != nil {
+		log.Fatal(err)
+	}
+
+	if err := db.Seed(db.DB); err != nil {
 		log.Fatal(err)
 	}
 
@@ -35,74 +41,12 @@ func main() {
 	fmt.Println("Database connected successfully.")
 
 	// ========================================
-	// Cliente Microsoft Graph
+	// API
 	// ========================================
-	auth := graph.NewAuth(
-		cfg.GraphClientID,
-		cfg.GraphClientSecret,
-		cfg.GraphTenantID,
-	)
 
-	client := graph.NewClient(
-		auth,
-		cfg.GraphUserEmail,
-	)
+	router := api.New(database)
 
-	// ========================================
-	// Sincronización
-	// ========================================
-	syncService := sync.New()
+	log.Println("Servidor iniciado en http://localhost:8080")
 
-	lastSync := syncService.LastSync()
-
-	messages, err := client.ListMessages(lastSync)
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	newestSync := lastSync
-
-	for _, msg := range messages {
-
-		fmt.Println("--------------------------------")
-		fmt.Println("Asunto:", msg.Subject)
-
-		if !msg.HasAttachments {
-
-			fmt.Println("Sin adjuntos")
-
-			if msg.ReceivedDateTime.After(newestSync) {
-				newestSync = msg.ReceivedDateTime
-			}
-
-			continue
-		}
-
-		if err := client.DownloadAttachments(msg); err != nil {
-			log.Println(err)
-			continue
-		}
-
-		if msg.ReceivedDateTime.After(newestSync) {
-			newestSync = msg.ReceivedDateTime
-		}
-	}
-
-	if !newestSync.IsZero() {
-		if err := syncService.Update(newestSync); err != nil {
-			log.Println(err)
-		}
-	}
-
-	if _, err := db.Connect(cfg); err != nil {
-		log.Fatal(err)
-	}
-	
-	if err := db.Migrate(); err != nil {
-		log.Fatal(err)
-	}
-	
-	if err := db.Seed(db.DB); err != nil {
-		log.Fatal(err)
-	}
+	log.Fatal(router.Run(":8080"))
 }
