@@ -93,4 +93,16 @@ func main() {
 			log.Println(err)
 		}
 	}
+
+	if _, err := db.Connect(cfg); err != nil {
+		log.Fatal(err)
+	}
+	
+	if err := db.Migrate(); err != nil {
+		log.Fatal(err)
+	}
+	
+	if err := db.Seed(db.DB); err != nil {
+		log.Fatal(err)
+	}
 }
