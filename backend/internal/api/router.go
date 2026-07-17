@@ -14,6 +14,8 @@ import (
 	"sigefae/internal/metodo_pago"
 	"sigefae/internal/area"
 	"sigefae/internal/tipo_factura"
+	"sigefae/internal/ruta"
+	"sigefae/internal/paso_ruta"
 )
 
 func New(database *gorm.DB) *gin.Engine {
@@ -55,6 +57,12 @@ func New(database *gorm.DB) *gin.Engine {
 
 	tipoFacturaService := tipo_factura.New(database)
 	tipoFacturaHandler := tipo_factura.NewHandler(tipoFacturaService)
+
+	rutaService := ruta.New(database)
+	rutaHandler := ruta.NewHandler(rutaService)
+
+	pasoRutaService := paso_ruta.New(database)
+	pasoRutaHandler := paso_ruta.NewHandler(pasoRutaService)
 
 	api := router.Group("/api")
 	{
@@ -114,7 +122,7 @@ func New(database *gorm.DB) *gin.Engine {
 			admin.PATCH("/roles/:id/activo", roleHandler.UpdateStatus)
 
 
-			// ==========================
+			// ==========================/pasos-ruta/:id/activo
 			// Tipos de Pago
 			// ==========================
 			admin.POST("/tipos-pago", tipoPagoHandler.Create)
@@ -144,6 +152,22 @@ func New(database *gorm.DB) *gin.Engine {
 			admin.POST("/tipos-factura", tipoFacturaHandler.Create)
 			admin.GET("/tipos-factura", tipoFacturaHandler.List)
 			admin.PATCH("/tipos-factura/:id/activo", tipoFacturaHandler.UpdateStatus)
+
+			// ==========================
+			// Rutas
+			// ==========================
+					
+			admin.POST("/rutas", rutaHandler.Create)
+			admin.GET("/rutas", rutaHandler.List)
+			admin.PATCH("/rutas/:id/activo", rutaHandler.UpdateStatus)
+
+			// ==========================
+			// Pasos de Ruta
+			// ==========================
+			
+			admin.POST("/pasos-ruta", pasoRutaHandler.Create)
+			admin.GET("/pasos-ruta", pasoRutaHandler.List)
+			admin.PATCH("/pasos-ruta/:id/activo", pasoRutaHandler.UpdateStatus)
 		}
 	}
 

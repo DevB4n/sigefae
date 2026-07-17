@@ -47,6 +47,9 @@ type PasoRuta struct {
 	Nombre    string   `gorm:"column:nombre;type:varchar(255)" json:"nombre"`
 	UsuarioID uint     `gorm:"column:usuario_id;index:idx_paso_usuario_id" json:"usuario_id"`
 	Usuario   *Usuario `gorm:"foreignKey:UsuarioID;references:ID" json:"usuario,omitempty"`
+	Activo 	  bool `gorm:"column:activo;default:true" json:"activo"`
+	CreatedAt time.Time `gorm:"column:created_at" json:"created_at"`
+	UpdatedAt time.Time `gorm:"column:updated_at" json:"updated_at"`
 }
 
 func (PasoRuta) TableName() string { return "paso_ruta" }
