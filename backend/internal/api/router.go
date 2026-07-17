@@ -13,6 +13,7 @@ import (
 	"sigefae/internal/tipo_pago"
 	"sigefae/internal/metodo_pago"
 	"sigefae/internal/area"
+	"sigefae/internal/tipo_factura"
 )
 
 func New(database *gorm.DB) *gin.Engine {
@@ -51,6 +52,9 @@ func New(database *gorm.DB) *gin.Engine {
 
 	areaService := area.New(database)
 	areaHandler := area.NewHandler(areaService)
+
+	tipoFacturaService := tipo_factura.New(database)
+	tipoFacturaHandler := tipo_factura.NewHandler(tipoFacturaService)
 
 	api := router.Group("/api")
 	{
@@ -128,10 +132,18 @@ func New(database *gorm.DB) *gin.Engine {
 			// ==========================
 			// Áreas
 			// ==========================
-					
+				
 			admin.POST("/areas", areaHandler.Create)
 			admin.GET("/areas", areaHandler.List)
 			admin.PATCH("/areas/:id/activo", areaHandler.UpdateStatus)
+
+			// ==========================
+			// Tipos de Factura
+			// ==========================
+					
+			admin.POST("/tipos-factura", tipoFacturaHandler.Create)
+			admin.GET("/tipos-factura", tipoFacturaHandler.List)
+			admin.PATCH("/tipos-factura/:id/activo", tipoFacturaHandler.UpdateStatus)
 		}
 	}
 

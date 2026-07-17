@@ -121,6 +121,7 @@ type TipoFactura struct {
 	AreaID uint   `gorm:"column:area_id;index:idx_tipo_factura_area" json:"area_id"`
 	Area   *Area  `gorm:"foreignKey:AreaID;references:ID" json:"area,omitempty"`
 	Nombre string `gorm:"column:nombre;type:varchar(255)" json:"nombre"`
+	Activo bool   `gorm:"column:activo;type:bool" json:"activo"`
 }
 
 func (TipoFactura) TableName() string { return "tipo_factura" }
