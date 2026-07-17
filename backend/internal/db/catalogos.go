@@ -14,6 +14,7 @@ func (EstadoTarea) TableName() string { return "estado_tarea" }
 type TipoPago struct {
 	ID     uint   `gorm:"primaryKey;column:id" json:"id"`
 	Nombre string `gorm:"column:nombre;type:varchar(255)" json:"nombre"`
+	Activo  bool   `gorm:"column:activo;default:true" json:"activo"`
 }
 
 func (TipoPago) TableName() string { return "tipo_pago" }

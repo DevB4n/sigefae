@@ -10,6 +10,7 @@ import (
 	"sigefae/internal/db"
 	"sigefae/internal/auth"
 	"sigefae/internal/role"
+	"sigefae/internal/tipo_pago"
 )
 
 func New(database *gorm.DB) *gin.Engine {
@@ -39,6 +40,9 @@ func New(database *gorm.DB) *gin.Engine {
 	userHandler := user.NewHandler(userService)
 	roleService := role.New(database)
 	roleHandler := role.NewHandler(roleService)
+
+	tipoPagoService := tipo_pago.New(database)
+	tipoPagoHandler := tipo_pago.NewHandler(tipoPagoService)
 
 	api := router.Group("/api")
 	{
@@ -96,6 +100,14 @@ func New(database *gorm.DB) *gin.Engine {
 			admin.POST("/roles", roleHandler.Create)
 			admin.GET("/roles", roleHandler.List)
 			admin.PATCH("/roles/:id/activo", roleHandler.UpdateStatus)
+
+
+			// ==========================
+			// Tipos de Pago
+			// ==========================
+			admin.POST("/tipos-pago", tipoPagoHandler.Create)
+			admin.GET("/tipos-pago", tipoPagoHandler.List)
+			admin.PATCH("/tipos-pago/:id/activo", tipoPagoHandler.UpdateStatus)
 		}
 	}
 
