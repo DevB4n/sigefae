@@ -11,6 +11,8 @@ import (
 	"sigefae/internal/auth"
 	"sigefae/internal/role"
 	"sigefae/internal/tipo_pago"
+	"sigefae/internal/metodo_pago"
+	"sigefae/internal/area"
 )
 
 func New(database *gorm.DB) *gin.Engine {
@@ -43,6 +45,12 @@ func New(database *gorm.DB) *gin.Engine {
 
 	tipoPagoService := tipo_pago.New(database)
 	tipoPagoHandler := tipo_pago.NewHandler(tipoPagoService)
+
+	metodoPagoService := metodo_pago.New(database)
+	metodoPagoHandler := metodo_pago.NewHandler(metodoPagoService)
+
+	areaService := area.New(database)
+	areaHandler := area.NewHandler(areaService)
 
 	api := router.Group("/api")
 	{
@@ -108,6 +116,22 @@ func New(database *gorm.DB) *gin.Engine {
 			admin.POST("/tipos-pago", tipoPagoHandler.Create)
 			admin.GET("/tipos-pago", tipoPagoHandler.List)
 			admin.PATCH("/tipos-pago/:id/activo", tipoPagoHandler.UpdateStatus)
+
+			// ==========================
+			// Métodos de Pago
+			// ==========================
+
+			admin.POST("/metodos-pago", metodoPagoHandler.Create)
+			admin.GET("/metodos-pago", metodoPagoHandler.List)
+			admin.PATCH("/metodos-pago/:id/activo", metodoPagoHandler.UpdateStatus)
+
+			// ==========================
+			// Áreas
+			// ==========================
+					
+			admin.POST("/areas", areaHandler.Create)
+			admin.GET("/areas", areaHandler.List)
+			admin.PATCH("/areas/:id/activo", areaHandler.UpdateStatus)
 		}
 	}
 

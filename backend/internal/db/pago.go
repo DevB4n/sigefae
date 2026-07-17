@@ -9,6 +9,8 @@ type MetodoPago struct {
 	TipoPagoID uint      `gorm:"column:tipo_pago_id;index:idx_metodo_pago_tipo_pago" json:"tipo_pago_id"`
 	TipoPago   *TipoPago `gorm:"foreignKey:TipoPagoID;references:ID" json:"tipo_pago,omitempty"`
 	Nombre     string    `gorm:"column:nombre;type:varchar(255)" json:"nombre"`
+	Activo bool   `gorm:"column:activo;default:true" json:"activo"`
+
 }
 
 func (MetodoPago) TableName() string { return "metodo_pago" }

@@ -35,7 +35,7 @@ func (s *Service) Create(req CreateRequest) (*Response, error) {
 		return nil, errors.New("el tipo de pago ya existe")
 	}
 
-	if err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
+	if !errors.Is(err, gorm.ErrRecordNotFound) {
 		return nil, err
 	}
 
