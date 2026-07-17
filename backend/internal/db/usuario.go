@@ -31,6 +31,7 @@ type Ruta struct {
 	AreaID    uint        `gorm:"column:area_id;index:idx_ruta_area" json:"area_id"`
 	Area      *Area       `gorm:"foreignKey:AreaID;references:ID" json:"area,omitempty"`
 	Pasos     []PasoRuta  `gorm:"foreignKey:RutaID" json:"pasos,omitempty"`
+	Activo bool `gorm:"column:activo;default:true" json:"activo"`
 	CreatedAt time.Time   `gorm:"column:created_at" json:"created_at"`
 	UpdatedAt time.Time   `gorm:"column:updated_at" json:"updated_at"`
 }
