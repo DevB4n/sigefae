@@ -96,3 +96,50 @@ func (s *Service) UpdateStatus(id uint, activo bool) error {
 
 	return s.db.Save(&tipo).Error
 }
+
+func (s *Service) Update(id uint, req UpdateRequest) (*Response, error) {
+
+	var tipo db.TipoPago
+
+	err := s.db.First(&tipo, id).Error
+
+	if errors.Is(err, gorm.ErrRecordNotFound) {
+		return nil, errors.New("tipo de pago no encontrado")
+	}
+
+	if err != nil {
+		return nil, err
+	}
+
+	// ==========================
+	// Validar nombre repetido
+	// ==========================
+
+	var existing db.TipoPago
+
+	err = s.db.
+		Where("nombre = ? AND id <> ?", req.Nombre, id).
+		First(&existing).Error
+
+	if err == nil {
+		return nil, errors.New("el tipo de pago ya existe")
+	}
+
+	if err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
+		return nil, err
+	}
+
+	// ==========================
+	// Actualizar
+	// ==========================
+
+	tipo.Nombre = req.Nombre
+
+	if err := s.db.Save(&tipo).Error; err != nil {
+		return nil, err
+	}
+
+	response := toResponse(tipo)
+
+	return &response, nil
+}

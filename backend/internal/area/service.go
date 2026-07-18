@@ -88,3 +88,50 @@ func (s *Service) UpdateStatus(id uint, activo bool) error {
 
 	return s.db.Save(&area).Error
 }
+
+func (s *Service) Update(id uint, req UpdateRequest) (*Response, error) {
+
+	var area db.Area
+
+	err := s.db.First(&area, id).Error
+
+	if errors.Is(err, gorm.ErrRecordNotFound) {
+		return nil, errors.New("área no encontrada")
+	}
+
+	if err != nil {
+		return nil, err
+	}
+
+	// ==========================
+	// Validar nombre repetido
+	// ==========================
+
+	var existing db.Area
+
+	err = s.db.
+		Where("nombre = ? AND id <> ?", req.Nombre, id).
+		First(&existing).Error
+
+	if err == nil {
+		return nil, errors.New("el área ya existe")
+	}
+
+	if err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
+		return nil, err
+	}
+
+	// ==========================
+	// Actualizar
+	// ==========================
+
+	area.Nombre = req.Nombre
+
+	if err := s.db.Save(&area).Error; err != nil {
+		return nil, err
+	}
+
+	response := toResponse(area)
+
+	return &response, nil
+}
