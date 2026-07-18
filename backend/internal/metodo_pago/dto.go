@@ -8,3 +8,8 @@ type CreateRequest struct {
 type UpdateStatusRequest struct {
 	Activo bool `json:"activo"`
 }
+
+type UpdateRequest struct {
+	Nombre     string `json:"nombre" binding:"required"`
+	TipoPagoID uint   `json:"tipo_pago_id" binding:"required"`
+}

@@ -61,13 +61,47 @@ func (h *Handler) List(c *gin.Context) {
 	c.JSON(http.StatusOK, response)
 }
 
+func (h *Handler) Update(c *gin.Context) {
+
+	id, err := strconv.ParseUint(c.Param("id"), 10, 64)
+
+	if err != nil {
+
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error": "id inválido",
+		})
+
+		return
+	}
+
+	var request UpdateRequest
+
+	if err := c.ShouldBindJSON(&request); err != nil {
+
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error": err.Error(),
+		})
+
+		return
+	}
+
+	response, err := h.service.Update(uint(id), request)
+
+	if err != nil {
+
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error": err.Error(),
+		})
+
+		return
+	}
+
+	c.JSON(http.StatusOK, response)
+}
+
 func (h *Handler) UpdateStatus(c *gin.Context) {
 
-	id, err := strconv.ParseUint(
-		c.Param("id"),
-		10,
-		64,
-	)
+	id, err := strconv.ParseUint(c.Param("id"), 10, 64)
 
 	if err != nil {
 
@@ -89,10 +123,7 @@ func (h *Handler) UpdateStatus(c *gin.Context) {
 		return
 	}
 
-	if err := h.service.UpdateStatus(
-		uint(id),
-		request.Activo,
-	); err != nil {
+	if err := h.service.UpdateStatus(uint(id), request.Activo); err != nil {
 
 		c.JSON(http.StatusBadRequest, gin.H{
 			"error": err.Error(),

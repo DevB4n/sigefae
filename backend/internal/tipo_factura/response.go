@@ -25,6 +25,7 @@ func toResponse(tipoFactura db.TipoFactura) Response {
 	}
 
 	if tipoFactura.Area != nil {
+
 		response.Area = &AreaResponse{
 			ID:     tipoFactura.Area.ID,
 			Nombre: tipoFactura.Area.Nombre,

@@ -2,7 +2,7 @@ package metodo_pago
 
 import (
 	"errors"
-
+	
 	"gorm.io/gorm"
 
 	"sigefae/internal/db"
@@ -120,4 +120,94 @@ func (s *Service) UpdateStatus(id uint, activo bool) error {
 	metodo.Activo = activo
 
 	return s.db.Save(&metodo).Error
+}
+
+func (s *Service) Update(id uint, req UpdateRequest) (*Response, error) {
+
+	var metodo db.MetodoPago
+
+	// ==========================
+	// Buscar método
+	// ==========================
+
+	err := s.db.
+		First(&metodo, id).Error
+
+	if errors.Is(err, gorm.ErrRecordNotFound) {
+		return nil, errors.New("método de pago no encontrado")
+	}
+
+	if err != nil {
+		return nil, err
+	}
+
+	// ==========================
+	// Validar TipoPago
+	// ==========================
+
+	var tipo db.TipoPago
+
+	err = s.db.
+		First(&tipo, req.TipoPagoID).Error
+
+	if errors.Is(err, gorm.ErrRecordNotFound) {
+		return nil, errors.New("el tipo de pago no existe")
+	}
+
+	if err != nil {
+		return nil, err
+	}
+
+	// ==========================
+	// Validar nombre repetido
+	// ==========================
+
+	var existing db.MetodoPago
+
+	err = s.db.
+		Where(
+			"nombre = ? AND tipo_pago_id = ? AND id <> ?",
+			req.Nombre,
+			req.TipoPagoID,
+			id,
+		).
+		First(&existing).Error
+
+	if err == nil {
+		return nil, errors.New("el método de pago ya existe")
+	}
+
+	if err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
+		return nil, err
+	}
+
+	// ==========================
+	// Actualizar
+	// ==========================
+
+	if err := s.db.
+		Model(&db.MetodoPago{}).
+		Where("id = ?", id).
+		Updates(map[string]interface{}{
+			"nombre":        req.Nombre,
+			"tipo_pago_id":  req.TipoPagoID,
+		}).Error; err != nil {
+
+		return nil, err
+	}
+
+	// ==========================
+	// Recargar con relaciones
+	// ==========================
+
+	if err := s.db.
+		Preload("TipoPago").
+		First(&metodo, id).Error; err != nil {
+
+		return nil, err
+	}
+
+	response := toResponse(metodo)
+
+	return &response, nil
 }

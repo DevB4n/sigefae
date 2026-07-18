@@ -137,6 +137,7 @@ func New(database *gorm.DB) *gin.Engine {
 
 			admin.POST("/metodos-pago", metodoPagoHandler.Create)
 			admin.GET("/metodos-pago", metodoPagoHandler.List)
+			admin.PATCH("/metodos-pago/:id", metodoPagoHandler.Update)
 			admin.PATCH("/metodos-pago/:id/activo", metodoPagoHandler.UpdateStatus)
 
 			// ==========================
@@ -154,6 +155,7 @@ func New(database *gorm.DB) *gin.Engine {
 					
 			admin.POST("/tipos-factura", tipoFacturaHandler.Create)
 			admin.GET("/tipos-factura", tipoFacturaHandler.List)
+			admin.PUT("/tipos-factura/:id", tipoFacturaHandler.Update)
 			admin.PATCH("/tipos-factura/:id/activo", tipoFacturaHandler.UpdateStatus)
 
 			// ==========================

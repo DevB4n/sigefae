@@ -5,6 +5,11 @@ type CreateRequest struct {
 	Nombre string `json:"nombre" binding:"required"`
 }
 
+type UpdateRequest struct {
+	AreaID uint   `json:"area_id" binding:"required"`
+	Nombre string `json:"nombre" binding:"required"`
+}
+
 type UpdateStatusRequest struct {
 	Activo bool `json:"activo"`
 }
