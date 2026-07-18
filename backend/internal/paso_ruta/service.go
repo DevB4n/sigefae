@@ -148,3 +148,106 @@ func (s *Service) UpdateStatus(id uint, activo bool) error {
 
 	return s.db.Save(&paso).Error
 }
+func (s *Service) Update(id uint, req UpdateRequest) (*Response, error) {
+
+	// ==========================
+	// Buscar paso (SIN PRELOAD)
+	// ==========================
+
+	var paso db.PasoRuta
+
+	err := s.db.First(&paso, id).Error
+
+	if errors.Is(err, gorm.ErrRecordNotFound) {
+		return nil, errors.New("paso no encontrado")
+	}
+
+	if err != nil {
+		return nil, err
+	}
+
+	// ==========================
+	// Validar Ruta
+	// ==========================
+
+	var ruta db.Ruta
+
+	err = s.db.First(&ruta, req.RutaID).Error
+
+	if errors.Is(err, gorm.ErrRecordNotFound) {
+		return nil, errors.New("la ruta no existe")
+	}
+
+	if err != nil {
+		return nil, err
+	}
+
+	// ==========================
+	// Validar Usuario
+	// ==========================
+
+	var usuario db.Usuario
+
+	err = s.db.First(&usuario, req.UsuarioID).Error
+
+	if errors.Is(err, gorm.ErrRecordNotFound) {
+		return nil, errors.New("el usuario no existe")
+	}
+
+	if err != nil {
+		return nil, err
+	}
+
+	// ==========================
+	// Validar orden repetido
+	// ==========================
+
+	var existing db.PasoRuta
+
+	err = s.db.
+		Where(
+			"ruta_id = ? AND orden = ? AND id <> ?",
+			req.RutaID,
+			req.Orden,
+			id,
+		).
+		First(&existing).Error
+
+	if err == nil {
+		return nil, errors.New("ya existe un paso con ese orden en la ruta")
+	}
+
+	if err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
+		return nil, err
+	}
+
+	// ==========================
+	// Actualizar
+	// ==========================
+
+	if err := s.db.Model(&paso).Updates(map[string]interface{}{
+		"ruta_id":    req.RutaID,
+		"orden":      req.Orden,
+		"nombre":     req.Nombre,
+		"usuario_id": req.UsuarioID,
+	}).Error; err != nil {
+
+		return nil, err
+	}
+
+	// ==========================
+	// Recargar relaciones
+	// ==========================
+
+	if err := s.db.
+		Preload("Ruta").
+		Preload("Usuario").
+		First(&paso, paso.ID).Error; err != nil {
+
+		return nil, err
+	}
+
+	response := toResponse(paso)
+
+	return &response, nil
+}

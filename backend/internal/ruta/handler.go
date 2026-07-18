@@ -4,6 +4,7 @@ import (
 	"net/http"
 	"strconv"
 
+
 	"github.com/gin-gonic/gin"
 )
 
@@ -104,4 +105,34 @@ func (h *Handler) UpdateStatus(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{
 		"message": "estado actualizado correctamente",
 	})
+}
+func (h *Handler) Update(c *gin.Context) {
+
+	id, err := strconv.ParseUint(c.Param("id"), 10, 64)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error": "id inválido",
+		})
+		return
+	}
+
+	var request UpdateRequest
+
+	if err := c.ShouldBindJSON(&request); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error": err.Error(),
+		})
+		return
+	}
+
+
+	response, err := h.service.Update(uint(id), request)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error": err.Error(),
+		})
+		return
+	}
+
+	c.JSON(http.StatusOK, response)
 }

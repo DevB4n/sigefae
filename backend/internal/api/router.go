@@ -164,6 +164,7 @@ func New(database *gorm.DB) *gin.Engine {
 					
 			admin.POST("/rutas", rutaHandler.Create)
 			admin.GET("/rutas", rutaHandler.List)
+			admin.PUT("/rutas/:id", rutaHandler.Update)
 			admin.PATCH("/rutas/:id/activo", rutaHandler.UpdateStatus)
 
 			// ==========================
@@ -172,6 +173,7 @@ func New(database *gorm.DB) *gin.Engine {
 			
 			admin.POST("/pasos-ruta", pasoRutaHandler.Create)
 			admin.GET("/pasos-ruta", pasoRutaHandler.List)
+			admin.PUT("/pasos-ruta/:id", pasoRutaHandler.Update)
 			admin.PATCH("/pasos-ruta/:id/activo", pasoRutaHandler.UpdateStatus)
 		}
 	}

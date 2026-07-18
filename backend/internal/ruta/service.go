@@ -2,6 +2,7 @@ package ruta
 
 import (
 	"errors"
+	
 
 	"gorm.io/gorm"
 
@@ -108,4 +109,93 @@ func (s *Service) UpdateStatus(id uint, activo bool) error {
 	ruta.Activo = activo
 
 	return s.db.Save(&ruta).Error
+}
+func (s *Service) Update(id uint, req UpdateRequest) (*Response, error) {
+
+	var ruta db.Ruta
+
+	// ==========================
+	// Validar que exista la ruta
+	// ==========================
+
+	err := s.db.First(&ruta, id).Error
+
+	if errors.Is(err, gorm.ErrRecordNotFound) {
+		return nil, errors.New("ruta no encontrada")
+	}
+
+	if err != nil {
+		return nil, err
+	}
+
+	// ==========================
+	// Validar área
+	// ==========================
+
+	var area db.Area
+
+	err = s.db.First(&area, req.AreaID).Error
+
+	if errors.Is(err, gorm.ErrRecordNotFound) {
+		return nil, errors.New("el área no existe")
+	}
+
+	if err != nil {
+		return nil, err
+	}
+
+	// ==========================
+	// Validar nombre repetido
+	// ==========================
+
+	var existing db.Ruta
+
+	err = s.db.
+		Where(
+			"nombre = ? AND area_id = ? AND id <> ?",
+			req.Nombre,
+			req.AreaID,
+			id,
+		).
+		First(&existing).Error
+
+	if err == nil {
+		return nil, errors.New("la ruta ya existe para esta área")
+	}
+
+	if err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
+		return nil, err
+	}
+
+	// ==========================
+	// Actualizar
+	// ==========================
+
+	err = s.db.
+		Model(&db.Ruta{}).
+		Where("id = ?", id).
+		Updates(map[string]interface{}{
+			"nombre":  req.Nombre,
+			"area_id": req.AreaID,
+		}).Error
+
+	if err != nil {
+		return nil, err
+	}
+
+	// ==========================
+	// Obtener actualizado
+	// ==========================
+
+	err = s.db.
+		Preload("Area").
+		First(&ruta, id).Error
+
+	if err != nil {
+		return nil, err
+	}
+
+	response := toResponse(ruta)
+
+	return &response, nil
 }
