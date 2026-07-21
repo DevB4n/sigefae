@@ -113,6 +113,8 @@ type Pais struct {
 	ID     uint   `gorm:"primaryKey;column:id" json:"id"`
 	Nombre string `gorm:"column:nombre;type:varchar(255)" json:"nombre"`
 	Codigo string `gorm:"column:codigo;type:varchar(20)" json:"codigo"`
+	Activo  bool   `gorm:"column:activo;default:true" json:"activo"`
+
 }
 
 func (Pais) TableName() string { return "pais" }
