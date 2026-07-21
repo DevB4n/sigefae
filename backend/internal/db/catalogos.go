@@ -22,6 +22,7 @@ func (TipoPago) TableName() string { return "tipo_pago" }
 type TipoRadicacion struct {
 	ID     uint   `gorm:"primaryKey;column:id" json:"id"`
 	Nombre string `gorm:"column:nombre;type:varchar(255)" json:"nombre"`
+	Activo  bool   `gorm:"column:activo;default:true" json:"activo"`
 }
 
 func (TipoRadicacion) TableName() string { return "tipo_radicacion" }
@@ -44,6 +45,7 @@ func (ArchivoOrigen) TableName() string { return "archivo_origen" }
 type EstadoDocumentoRadicado struct {
 	ID     uint   `gorm:"primaryKey;column:id" json:"id"`
 	Nombre string `gorm:"column:nombre;type:varchar(255)" json:"nombre"`
+	Activo  bool   `gorm:"column:activo;default:true" json:"activo"`
 }
 
 func (EstadoDocumentoRadicado) TableName() string { return "estado_documento_radicado" }

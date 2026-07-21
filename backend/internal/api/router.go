@@ -30,6 +30,7 @@ import (
 	"sigefae/internal/responsabilidad_fiscal"
 	"sigefae/internal/receptor"
 	"sigefae/internal/estado_correo"
+	"sigefae/internal/estado_documento_radicado"
 )
 
 func New(database *gorm.DB) *gin.Engine {
@@ -119,6 +120,9 @@ func New(database *gorm.DB) *gin.Engine {
 
 	estadoCorreoService := estado_correo.New(database)
 	estadoCorreoHandler := estado_correo.NewHandler(estadoCorreoService)
+
+	estadoDocumentoRadicadoService := estado_documento_radicado.New(database)
+	estadoDocumentoRadicadoHandler := estado_documento_radicado.NewHandler(estadoDocumentoRadicadoService)
 	
 	api := router.Group("/api")
 	{
@@ -351,11 +355,20 @@ func New(database *gorm.DB) *gin.Engine {
 			// =========================
 			// Estado Correo
 			// =========================
-					
+
 			admin.POST("/estado-correo", estadoCorreoHandler.Create)
 			admin.GET("/estado-correo", estadoCorreoHandler.List)
 			admin.PUT("/estado-correo/:id", estadoCorreoHandler.Update)
 			admin.PATCH("/estado-correo/:id/activo", estadoCorreoHandler.UpdateStatus)
+
+			// =========================
+			// Estado Documento Radicado
+			// =========================
+
+			admin.POST("/estado-documento-radicado", estadoDocumentoRadicadoHandler.Create)
+			admin.GET("/estado-documento-radicado", estadoDocumentoRadicadoHandler.List)
+			admin.PUT("/estado-documento-radicado/:id", estadoDocumentoRadicadoHandler.Update)
+			admin.PATCH("/estado-documento-radicado/:id/activo", estadoDocumentoRadicadoHandler.UpdateStatus)
 		
 		}
 	}
