@@ -26,6 +26,7 @@ type Proveedor struct {
 	Contactos            []Contacto               `gorm:"foreignKey:ProveedorID" json:"contactos,omitempty"`
 	Responsabilidades    []ResponsabilidadFiscal  `gorm:"foreignKey:IDProveedor" json:"responsabilidades,omitempty"`
 	DocumentosComerciales []DocumentoComercial    `gorm:"foreignKey:IDProveedor" json:"documentos_comerciales,omitempty"`
+	Activo 				 bool 					  `gorm:"column:activo;default:true" json:"activo"`
 	CreatedAt            time.Time                `gorm:"column:created_at" json:"created_at"`
 	UpdatedAt            time.Time                `gorm:"column:updated_at" json:"updated_at"`
 }

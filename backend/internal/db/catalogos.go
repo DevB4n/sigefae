@@ -90,6 +90,7 @@ func (TipoDocumento) TableName() string { return "tipo_documento" }
 type TipoPersona struct {
 	ID     uint   `gorm:"primaryKey;column:id" json:"id"`
 	Nombre string `gorm:"column:nombre;type:varchar(255)" json:"nombre"`
+	Activo      bool   `gorm:"column:activo" json:"activo"`
 }
 
 func (TipoPersona) TableName() string { return "tipo_persona" }

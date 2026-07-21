@@ -25,6 +25,8 @@ import (
 	"sigefae/internal/contacto"
 	"sigefae/internal/tipo_documento"
 	"sigefae/internal/categoria_proveedor"
+	"sigefae/internal/tipo_persona"
+	"sigefae/internal/proveedor"
 )
 
 func New(database *gorm.DB) *gin.Engine {
@@ -96,6 +98,12 @@ func New(database *gorm.DB) *gin.Engine {
 	
 	categoriaProveedorService := categoria_proveedor.New(database)
 	categoriaProveedorHandler := categoria_proveedor.NewHandler(categoriaProveedorService)
+
+	tipoPersonaService := tipo_persona.New(database)
+	tipoPersonaHandler := tipo_persona.NewHandler(tipoPersonaService)
+
+	proveedorService := proveedor.New(database)
+	proveedorHandler := proveedor.NewHandler(proveedorService)
 
 	contactoService := contacto.New(database)
 	contactoHandler := contacto.NewHandler(contactoService)
@@ -276,15 +284,6 @@ func New(database *gorm.DB) *gin.Engine {
 			admin.PATCH("/tipo-documento/:id/activo", tipoDocumentoHandler.UpdateStatus)
 
 			// =========================
-			//	Contacto
-			// =========================
-
-			admin.POST("/contacto", contactoHandler.Create)
-			admin.GET("/contacto", contactoHandler.List)
-			admin.PUT("/contacto/:id", contactoHandler.Update)
-			admin.PATCH("/contacto/:id/activo", contactoHandler.UpdateStatus)
-
-			// =========================
 			// Categoria_proveedor
 			// =========================
 
@@ -292,6 +291,34 @@ func New(database *gorm.DB) *gin.Engine {
 			admin.GET("/categoria-proveedor", categoriaProveedorHandler.List)
 			admin.PUT("/categoria-proveedor/:id", categoriaProveedorHandler.Update)
 			admin.PATCH("/categoria-proveedor/:id/activo", categoriaProveedorHandler.UpdateStatus)
+
+			// =========================
+			// Tipo Persona
+			// =========================
+
+			admin.POST("/tipo-persona", tipoPersonaHandler.Create)
+			admin.GET("/tipo-persona", tipoPersonaHandler.List)
+			admin.PUT("/tipo-persona/:id", tipoPersonaHandler.Update)
+			admin.PATCH("/tipo-persona/:id/activo", tipoPersonaHandler.UpdateStatus)
+
+			// =========================
+			// Proveedor
+			// =========================
+
+			admin.POST("/proveedor", proveedorHandler.Create)
+			admin.GET("/proveedor", proveedorHandler.List)
+			admin.PUT("/proveedor/:id", proveedorHandler.Update)
+			admin.PATCH("/proveedor/:id/activo", proveedorHandler.UpdateStatus)
+
+			// =========================
+			//	Contacto
+			// =========================
+
+			admin.POST("/contacto", contactoHandler.Create)
+			admin.GET("/contacto", contactoHandler.List)
+			admin.PUT("/contacto/:id", contactoHandler.Update)
+			admin.PATCH("/contacto/:id/activo", contactoHandler.UpdateStatus)
+		
 		}
 	}
 
