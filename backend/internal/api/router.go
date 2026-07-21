@@ -23,6 +23,8 @@ import (
 	"sigefae/internal/direccion"
 	"sigefae/internal/actividad_economica"
 	"sigefae/internal/contacto"
+	"sigefae/internal/tipo_documento"
+	"sigefae/internal/categoria_proveedor"
 )
 
 func New(database *gorm.DB) *gin.Engine {
@@ -89,9 +91,16 @@ func New(database *gorm.DB) *gin.Engine {
 	actividadEconomicaService := actividad_economica.New(database)
 	actividadEconomicaHandler := actividad_economica.NewHandler(actividadEconomicaService)
 
+	tipoDocumentoService := tipo_documento.New(database)
+	tipoDocumentoHandler := tipo_documento.NewHandler(tipoDocumentoService)
+	
+	categoriaProveedorService := categoria_proveedor.New(database)
+	categoriaProveedorHandler := categoria_proveedor.NewHandler(categoriaProveedorService)
+
 	contactoService := contacto.New(database)
 	contactoHandler := contacto.NewHandler(contactoService)
 
+	
 	api := router.Group("/api")
 	{
 		api.POST("/auth/login", authHandler.Login)
@@ -258,6 +267,15 @@ func New(database *gorm.DB) *gin.Engine {
 			admin.PATCH("/actividad-economica/:id/activo", actividadEconomicaHandler.UpdateStatus)
 
 			// =========================
+			//	Tipo_documento
+			// =========================
+
+			admin.POST("/tipo-documento", tipoDocumentoHandler.Create)
+			admin.GET("/tipo-documento", tipoDocumentoHandler.List)
+			admin.PUT("/tipo-documento/:id", tipoDocumentoHandler.Update)
+			admin.PATCH("/tipo-documento/:id/activo", tipoDocumentoHandler.UpdateStatus)
+
+			// =========================
 			//	Contacto
 			// =========================
 
@@ -265,6 +283,15 @@ func New(database *gorm.DB) *gin.Engine {
 			admin.GET("/contacto", contactoHandler.List)
 			admin.PUT("/contacto/:id", contactoHandler.Update)
 			admin.PATCH("/contacto/:id/activo", contactoHandler.UpdateStatus)
+
+			// =========================
+			// Categoria_proveedor
+			// =========================
+
+			admin.POST("/categoria-proveedor", categoriaProveedorHandler.Create)
+			admin.GET("/categoria-proveedor", categoriaProveedorHandler.List)
+			admin.PUT("/categoria-proveedor/:id", categoriaProveedorHandler.Update)
+			admin.PATCH("/categoria-proveedor/:id/activo", categoriaProveedorHandler.UpdateStatus)
 		}
 	}
 

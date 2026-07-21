@@ -98,6 +98,7 @@ type CategoriaProveedor struct {
 	ID          uint   `gorm:"primaryKey;column:id" json:"id"`
 	Nombre      string `gorm:"column:nombre;type:varchar(255)" json:"nombre"`
 	Descripcion string `gorm:"column:descripcion;type:varchar(500)" json:"descripcion"`
+	Activo      bool   `gorm:"column:activo" json:"activo"`
 }
 
 func (CategoriaProveedor) TableName() string { return "categoria_proveedor" }
