@@ -49,6 +49,7 @@ type Contacto struct {
 	Cargo       string     `gorm:"column:cargo;type:varchar(255)" json:"cargo"`
 	Telefono    string     `gorm:"column:telefono;type:varchar(50)" json:"telefono"`
 	Correo      string     `gorm:"column:correo;type:varchar(255)" json:"correo"`
+	Activo      bool       `gorm:"column:activo;default:true" json:"activo"`
 }
 
 func (Contacto) TableName() string { return "contacto" }

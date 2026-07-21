@@ -80,8 +80,9 @@ type Origen struct {
 func (Origen) TableName() string { return "origen" }
 
 type TipoDocumento struct {
-	ID     uint   `gorm:"primaryKey;column:id" json:"id"`
-	Nombre string `gorm:"column:nombre;type:varchar(255)" json:"nombre"`
+	ID      uint   `gorm:"primaryKey;column:id" json:"id"`
+	Nombre  string `gorm:"column:nombre;type:varchar(255)" json:"nombre"`
+	Activo  bool   `gorm:"column:activo;default:true" json:"activo"`
 }
 
 func (TipoDocumento) TableName() string { return "tipo_documento" }
@@ -102,9 +103,10 @@ type CategoriaProveedor struct {
 func (CategoriaProveedor) TableName() string { return "categoria_proveedor" }
 
 type ActividadEconomica struct {
-	ID     uint   `gorm:"primaryKey;column:id" json:"id"`
-	Nombre string `gorm:"column:nombre;type:varchar(255)" json:"nombre"`
-	Codigo string `gorm:"column:codigo" json:"codigo"`
+	ID      uint   `gorm:"primaryKey;column:id" json:"id"`
+	Nombre  string `gorm:"column:nombre;type:varchar(255)" json:"nombre"`
+	Codigo  string `gorm:"column:codigo;type:varchar(20)" json:"codigo"`
+	Activo  bool   `gorm:"column:activo;default:true" json:"activo"`
 }
 
 func (ActividadEconomica) TableName() string { return "actividad_economica" }

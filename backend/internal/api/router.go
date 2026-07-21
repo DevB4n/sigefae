@@ -20,6 +20,9 @@ import (
 	"sigefae/internal/user"
 	"sigefae/internal/departamento"
 	"sigefae/internal/municipio"
+	"sigefae/internal/direccion"
+	"sigefae/internal/actividad_economica"
+	"sigefae/internal/contacto"
 )
 
 func New(database *gorm.DB) *gin.Engine {
@@ -79,6 +82,15 @@ func New(database *gorm.DB) *gin.Engine {
 
 	municipioService := municipio.New(database)
 	municipioHandler := municipio.NewHandler(municipioService)
+
+	direccionService := direccion.New(database)
+	direccionHandler := direccion.NewHandler(direccionService)
+
+	actividadEconomicaService := actividad_economica.New(database)
+	actividadEconomicaHandler := actividad_economica.NewHandler(actividadEconomicaService)
+
+	contactoService := contacto.New(database)
+	contactoHandler := contacto.NewHandler(contactoService)
 
 	api := router.Group("/api")
 	{
@@ -225,6 +237,34 @@ func New(database *gorm.DB) *gin.Engine {
 			admin.GET("/municipio", municipioHandler.List)
 			admin.PUT("/municipio/:id", municipioHandler.Update)
 			admin.PATCH("/municipio/:id/activo", municipioHandler.UpdateStatus)
+
+			// =========================
+			//	Direccion
+			// =========================
+
+			admin.POST("/direccion", direccionHandler.Create)
+			admin.GET("/direccion", direccionHandler.List)
+			admin.PUT("/direccion/:id", direccionHandler.Update)
+			admin.PATCH("/direccion/:id/activo", direccionHandler.UpdateStatus)
+
+			// =========================
+			//	Actividad_Economica
+			// =========================
+
+
+			admin.POST("/actividad-economica", actividadEconomicaHandler.Create)
+			admin.GET("/actividad-economica", actividadEconomicaHandler.List)
+			admin.PUT("/actividad-economica/:id", actividadEconomicaHandler.Update)
+			admin.PATCH("/actividad-economica/:id/activo", actividadEconomicaHandler.UpdateStatus)
+
+			// =========================
+			//	Contacto
+			// =========================
+
+			admin.POST("/contacto", contactoHandler.Create)
+			admin.GET("/contacto", contactoHandler.List)
+			admin.PUT("/contacto/:id", contactoHandler.Update)
+			admin.PATCH("/contacto/:id/activo", contactoHandler.UpdateStatus)
 		}
 	}
 
