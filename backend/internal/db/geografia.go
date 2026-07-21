@@ -34,6 +34,8 @@ type Direccion struct {
 	CodigoPostal string     `gorm:"column:codigo_postal;type:varchar(20)" json:"codigo_postal"`
 	IDMunicipio  uint       `gorm:"column:id_municipio;index:idx_direccion_municipio_id" json:"id_municipio"`
 	Municipio    *Municipio `gorm:"foreignKey:IDMunicipio;references:ID" json:"municipio,omitempty"`
+	Activo       bool       `gorm:"column:activo;default:true" json:"activo"`
+
 }
 
 func (Direccion) TableName() string { return "direccion" }

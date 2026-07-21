@@ -18,6 +18,8 @@ import (
 	"sigefae/internal/tipo_factura"
 	"sigefae/internal/tipo_pago"
 	"sigefae/internal/user"
+	"sigefae/internal/departamento"
+	"sigefae/internal/municipio"
 )
 
 func New(database *gorm.DB) *gin.Engine {
@@ -72,14 +74,20 @@ func New(database *gorm.DB) *gin.Engine {
 	paisService := pais.New(database)
 	paisHandler := pais.NewHandler(paisService)
 
+	departamentoService := departamento.New(database)
+	departamentoHandler := departamento.NewHandler(departamentoService)
+
+	municipioService := municipio.New(database)
+	municipioHandler := municipio.NewHandler(municipioService)
+
 	api := router.Group("/api")
 	{
 		api.POST("/auth/login", authHandler.Login)
 	}
 
-	// ==========================
+	// =========================
 	// Rutas protegidas
-	// ==========================
+	// =========================
 
 	protected := router.Group("/api")
 	protected.Use(auth.Middleware(database))
@@ -100,18 +108,18 @@ func New(database *gorm.DB) *gin.Engine {
 
 		})
 
-		// ==========================
+		// =========================
 		// Solo Superadministrador
-		// ==========================
+		// =========================
 
 		admin := protected.Group("")
 		admin.Use(auth.RequireRole("Superadministrador"))
 
 		{
 
-			// ==========================
+			// =========================
 			// Usuarios
-			// ==========================
+			// =========================
 
 			admin.POST("/usuarios", userHandler.Create)
 			admin.GET("/usuarios", userHandler.List)
@@ -120,85 +128,103 @@ func New(database *gorm.DB) *gin.Engine {
 			admin.PATCH("/usuarios/:id/activo", userHandler.UpdateStatus)
 			admin.PATCH("/usuarios/:id/password", userHandler.UpdatePassword)
 
-			// ==========================
+			// =========================
 			// Roles
-			// ==========================
+			// =========================
 
 			admin.POST("/roles", roleHandler.Create)
 			admin.GET("/roles", roleHandler.List)
 			admin.PATCH("/roles/:id", roleHandler.Update)
 			admin.PATCH("/roles/:id/activo", roleHandler.UpdateStatus)
 
-			// ==========================/pasos-ruta/:id/activo
+			// =========================/pasos-ruta/:id/activo
 			// Tipos de Pago
-			// ==========================
+			// =========================
 			admin.POST("/tipos-pago", tipoPagoHandler.Create)
 			admin.GET("/tipos-pago", tipoPagoHandler.List)
 			admin.PATCH("/tipos-pago/:id", tipoPagoHandler.Update)
 			admin.PATCH("/tipos-pago/:id/activo", tipoPagoHandler.UpdateStatus)
 
-			// ==========================
+			// =========================
 			// Métodos de Pago
-			// ==========================
+			// =========================
 
 			admin.POST("/metodos-pago", metodoPagoHandler.Create)
 			admin.GET("/metodos-pago", metodoPagoHandler.List)
 			admin.PATCH("/metodos-pago/:id", metodoPagoHandler.Update)
 			admin.PATCH("/metodos-pago/:id/activo", metodoPagoHandler.UpdateStatus)
 
-			// ==========================
+			// =========================
 			// Áreas
-			// ==========================
+			// =========================
 
 			admin.POST("/areas", areaHandler.Create)
 			admin.GET("/areas", areaHandler.List)
 			admin.PATCH("/areas/:id/activo", areaHandler.UpdateStatus)
 			admin.PATCH("/areas/:id", areaHandler.Update)
 
-			// ==========================
+			// =========================
 			// Tipos de Factura
-			// ==========================
+			// =========================
 
 			admin.POST("/tipos-factura", tipoFacturaHandler.Create)
 			admin.GET("/tipos-factura", tipoFacturaHandler.List)
 			admin.PUT("/tipos-factura/:id", tipoFacturaHandler.Update)
 			admin.PATCH("/tipos-factura/:id/activo", tipoFacturaHandler.UpdateStatus)
 
-			// ==========================
+			// =========================
 			// Rutas
-			// ==========================
+			// =========================
 
 			admin.POST("/rutas", rutaHandler.Create)
 			admin.GET("/rutas", rutaHandler.List)
 			admin.PUT("/rutas/:id", rutaHandler.Update)
 			admin.PATCH("/rutas/:id/activo", rutaHandler.UpdateStatus)
 
-			// ==========================
+			// =========================
 			// Pasos de Ruta
-			// ==========================
+			// =========================
 
 			admin.POST("/pasos-ruta", pasoRutaHandler.Create)
 			admin.GET("/pasos-ruta", pasoRutaHandler.List)
 			admin.PUT("/pasos-ruta/:id", pasoRutaHandler.Update)
 			admin.PATCH("/pasos-ruta/:id/activo", pasoRutaHandler.UpdateStatus)
 
-			// ==========================
+			// =========================
 			// Moneda
-			// ==========================
+			// =========================
 
 			admin.POST("/moneda", monedaHandler.Create)
 			admin.GET("/moneda", monedaHandler.List)
 			admin.PUT("/moneda/:id", monedaHandler.Update)
 			admin.PATCH("/moneda/:id/activo", monedaHandler.UpdateStatus)
 
-			//===========================
-			//pais
-			//===========================
+			// =========================
+			// Pais
+			// =========================
 
 			admin.POST("/pais", paisHandler.Create)
 			admin.GET("/pais", paisHandler.List)
 			admin.PUT("/pais/:id", paisHandler.Update)
 			admin.PATCH("/pais/:id/activo", paisHandler.UpdateStatus)
+
+			// =========================
+			// Departamento
+			// =========================
+
+			admin.POST("/departamento", departamentoHandler.Create)
+			admin.GET("/departamento", departamentoHandler.List)
+			admin.PUT("/departamento/:id", departamentoHandler.Update)
+			admin.PATCH("/departamento/:id/activo", departamentoHandler.UpdateStatus)
+
+			// =========================
+			//	Municipio
+			// =========================
+
+			admin.POST("/municipio", municipioHandler.Create)
+			admin.GET("/municipio", municipioHandler.List)
+			admin.PUT("/municipio/:id", municipioHandler.Update)
+			admin.PATCH("/municipio/:id/activo", municipioHandler.UpdateStatus)
 		}
 	}
 
