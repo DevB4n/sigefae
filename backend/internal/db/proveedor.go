@@ -38,6 +38,7 @@ type ResponsabilidadFiscal struct {
 	IDProveedor uint       `gorm:"column:id_proveedor;index:idx_responsabilidad_proveedor_id" json:"id_proveedor"`
 	Proveedor   *Proveedor `gorm:"foreignKey:IDProveedor;references:ID" json:"proveedor,omitempty"`
 	Codigo      string     `gorm:"column:codigo;type:varchar(50);index:idx_responsabilidad_codigo" json:"codigo"`
+	Activo      bool       `gorm:"column:activo;default:true" json:"activo"`
 }
 
 func (ResponsabilidadFiscal) TableName() string { return "responsabilidad_fiscal" }

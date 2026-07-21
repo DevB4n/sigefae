@@ -27,6 +27,9 @@ import (
 	"sigefae/internal/categoria_proveedor"
 	"sigefae/internal/tipo_persona"
 	"sigefae/internal/proveedor"
+	"sigefae/internal/responsabilidad_fiscal"
+	"sigefae/internal/receptor"
+	"sigefae/internal/estado_correo"
 )
 
 func New(database *gorm.DB) *gin.Engine {
@@ -108,6 +111,14 @@ func New(database *gorm.DB) *gin.Engine {
 	contactoService := contacto.New(database)
 	contactoHandler := contacto.NewHandler(contactoService)
 
+	responsabilidadFiscalService := responsabilidad_fiscal.New(database)
+	responsabilidadFiscalHandler := responsabilidad_fiscal.NewHandler(responsabilidadFiscalService)
+
+	receptorService := receptor.New(database)
+	receptorHandler := receptor.NewHandler(receptorService)
+
+	estadoCorreoService := estado_correo.New(database)
+	estadoCorreoHandler := estado_correo.NewHandler(estadoCorreoService)
 	
 	api := router.Group("/api")
 	{
@@ -318,6 +329,33 @@ func New(database *gorm.DB) *gin.Engine {
 			admin.GET("/contacto", contactoHandler.List)
 			admin.PUT("/contacto/:id", contactoHandler.Update)
 			admin.PATCH("/contacto/:id/activo", contactoHandler.UpdateStatus)
+
+			// =========================
+			// Responsabilidad Fiscal
+			// =========================
+
+			admin.POST("/responsabilidad-fiscal", responsabilidadFiscalHandler.Create)
+			admin.GET("/responsabilidad-fiscal", responsabilidadFiscalHandler.List)
+			admin.PUT("/responsabilidad-fiscal/:id", responsabilidadFiscalHandler.Update)
+			admin.PATCH("/responsabilidad-fiscal/:id/activo", responsabilidadFiscalHandler.UpdateStatus)
+
+			// =========================
+			// Receptor
+			// =========================
+
+			admin.POST("/receptor", receptorHandler.Create)
+			admin.GET("/receptor", receptorHandler.List)
+			admin.PUT("/receptor/:id", receptorHandler.Update)
+			admin.PATCH("/receptor/:id/activo", receptorHandler.UpdateStatus)
+
+			// =========================
+			// Estado Correo
+			// =========================
+					
+			admin.POST("/estado-correo", estadoCorreoHandler.Create)
+			admin.GET("/estado-correo", estadoCorreoHandler.List)
+			admin.PUT("/estado-correo/:id", estadoCorreoHandler.Update)
+			admin.PATCH("/estado-correo/:id/activo", estadoCorreoHandler.UpdateStatus)
 		
 		}
 	}

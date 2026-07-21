@@ -29,6 +29,7 @@ func (TipoRadicacion) TableName() string { return "tipo_radicacion" }
 type EstadoCorreo struct {
 	ID     uint   `gorm:"primaryKey;column:id" json:"id"`
 	Nombre string `gorm:"column:nombre;type:varchar(255)" json:"nombre"`
+	Activo  bool   `gorm:"column:activo;default:true" json:"activo"`
 }
 
 func (EstadoCorreo) TableName() string { return "estado_correo" }
