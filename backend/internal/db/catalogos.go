@@ -59,6 +59,7 @@ type Moneda struct {
 	ID     uint   `gorm:"primaryKey;column:id" json:"id"`
 	Nombre string `gorm:"column:nombre;type:varchar(255)" json:"nombre"`
 	Codigo string `gorm:"column:codigo;type:varchar(50)" json:"codigo"`
+	Activo bool `gorm:"column:activo;default:true" json:"activo"`
 }
 
 func (Moneda) TableName() string { return "moneda" }

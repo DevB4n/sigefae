@@ -6,16 +6,18 @@ import (
 	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
 
-	"sigefae/internal/user"
-	"sigefae/internal/db"
-	"sigefae/internal/auth"
-	"sigefae/internal/role"
-	"sigefae/internal/tipo_pago"
-	"sigefae/internal/metodo_pago"
 	"sigefae/internal/area"
-	"sigefae/internal/tipo_factura"
-	"sigefae/internal/ruta"
+	"sigefae/internal/auth"
+	"sigefae/internal/db"
+	"sigefae/internal/metodo_pago"
+	"sigefae/internal/moneda"
+	"sigefae/internal/pais"
 	"sigefae/internal/paso_ruta"
+	"sigefae/internal/role"
+	"sigefae/internal/ruta"
+	"sigefae/internal/tipo_factura"
+	"sigefae/internal/tipo_pago"
+	"sigefae/internal/user"
 )
 
 func New(database *gorm.DB) *gin.Engine {
@@ -64,6 +66,12 @@ func New(database *gorm.DB) *gin.Engine {
 	pasoRutaService := paso_ruta.New(database)
 	pasoRutaHandler := paso_ruta.NewHandler(pasoRutaService)
 
+	monedaService := moneda.New(database)
+	monedaHandler := moneda.NewHandler(monedaService)
+
+	paisService := pais.New(database)
+	paisHandler := pais.NewHandler(paisService)
+
 	api := router.Group("/api")
 	{
 		api.POST("/auth/login", authHandler.Login)
@@ -100,28 +108,26 @@ func New(database *gorm.DB) *gin.Engine {
 		admin.Use(auth.RequireRole("Superadministrador"))
 
 		{
-			
 
 			// ==========================
 			// Usuarios
 			// ==========================
-			
+
 			admin.POST("/usuarios", userHandler.Create)
 			admin.GET("/usuarios", userHandler.List)
 			admin.GET("/usuarios/:id", userHandler.GetByID)
 			admin.PUT("/usuarios/:id", userHandler.Update)
 			admin.PATCH("/usuarios/:id/activo", userHandler.UpdateStatus)
 			admin.PATCH("/usuarios/:id/password", userHandler.UpdatePassword)
-			
+
 			// ==========================
 			// Roles
 			// ==========================
-			
+
 			admin.POST("/roles", roleHandler.Create)
 			admin.GET("/roles", roleHandler.List)
 			admin.PATCH("/roles/:id", roleHandler.Update)
 			admin.PATCH("/roles/:id/activo", roleHandler.UpdateStatus)
-
 
 			// ==========================/pasos-ruta/:id/activo
 			// Tipos de Pago
@@ -143,7 +149,7 @@ func New(database *gorm.DB) *gin.Engine {
 			// ==========================
 			// Áreas
 			// ==========================
-				
+
 			admin.POST("/areas", areaHandler.Create)
 			admin.GET("/areas", areaHandler.List)
 			admin.PATCH("/areas/:id/activo", areaHandler.UpdateStatus)
@@ -152,7 +158,7 @@ func New(database *gorm.DB) *gin.Engine {
 			// ==========================
 			// Tipos de Factura
 			// ==========================
-					
+
 			admin.POST("/tipos-factura", tipoFacturaHandler.Create)
 			admin.GET("/tipos-factura", tipoFacturaHandler.List)
 			admin.PUT("/tipos-factura/:id", tipoFacturaHandler.Update)
@@ -161,7 +167,7 @@ func New(database *gorm.DB) *gin.Engine {
 			// ==========================
 			// Rutas
 			// ==========================
-					
+
 			admin.POST("/rutas", rutaHandler.Create)
 			admin.GET("/rutas", rutaHandler.List)
 			admin.PUT("/rutas/:id", rutaHandler.Update)
@@ -170,11 +176,29 @@ func New(database *gorm.DB) *gin.Engine {
 			// ==========================
 			// Pasos de Ruta
 			// ==========================
-			
+
 			admin.POST("/pasos-ruta", pasoRutaHandler.Create)
 			admin.GET("/pasos-ruta", pasoRutaHandler.List)
 			admin.PUT("/pasos-ruta/:id", pasoRutaHandler.Update)
 			admin.PATCH("/pasos-ruta/:id/activo", pasoRutaHandler.UpdateStatus)
+
+			// ==========================
+			// Moneda
+			// ==========================
+
+			admin.POST("/moneda", monedaHandler.Create)
+			admin.GET("/moneda", monedaHandler.List)
+			admin.PUT("/moneda/:id", monedaHandler.Update)
+			admin.PATCH("/moneda/:id/activo", monedaHandler.UpdateStatus)
+
+			//===========================
+			//pais
+			//===========================
+
+			admin.POST("/pais", paisHandler.Create)
+			admin.GET("/pais", paisHandler.List)
+			admin.PUT("/pais/:id", paisHandler.Update)
+			admin.PATCH("/pais/:id/activo", paisHandler.UpdateStatus)
 		}
 	}
 
