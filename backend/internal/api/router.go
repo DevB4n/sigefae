@@ -40,6 +40,9 @@ import (
 	"sigefae/internal/codigo_qr"
 	"sigefae/internal/documento_radicado"
 	"sigefae/internal/notificacion"
+	"sigefae/internal/trazabilidad"
+	"sigefae/internal/historial_asignacion"
+	"sigefae/internal/comentario"
 )
 
 func New(database *gorm.DB) *gin.Engine {
@@ -159,6 +162,15 @@ func New(database *gorm.DB) *gin.Engine {
 
 	notificacionService := notificacion.New(database)
 	notificacionHandler := notificacion.NewHandler(notificacionService)
+
+	trazabilidadService := trazabilidad.New(database)
+	trazabilidadHandler := trazabilidad.NewHandler(trazabilidadService)
+
+	historialAsignacionService := historial_asignacion.New(database)
+	historialAsignacionHandler := historial_asignacion.NewHandler(historialAsignacionService)
+
+	comentarioService := comentario.New(database)
+	comentarioHandler := comentario.NewHandler(comentarioService)
 
 	api := router.Group("/api")
 	{
@@ -478,12 +490,33 @@ func New(database *gorm.DB) *gin.Engine {
 			admin.PUT("/documentoradicado/:id", documentoRadicadoHandler.Update)
 
 			// =========================
-			// Notificaciones
+			// Notificacion
 			// =========================
-					
-			admin.POST("/notificaciones", notificacionHandler.Create)
-			admin.GET("/notificaciones", notificacionHandler.List)
-			admin.PUT("/notificaciones/:id", notificacionHandler.Update)
+
+			admin.POST("/notificacion", notificacionHandler.Create)
+			admin.GET("/notificacion", notificacionHandler.List)
+			admin.PUT("/notificacion/:id", notificacionHandler.Update)
+
+			// =========================
+			// Trazabilidad
+			// =========================
+
+			protected.POST("/trazabilidad", trazabilidadHandler.Create)
+			protected.GET("/trazabilidad", trazabilidadHandler.List)
+
+			// =========================
+			// Historial Asignacion
+			// =========================
+
+			admin.POST("/historialasignacion", historialAsignacionHandler.Create)
+			admin.GET("/historialasignacion", historialAsignacionHandler.List)
+
+			// =========================
+			// Comentario
+			// =========================
+
+			admin.POST("/comentario", comentarioHandler.Create)
+			admin.GET("/comentario", comentarioHandler.List)
 		}
 	}
 
