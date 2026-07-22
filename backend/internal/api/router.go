@@ -36,6 +36,7 @@ import (
 	"sigefae/internal/tipo_radicacion"
 	"sigefae/internal/user"
 	"sigefae/internal/documento_comercial"
+	"sigefae/internal/detalle_documento_comercial"
 )
 
 func New(database *gorm.DB) *gin.Engine {
@@ -143,6 +144,9 @@ func New(database *gorm.DB) *gin.Engine {
 
 	documentoComercialService := documento_comercial.New(database)
 	documentoComercialHandler := documento_comercial.NewHandler(documentoComercialService)
+
+	detalleDocumentoComercialService := detalle_documento_comercial.New(database)
+	detalleDocumentoComercialHandler := detalle_documento_comercial.NewHandler(detalleDocumentoComercialService)
 
 	api := router.Group("/api")
 	{
@@ -434,6 +438,11 @@ func New(database *gorm.DB) *gin.Engine {
 			admin.GET("/documentocomercial", documentoComercialHandler.List)
 			admin.PUT("/documentocomercial/:id", documentoComercialHandler.Update)
 			admin.PATCH("/documentocomercial/:id/activo", documentoComercialHandler.Delete)
+
+			admin.POST("/detalledocumentocomercial", detalleDocumentoComercialHandler.Create)
+			admin.GET("/detalledocumentocomercial", detalleDocumentoComercialHandler.List)
+			admin.PUT("/detalledocumentocomercial/:id", detalleDocumentoComercialHandler.Update)
+			admin.PATCH("/detalledocumentocomercial/:id/activo", detalleDocumentoComercialHandler.Delete)
 		}
 	}
 
