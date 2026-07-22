@@ -22,7 +22,6 @@ func AllModels() []interface{} {
 		&PasoRuta{},
 		&Moneda{},
 		&Area{},
-		&Origen{},
 		&Receptor{},
 		&EstadoCorreo{},
 		&Correo{},
@@ -43,7 +42,6 @@ func AllModels() []interface{} {
 		&Trazabilidad{},
 		&RegistroAprobacion{},
 		&HistorialAsignacion{},
-		&ConfiguracionSistema{},
 		&Notificacion{},
 	}
 }

@@ -38,6 +38,8 @@ import (
 	"sigefae/internal/tipo_radicacion"
 	"sigefae/internal/user"
 	"sigefae/internal/codigo_qr"
+	"sigefae/internal/documento_radicado"
+	"sigefae/internal/notificacion"
 )
 
 func New(database *gorm.DB) *gin.Engine {
@@ -151,6 +153,12 @@ func New(database *gorm.DB) *gin.Engine {
 
 	codigoQrService := codigo_qr.New(database)
 	codigoQrHandler := codigo_qr.NewHandler(codigoQrService)
+
+	documentoRadicadoService := documento_radicado.New(database)
+	documentoRadicadoHandler := documento_radicado.NewHandler(documentoRadicadoService)
+
+	notificacionService := notificacion.New(database)
+	notificacionHandler := notificacion.NewHandler(notificacionService)
 
 	api := router.Group("/api")
 	{
@@ -461,6 +469,21 @@ func New(database *gorm.DB) *gin.Engine {
 			admin.PUT("/codigoqr/:id", codigoQrHandler.Update)
 			admin.PATCH("/codigoqr/:id/activo", codigoQrHandler.Delete)
 
+			// =========================
+			// Documento Radicado
+			// =========================
+
+			admin.POST("/documentoradicado", documentoRadicadoHandler.Create)
+			admin.GET("/documentoradicado", documentoRadicadoHandler.List)
+			admin.PUT("/documentoradicado/:id", documentoRadicadoHandler.Update)
+
+			// =========================
+			// Notificaciones
+			// =========================
+					
+			admin.POST("/notificaciones", notificacionHandler.Create)
+			admin.GET("/notificaciones", notificacionHandler.List)
+			admin.PUT("/notificaciones/:id", notificacionHandler.Update)
 		}
 	}
 
