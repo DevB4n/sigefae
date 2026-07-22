@@ -31,6 +31,8 @@ import (
 	"sigefae/internal/receptor"
 	"sigefae/internal/estado_correo"
 	"sigefae/internal/estado_documento_radicado"
+	"sigefae/internal/tipo_radicacion"
+	"sigefae/internal/estado_tarea"
 )
 
 func New(database *gorm.DB) *gin.Engine {
@@ -123,6 +125,12 @@ func New(database *gorm.DB) *gin.Engine {
 
 	estadoDocumentoRadicadoService := estado_documento_radicado.New(database)
 	estadoDocumentoRadicadoHandler := estado_documento_radicado.NewHandler(estadoDocumentoRadicadoService)
+
+	tipoRadicacionService := tipo_radicacion.New(database)
+	tipoRadicacionHandler := tipo_radicacion.NewHandler(tipoRadicacionService)
+
+	estadoTareaService := estado_tarea.New(database)
+	estadoTareaHandler := estado_tarea.NewHandler(estadoTareaService)
 	
 	api := router.Group("/api")
 	{
@@ -369,7 +377,24 @@ func New(database *gorm.DB) *gin.Engine {
 			admin.GET("/estado-documento-radicado", estadoDocumentoRadicadoHandler.List)
 			admin.PUT("/estado-documento-radicado/:id", estadoDocumentoRadicadoHandler.Update)
 			admin.PATCH("/estado-documento-radicado/:id/activo", estadoDocumentoRadicadoHandler.UpdateStatus)
-		
+
+			// =========================
+			// Tipo Radicación
+			// =========================
+
+			admin.POST("/tipo-radicacion", tipoRadicacionHandler.Create)
+			admin.GET("/tipo-radicacion", tipoRadicacionHandler.List)
+			admin.PUT("/tipo-radicacion/:id", tipoRadicacionHandler.Update)
+			admin.PATCH("/tipo-radicacion/:id/activo", tipoRadicacionHandler.UpdateStatus)
+
+			// =========================
+			// Estado Tarea
+			// =========================
+
+			admin.POST("/estado-tarea", estadoTareaHandler.Create)
+			admin.GET("/estado-tarea", estadoTareaHandler.List)
+			admin.PUT("/estado-tarea/:id", estadoTareaHandler.Update)
+			admin.PATCH("/estado-tarea/:id/activo", estadoTareaHandler.UpdateStatus)
 		}
 	}
 

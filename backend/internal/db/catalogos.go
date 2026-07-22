@@ -7,6 +7,7 @@ package db
 type EstadoTarea struct {
 	ID     uint   `gorm:"primaryKey;column:id" json:"id"`
 	Nombre string `gorm:"column:nombre;type:varchar(255)" json:"nombre"`
+	Activo  bool   `gorm:"column:activo;default:true" json:"activo"`
 }
 
 func (EstadoTarea) TableName() string { return "estado_tarea" }
@@ -38,6 +39,7 @@ func (EstadoCorreo) TableName() string { return "estado_correo" }
 type ArchivoOrigen struct {
 	ID     uint   `gorm:"primaryKey;column:id" json:"id"`
 	Nombre string `gorm:"column:nombre;type:varchar(255)" json:"nombre"`
+	Activo  bool   `gorm:"column:activo;default:true" json:"activo"`
 }
 
 func (ArchivoOrigen) TableName() string { return "archivo_origen" }
