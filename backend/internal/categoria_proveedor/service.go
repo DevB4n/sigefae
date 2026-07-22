@@ -35,24 +35,20 @@ func (s *Service) Create(req CreateRequest) (*Response, error) {
 		return nil, err
 	}
 
-
 	categoria := db.CategoriaProveedor{
 		Nombre:      req.Nombre,
 		Descripcion: req.Descripcion,
 		Activo:      true,
 	}
 
-
 	if err := s.db.Create(&categoria).Error; err != nil {
 		return nil, err
 	}
-
 
 	response := toResponse(categoria)
 
 	return &response, nil
 }
-
 
 func (s *Service) List() ([]Response, error) {
 
@@ -64,7 +60,6 @@ func (s *Service) List() ([]Response, error) {
 
 		return nil, err
 	}
-
 
 	response := make([]Response, 0, len(categorias))
 
@@ -79,13 +74,11 @@ func (s *Service) List() ([]Response, error) {
 	return response, nil
 }
 
-
 func (s *Service) UpdateStatus(id uint, activo bool) error {
 
 	var categoria db.CategoriaProveedor
 
 	err := s.db.First(&categoria, id).Error
-
 
 	if errors.Is(err, gorm.ErrRecordNotFound) {
 		return errors.New("categoría de proveedor no encontrada")
@@ -95,20 +88,16 @@ func (s *Service) UpdateStatus(id uint, activo bool) error {
 		return err
 	}
 
-
 	categoria.Activo = activo
 
 	return s.db.Save(&categoria).Error
 }
 
-
 func (s *Service) Update(id uint, req UpdateRequest) (*Response, error) {
 
 	var categoria db.CategoriaProveedor
 
-
 	err := s.db.First(&categoria, id).Error
-
 
 	if errors.Is(err, gorm.ErrRecordNotFound) {
 		return nil, errors.New("categoría de proveedor no encontrada")
@@ -118,26 +107,19 @@ func (s *Service) Update(id uint, req UpdateRequest) (*Response, error) {
 		return nil, err
 	}
 
-
-
 	var existing db.CategoriaProveedor
-
 
 	err = s.db.
 		Where("nombre = ? AND id <> ?", req.Nombre, id).
 		First(&existing).Error
 
-
 	if err == nil {
 		return nil, errors.New("la categoría de proveedor ya existe")
 	}
 
-
 	if err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
 		return nil, err
 	}
-
-
 
 	if err := s.db.Model(&categoria).Updates(map[string]interface{}{
 		"nombre":      req.Nombre,
@@ -147,12 +129,9 @@ func (s *Service) Update(id uint, req UpdateRequest) (*Response, error) {
 		return nil, err
 	}
 
-
-
 	if err := s.db.First(&categoria, categoria.ID).Error; err != nil {
 		return nil, err
 	}
-
 
 	response := toResponse(categoria)
 

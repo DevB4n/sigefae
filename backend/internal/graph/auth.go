@@ -13,8 +13,8 @@ import (
 type Auth struct {
 	clientID     string
 	clientSecret string
-	
-	tenantID     string
+
+	tenantID string
 
 	token     string
 	expiresAt time.Time

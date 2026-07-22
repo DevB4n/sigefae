@@ -5,12 +5,12 @@ import "sigefae/internal/db"
 type Response struct {
 	ID uint `json:"id"`
 
-	TipoDocumentoID uint `json:"tipo_documento_id"`
+	TipoDocumentoID uint              `json:"tipo_documento_id"`
 	TipoDocumento   *db.TipoDocumento `json:"tipo_documento,omitempty"`
 
 	NumeroDocumento string `json:"numero_documento"`
 
-	CategoriaID uint `json:"categoria_id"`
+	CategoriaID uint                   `json:"categoria_id"`
 	Categoria   *db.CategoriaProveedor `json:"categoria,omitempty"`
 
 	RutaPredeterminadaID *uint    `json:"ruta_predeterminada_id,omitempty"`
@@ -19,13 +19,13 @@ type Response struct {
 	RazonSocial     string `json:"razon_social"`
 	NombreComercial string `json:"nombre_comercial"`
 
-	TipoPersonaID uint `json:"tipo_persona_id"`
+	TipoPersonaID uint            `json:"tipo_persona_id"`
 	TipoPersona   *db.TipoPersona `json:"tipo_persona,omitempty"`
 
-	ActividadEconomicaID uint `json:"actividad_economica_id"`
+	ActividadEconomicaID uint                   `json:"actividad_economica_id"`
 	ActividadEconomica   *db.ActividadEconomica `json:"actividad_economica,omitempty"`
 
-	DireccionID uint `json:"direccion_id"`
+	DireccionID uint          `json:"direccion_id"`
 	Direccion   *db.Direccion `json:"direccion,omitempty"`
 
 	Activo bool `json:"activo"`

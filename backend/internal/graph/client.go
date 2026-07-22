@@ -17,7 +17,7 @@ type Client struct {
 
 func NewClient(auth *Auth, userEmail string) *Client {
 	return &Client{
-		auth: auth,
+		auth:      auth,
 		userEmail: userEmail,
 		httpClient: &http.Client{
 			Timeout: 30 * time.Second,

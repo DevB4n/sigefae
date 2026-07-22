@@ -1,16 +1,16 @@
 package zip
 
-import(
+import (
 	"archive/zip"
 	"io"
 	"os"
 	"path/filepath"
 )
 
-type Extractor struct {}
+type Extractor struct{}
 
 func NewExtractor() *Extractor {
-    return &Extractor{}
+	return &Extractor{}
 }
 
 func (e *Extractor) Extract(zipPath string, destination string) error {
@@ -51,11 +51,11 @@ func (e *Extractor) Extract(zipPath string, destination string) error {
 
 		// Crear archivo destino
 		dst, err := os.OpenFile(
-        path,
-        os.O_CREATE|os.O_WRONLY|os.O_TRUNC,
-        file.Mode(),
+			path,
+			os.O_CREATE|os.O_WRONLY|os.O_TRUNC,
+			file.Mode(),
 		)
-		
+
 		if err != nil {
 			src.Close()
 			return err

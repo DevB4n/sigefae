@@ -27,9 +27,10 @@ type DocumentoComercial struct {
 	NumeroFolios             int                         `gorm:"column:numero_folios" json:"numero_folios"`
 	OrientacionSelloRecibido string                      `gorm:"column:orientacion_sello_recibido;type:varchar(50)" json:"orientacion_sello_recibido"`
 	Cufe                     *string                     `gorm:"column:cufe;type:varchar(255);uniqueIndex:uk_doc_comercial_cufe" json:"cufe,omitempty"` // Nulable: cuentas de cobro no tienen CUFE
-	CorreoID                 *uint                       `gorm:"column:correo_id;uniqueIndex:uk_doc_comercial_correo" json:"correo_id,omitempty"`      // Nulable: físico no tiene correo
+	CorreoID                 *uint                       `gorm:"column:correo_id;uniqueIndex:uk_doc_comercial_correo" json:"correo_id,omitempty"`       // Nulable: físico no tiene correo
 	Correo                   *Correo                     `gorm:"foreignKey:CorreoID;references:ID" json:"correo,omitempty"`
 	Detalles                 []DetalleDocumentoComercial `gorm:"foreignKey:DocumentoComercialID" json:"detalles,omitempty"`
+	Activo                   bool                        `gorm:"column:activo;default:true" json:"activo"`
 	CreatedAt                time.Time                   `gorm:"column:created_at" json:"created_at"`
 	UpdatedAt                time.Time                   `gorm:"column:updated_at" json:"updated_at"`
 }
@@ -45,6 +46,7 @@ type DetalleDocumentoComercial struct {
 	IvaUnit              float64             `gorm:"column:iva_unitario" json:"iva_unitario"`
 	Cantidad             float64             `gorm:"column:cantidad" json:"cantidad"`
 	Total                float64             `gorm:"column:total" json:"total"`
+	Activo               bool                `gorm:"column:activo;default:true" json:"activo"`
 }
 
 func (DetalleDocumentoComercial) TableName() string { return "detalle_documento_comercial" }

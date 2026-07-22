@@ -8,13 +8,13 @@ type DepartamentoResponse struct {
 }
 
 type Response struct {
-	ID             uint                  `json:"id"`
-	Nombre         string                `json:"nombre"`
+	ID     uint   `json:"id"`
+	Nombre string `json:"nombre"`
 
 	DepartamentoID uint                  `json:"departamento_id"`
 	Departamento   *DepartamentoResponse `json:"departamento,omitempty"`
 
-	Activo         bool                  `json:"activo"`
+	Activo bool `json:"activo"`
 }
 
 func toResponse(municipio db.Municipio) Response {

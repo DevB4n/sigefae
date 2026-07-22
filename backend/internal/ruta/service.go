@@ -2,7 +2,6 @@ package ruta
 
 import (
 	"errors"
-	
 
 	"gorm.io/gorm"
 

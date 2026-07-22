@@ -363,15 +363,15 @@ func (s *Service) Update(id uint, req UpdateRequest) (*Response, error) {
 	// ==========================
 
 	if err := s.db.Model(&proveedor).Updates(map[string]interface{}{
-		"tipo_documento_id":       req.TipoDocumentoID,
-		"numero_documento":        req.NumeroDocumento,
-		"categoria_id":            req.CategoriaID,
-		"ruta_predeterminada_id":  req.RutaPredeterminadaID,
-		"razon_social":            req.RazonSocial,
-		"nombre_comercial":        req.NombreComercial,
-		"tipo_persona_id":         req.TipoPersonaID,
-		"actividad_economica_id":  req.ActividadEconomicaID,
-		"direccion_id":            req.DireccionID,
+		"tipo_documento_id":      req.TipoDocumentoID,
+		"numero_documento":       req.NumeroDocumento,
+		"categoria_id":           req.CategoriaID,
+		"ruta_predeterminada_id": req.RutaPredeterminadaID,
+		"razon_social":           req.RazonSocial,
+		"nombre_comercial":       req.NombreComercial,
+		"tipo_persona_id":        req.TipoPersonaID,
+		"actividad_economica_id": req.ActividadEconomicaID,
+		"direccion_id":           req.DireccionID,
 	}).Error; err != nil {
 
 		return nil, err

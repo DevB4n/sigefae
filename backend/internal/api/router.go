@@ -6,35 +6,35 @@ import (
 	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
 
+	"sigefae/internal/actividad_economica"
+	"sigefae/internal/archivo_origen"
 	"sigefae/internal/area"
 	"sigefae/internal/auth"
-	"sigefae/internal/db"
-	"sigefae/internal/metodo_pago"
-	"sigefae/internal/moneda"
-	"sigefae/internal/pais"
-	"sigefae/internal/paso_ruta"
-	"sigefae/internal/role"
-	"sigefae/internal/ruta"
-	"sigefae/internal/tipo_factura"
-	"sigefae/internal/tipo_pago"
-	"sigefae/internal/user"
-	"sigefae/internal/departamento"
-	"sigefae/internal/municipio"
-	"sigefae/internal/direccion"
-	"sigefae/internal/actividad_economica"
-	"sigefae/internal/contacto"
-	"sigefae/internal/tipo_documento"
 	"sigefae/internal/categoria_proveedor"
-	"sigefae/internal/tipo_persona"
-	"sigefae/internal/proveedor"
-	"sigefae/internal/responsabilidad_fiscal"
-	"sigefae/internal/receptor"
+	"sigefae/internal/contacto"
+	"sigefae/internal/correo"
+	"sigefae/internal/db"
+	"sigefae/internal/departamento"
+	"sigefae/internal/direccion"
 	"sigefae/internal/estado_correo"
 	"sigefae/internal/estado_documento_radicado"
-	"sigefae/internal/tipo_radicacion"
 	"sigefae/internal/estado_tarea"
-	"sigefae/internal/archivo_origen"
-	"sigefae/internal/correo"
+	"sigefae/internal/metodo_pago"
+	"sigefae/internal/moneda"
+	"sigefae/internal/municipio"
+	"sigefae/internal/pais"
+	"sigefae/internal/paso_ruta"
+	"sigefae/internal/proveedor"
+	"sigefae/internal/receptor"
+	"sigefae/internal/responsabilidad_fiscal"
+	"sigefae/internal/role"
+	"sigefae/internal/ruta"
+	"sigefae/internal/tipo_documento"
+	"sigefae/internal/tipo_factura"
+	"sigefae/internal/tipo_pago"
+	"sigefae/internal/tipo_persona"
+	"sigefae/internal/tipo_radicacion"
+	"sigefae/internal/user"
 )
 
 func New(database *gorm.DB) *gin.Engine {
@@ -103,7 +103,7 @@ func New(database *gorm.DB) *gin.Engine {
 
 	tipoDocumentoService := tipo_documento.New(database)
 	tipoDocumentoHandler := tipo_documento.NewHandler(tipoDocumentoService)
-	
+
 	categoriaProveedorService := categoria_proveedor.New(database)
 	categoriaProveedorHandler := categoria_proveedor.NewHandler(categoriaProveedorService)
 
@@ -139,7 +139,7 @@ func New(database *gorm.DB) *gin.Engine {
 
 	correoService := correo.New(database)
 	correoHandler := correo.NewHandler(correoService)
-	
+
 	api := router.Group("/api")
 	{
 		api.POST("/auth/login", authHandler.Login)
@@ -298,7 +298,6 @@ func New(database *gorm.DB) *gin.Engine {
 			// =========================
 			//	Actividad_Economica
 			// =========================
-
 
 			admin.POST("/actividad-economica", actividadEconomicaHandler.Create)
 			admin.GET("/actividad-economica", actividadEconomicaHandler.List)

@@ -37,7 +37,7 @@ func (s *Service) Login(email, password string) (*db.Usuario, string, error) {
 	}
 
 	if !user.Activo {
-	return nil, "", errors.New("usuario inactivo")
+		return nil, "", errors.New("usuario inactivo")
 	}
 
 	if err := Check(user.HashContrasena, password); err != nil {

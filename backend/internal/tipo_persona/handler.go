@@ -11,7 +11,6 @@ type Handler struct {
 	service *Service
 }
 
-
 func NewHandler(service *Service) *Handler {
 
 	return &Handler{
@@ -19,11 +18,9 @@ func NewHandler(service *Service) *Handler {
 	}
 }
 
-
 func (h *Handler) Create(c *gin.Context) {
 
 	var request CreateRequest
-
 
 	if err := c.ShouldBindJSON(&request); err != nil {
 
@@ -34,9 +31,7 @@ func (h *Handler) Create(c *gin.Context) {
 		return
 	}
 
-
 	response, err := h.service.Create(request)
-
 
 	if err != nil {
 
@@ -47,16 +42,12 @@ func (h *Handler) Create(c *gin.Context) {
 		return
 	}
 
-
 	c.JSON(http.StatusCreated, response)
 }
-
-
 
 func (h *Handler) List(c *gin.Context) {
 
 	response, err := h.service.List()
-
 
 	if err != nil {
 
@@ -67,11 +58,8 @@ func (h *Handler) List(c *gin.Context) {
 		return
 	}
 
-
 	c.JSON(http.StatusOK, response)
 }
-
-
 
 func (h *Handler) UpdateStatus(c *gin.Context) {
 
@@ -80,7 +68,6 @@ func (h *Handler) UpdateStatus(c *gin.Context) {
 		10,
 		64,
 	)
-
 
 	if err != nil {
 
@@ -91,10 +78,7 @@ func (h *Handler) UpdateStatus(c *gin.Context) {
 		return
 	}
 
-
-
 	var request UpdateStatusRequest
-
 
 	if err := c.ShouldBindJSON(&request); err != nil {
 
@@ -104,8 +88,6 @@ func (h *Handler) UpdateStatus(c *gin.Context) {
 
 		return
 	}
-
-
 
 	if err := h.service.UpdateStatus(
 		uint(id),
@@ -119,14 +101,10 @@ func (h *Handler) UpdateStatus(c *gin.Context) {
 		return
 	}
 
-
-
 	c.JSON(http.StatusOK, gin.H{
 		"message": "estado actualizado correctamente",
 	})
 }
-
-
 
 func (h *Handler) Update(c *gin.Context) {
 
@@ -135,7 +113,6 @@ func (h *Handler) Update(c *gin.Context) {
 		10,
 		64,
 	)
-
 
 	if err != nil {
 
@@ -146,10 +123,7 @@ func (h *Handler) Update(c *gin.Context) {
 		return
 	}
 
-
-
 	var request UpdateRequest
-
 
 	if err := c.ShouldBindJSON(&request); err != nil {
 
@@ -160,13 +134,10 @@ func (h *Handler) Update(c *gin.Context) {
 		return
 	}
 
-
-
 	response, err := h.service.Update(
 		uint(id),
 		request,
 	)
-
 
 	if err != nil {
 
@@ -176,7 +147,6 @@ func (h *Handler) Update(c *gin.Context) {
 
 		return
 	}
-
 
 	c.JSON(http.StatusOK, response)
 }

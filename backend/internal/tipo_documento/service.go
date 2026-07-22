@@ -8,17 +8,17 @@ import (
 	"sigefae/internal/db"
 )
 
-type Service struct{
+type Service struct {
 	db *gorm.DB
 }
 
 func New(database *gorm.DB) *Service {
 	return &Service{
-		db:database,
+		db: database,
 	}
 }
 
-func (s *Service) Create(req CreateDTO) (*Response, error){
+func (s *Service) Create(req CreateDTO) (*Response, error) {
 	// ==========================
 	// Validar nombre repetido
 	// ==========================

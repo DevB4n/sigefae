@@ -7,18 +7,18 @@ import (
 )
 
 type Response struct {
-	ID        uint      `json:"id"`
+	ID uint `json:"id"`
 
-	RutaID    uint      `json:"ruta_id"`
-	Ruta      string    `json:"ruta"`
+	RutaID uint   `json:"ruta_id"`
+	Ruta   string `json:"ruta"`
 
-	Orden     int       `json:"orden"`
-	Nombre    string    `json:"nombre"`
+	Orden  int    `json:"orden"`
+	Nombre string `json:"nombre"`
 
-	UsuarioID uint      `json:"usuario_id"`
-	Usuario   string    `json:"usuario"`
+	UsuarioID uint   `json:"usuario_id"`
+	Usuario   string `json:"usuario"`
 
-	Activo    bool      `json:"activo"`
+	Activo bool `json:"activo"`
 
 	CreatedAt time.Time `json:"created_at"`
 	UpdatedAt time.Time `json:"updated_at"`
@@ -38,18 +38,18 @@ func toResponse(p db.PasoRuta) Response {
 	}
 
 	return Response{
-		ID:        p.ID,
+		ID: p.ID,
 
-		RutaID:    p.RutaID,
-		Ruta:      ruta,
+		RutaID: p.RutaID,
+		Ruta:   ruta,
 
-		Orden:     p.Orden,
-		Nombre:    p.Nombre,
+		Orden:  p.Orden,
+		Nombre: p.Nombre,
 
 		UsuarioID: p.UsuarioID,
 		Usuario:   usuario,
 
-		Activo:    p.Activo,
+		Activo: p.Activo,
 
 		CreatedAt: p.CreatedAt,
 		UpdatedAt: p.UpdatedAt,

@@ -188,11 +188,11 @@ func (s *Service) Update(id uint, req UpdateDTO) (*Response, error) {
 	// ==========================
 
 	if err := s.db.Model(&direccion).Updates(map[string]interface{}{
-		"nombre":         req.Nombre,
-		"linea_1":        req.Linea1,
-		"linea_2":        req.Linea2,
-		"codigo_postal":  req.CodigoPostal,
-		"id_municipio":   req.IDMunicipio,
+		"nombre":        req.Nombre,
+		"linea_1":       req.Linea1,
+		"linea_2":       req.Linea2,
+		"codigo_postal": req.CodigoPostal,
+		"id_municipio":  req.IDMunicipio,
 	}).Error; err != nil {
 		return nil, err
 	}

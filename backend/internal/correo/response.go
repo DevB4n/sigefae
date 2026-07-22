@@ -12,18 +12,18 @@ type EstadoCorreoResponse struct {
 }
 
 type Response struct {
-	ID              uint                  `json:"id"`
-	Asunto          string                `json:"asunto"`
-	De              string                `json:"de"`
-	Para            string                `json:"para"`
-	FechaRecepcion  time.Time             `json:"fecha_recepcion"`
-	IDMensaje       string                `json:"id_mensaje"`
-	Cuerpo          string                `json:"cuerpo"`
-	Cc              string                `json:"cc"`
-	Bcc             string                `json:"bcc"`
-	ReplyTo         string                `json:"reply_to"`
-	IDEstado        uint                  `json:"id_estado"`
-	EstadoCorreo    *EstadoCorreoResponse `json:"estado_correo,omitempty"`
+	ID             uint                  `json:"id"`
+	Asunto         string                `json:"asunto"`
+	De             string                `json:"de"`
+	Para           string                `json:"para"`
+	FechaRecepcion time.Time             `json:"fecha_recepcion"`
+	IDMensaje      string                `json:"id_mensaje"`
+	Cuerpo         string                `json:"cuerpo"`
+	Cc             string                `json:"cc"`
+	Bcc            string                `json:"bcc"`
+	ReplyTo        string                `json:"reply_to"`
+	IDEstado       uint                  `json:"id_estado"`
+	EstadoCorreo   *EstadoCorreoResponse `json:"estado_correo,omitempty"`
 	Activo         bool                  `json:"activo"`
 }
 

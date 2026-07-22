@@ -7,7 +7,7 @@ package db
 type EstadoTarea struct {
 	ID     uint   `gorm:"primaryKey;column:id" json:"id"`
 	Nombre string `gorm:"column:nombre;type:varchar(255)" json:"nombre"`
-	Activo  bool   `gorm:"column:activo;default:true" json:"activo"`
+	Activo bool   `gorm:"column:activo;default:true" json:"activo"`
 }
 
 func (EstadoTarea) TableName() string { return "estado_tarea" }
@@ -15,7 +15,7 @@ func (EstadoTarea) TableName() string { return "estado_tarea" }
 type TipoPago struct {
 	ID     uint   `gorm:"primaryKey;column:id" json:"id"`
 	Nombre string `gorm:"column:nombre;type:varchar(255)" json:"nombre"`
-	Activo  bool   `gorm:"column:activo;default:true" json:"activo"`
+	Activo bool   `gorm:"column:activo;default:true" json:"activo"`
 }
 
 func (TipoPago) TableName() string { return "tipo_pago" }
@@ -23,7 +23,7 @@ func (TipoPago) TableName() string { return "tipo_pago" }
 type TipoRadicacion struct {
 	ID     uint   `gorm:"primaryKey;column:id" json:"id"`
 	Nombre string `gorm:"column:nombre;type:varchar(255)" json:"nombre"`
-	Activo  bool   `gorm:"column:activo;default:true" json:"activo"`
+	Activo bool   `gorm:"column:activo;default:true" json:"activo"`
 }
 
 func (TipoRadicacion) TableName() string { return "tipo_radicacion" }
@@ -31,7 +31,7 @@ func (TipoRadicacion) TableName() string { return "tipo_radicacion" }
 type EstadoCorreo struct {
 	ID     uint   `gorm:"primaryKey;column:id" json:"id"`
 	Nombre string `gorm:"column:nombre;type:varchar(255)" json:"nombre"`
-	Activo  bool   `gorm:"column:activo;default:true" json:"activo"`
+	Activo bool   `gorm:"column:activo;default:true" json:"activo"`
 }
 
 func (EstadoCorreo) TableName() string { return "estado_correo" }
@@ -39,7 +39,7 @@ func (EstadoCorreo) TableName() string { return "estado_correo" }
 type ArchivoOrigen struct {
 	ID     uint   `gorm:"primaryKey;column:id" json:"id"`
 	Nombre string `gorm:"column:nombre;type:varchar(255)" json:"nombre"`
-	Activo  bool   `gorm:"column:activo;default:true" json:"activo"`
+	Activo bool   `gorm:"column:activo;default:true" json:"activo"`
 }
 
 func (ArchivoOrigen) TableName() string { return "archivo_origen" }
@@ -47,15 +47,15 @@ func (ArchivoOrigen) TableName() string { return "archivo_origen" }
 type EstadoDocumentoRadicado struct {
 	ID     uint   `gorm:"primaryKey;column:id" json:"id"`
 	Nombre string `gorm:"column:nombre;type:varchar(255)" json:"nombre"`
-	Activo  bool   `gorm:"column:activo;default:true" json:"activo"`
+	Activo bool   `gorm:"column:activo;default:true" json:"activo"`
 }
 
 func (EstadoDocumentoRadicado) TableName() string { return "estado_documento_radicado" }
 
 type Rol struct {
-	ID      uint   `gorm:"primaryKey;column:id" json:"id"`
-	Nombre  string `gorm:"column:nombre;type:varchar(255);uniqueIndex" json:"nombre"`
-	Activo  bool   `gorm:"column:activo;default:true" json:"activo"`
+	ID     uint   `gorm:"primaryKey;column:id" json:"id"`
+	Nombre string `gorm:"column:nombre;type:varchar(255);uniqueIndex" json:"nombre"`
+	Activo bool   `gorm:"column:activo;default:true" json:"activo"`
 }
 
 func (Rol) TableName() string { return "rol" }
@@ -64,7 +64,7 @@ type Moneda struct {
 	ID     uint   `gorm:"primaryKey;column:id" json:"id"`
 	Nombre string `gorm:"column:nombre;type:varchar(255)" json:"nombre"`
 	Codigo string `gorm:"column:codigo;type:varchar(50)" json:"codigo"`
-	Activo bool `gorm:"column:activo;default:true" json:"activo"`
+	Activo bool   `gorm:"column:activo;default:true" json:"activo"`
 }
 
 func (Moneda) TableName() string { return "moneda" }
@@ -85,9 +85,9 @@ type Origen struct {
 func (Origen) TableName() string { return "origen" }
 
 type TipoDocumento struct {
-	ID      uint   `gorm:"primaryKey;column:id" json:"id"`
-	Nombre  string `gorm:"column:nombre;type:varchar(255)" json:"nombre"`
-	Activo  bool   `gorm:"column:activo;default:true" json:"activo"`
+	ID     uint   `gorm:"primaryKey;column:id" json:"id"`
+	Nombre string `gorm:"column:nombre;type:varchar(255)" json:"nombre"`
+	Activo bool   `gorm:"column:activo;default:true" json:"activo"`
 }
 
 func (TipoDocumento) TableName() string { return "tipo_documento" }
@@ -95,7 +95,7 @@ func (TipoDocumento) TableName() string { return "tipo_documento" }
 type TipoPersona struct {
 	ID     uint   `gorm:"primaryKey;column:id" json:"id"`
 	Nombre string `gorm:"column:nombre;type:varchar(255)" json:"nombre"`
-	Activo      bool   `gorm:"column:activo" json:"activo"`
+	Activo bool   `gorm:"column:activo" json:"activo"`
 }
 
 func (TipoPersona) TableName() string { return "tipo_persona" }
@@ -110,10 +110,10 @@ type CategoriaProveedor struct {
 func (CategoriaProveedor) TableName() string { return "categoria_proveedor" }
 
 type ActividadEconomica struct {
-	ID      uint   `gorm:"primaryKey;column:id" json:"id"`
-	Nombre  string `gorm:"column:nombre;type:varchar(255)" json:"nombre"`
-	Codigo  string `gorm:"column:codigo;type:varchar(20)" json:"codigo"`
-	Activo  bool   `gorm:"column:activo;default:true" json:"activo"`
+	ID     uint   `gorm:"primaryKey;column:id" json:"id"`
+	Nombre string `gorm:"column:nombre;type:varchar(255)" json:"nombre"`
+	Codigo string `gorm:"column:codigo;type:varchar(20)" json:"codigo"`
+	Activo bool   `gorm:"column:activo;default:true" json:"activo"`
 }
 
 func (ActividadEconomica) TableName() string { return "actividad_economica" }
@@ -122,8 +122,7 @@ type Pais struct {
 	ID     uint   `gorm:"primaryKey;column:id" json:"id"`
 	Nombre string `gorm:"column:nombre;type:varchar(255)" json:"nombre"`
 	Codigo string `gorm:"column:codigo;type:varchar(20)" json:"codigo"`
-	Activo  bool   `gorm:"column:activo;default:true" json:"activo"`
-
+	Activo bool   `gorm:"column:activo;default:true" json:"activo"`
 }
 
 func (Pais) TableName() string { return "pais" }
@@ -137,4 +136,3 @@ type TipoFactura struct {
 }
 
 func (TipoFactura) TableName() string { return "tipo_factura" }
-

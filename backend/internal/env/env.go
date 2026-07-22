@@ -24,6 +24,7 @@ type Env struct {
 	DBParseTime string
 	DBLoc       string
 }
+
 func Load(path string) (*Env, error) {
 	if err := godotenv.Load(path); err != nil {
 		return nil, err

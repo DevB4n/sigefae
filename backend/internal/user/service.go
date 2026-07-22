@@ -22,7 +22,7 @@ func New(database *gorm.DB) *Service {
 
 func (s *Service) Create(req CreateRequest) (*Response, error) {
 
-		// ==========================
+	// ==========================
 	// Validar correo
 	// ==========================
 
@@ -98,11 +98,9 @@ func (s *Service) Create(req CreateRequest) (*Response, error) {
 	// ==========================
 
 	response := toResponse(user)
-	
+
 	return &response, nil
-	}
-
-
+}
 
 func (s *Service) List() ([]Response, error) {
 
@@ -145,7 +143,6 @@ func (s *Service) GetByID(id uint) (*Response, error) {
 
 	return &response, nil
 }
-
 
 func (s *Service) Update(id uint, req UpdateRequest) (*Response, error) {
 

@@ -162,9 +162,9 @@ func (s *Service) Update(id uint, req UpdateRequest) (*Response, error) {
 	// ==========================
 
 	if err := s.db.Model(&receptor).Updates(map[string]interface{}{
-		"nombre":             req.Nombre,
-		"tipo_documento_id":  req.TipoDocumentoID,
-		"numero_documento":   req.NumeroDocumento,
+		"nombre":            req.Nombre,
+		"tipo_documento_id": req.TipoDocumentoID,
+		"numero_documento":  req.NumeroDocumento,
 	}).Error; err != nil {
 
 		return nil, err

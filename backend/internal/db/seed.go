@@ -39,11 +39,11 @@ func Seed(db *gorm.DB) error {
 	// ==========================
 
 	admin := Usuario{
-		Nombre:     "Administrador",
-		Email:      "admin@sigefae.local",
+		Nombre:         "Administrador",
+		Email:          "admin@sigefae.local",
 		HashContrasena: string(hash),
-		Cargo:      "Superadministrador",
-		RolID:      superAdminRole.ID,
+		Cargo:          "Superadministrador",
+		RolID:          superAdminRole.ID,
 	}
 
 	if err := db.

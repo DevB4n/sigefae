@@ -10,7 +10,7 @@ type Notificacion struct {
 	DocumentoRadicado   *DocumentoRadicado `gorm:"foreignKey:DocumentoRadicadoID;references:ID" json:"documento_radicado,omitempty"`
 	Mensaje             string             `gorm:"column:mensaje;type:text" json:"mensaje"`
 	Estado              string             `gorm:"column:estado;type:varchar(50)" json:"estado"` // "Pendiente", "Enviada", "Leida", "Expirada"
-	Tipo                string             `gorm:"column:tipo;type:varchar(50)" json:"tipo"` // "Recordatorio", "Asignacion", "Sistema"
+	Tipo                string             `gorm:"column:tipo;type:varchar(50)" json:"tipo"`     // "Recordatorio", "Asignacion", "Sistema"
 	FechaCreacion       time.Time          `gorm:"column:fecha_creacion" json:"fecha_creacion"`
 	FechaEnvio          *time.Time         `gorm:"column:fecha_envio" json:"fecha_envio,omitempty"`
 	FechaLectura        *time.Time         `gorm:"column:fecha_lectura" json:"fecha_lectura,omitempty"`

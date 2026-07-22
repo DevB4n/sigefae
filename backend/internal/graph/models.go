@@ -36,8 +36,8 @@ type Attachment struct {
 }
 
 type MailMetadata struct {
-	ID string `json:"id"`
-	Subject string `json:"subject"`
+	ID               string    `json:"id"`
+	Subject          string    `json:"subject"`
 	ReceivedDateTime time.Time `json:"receivedDateTime"`
-	From string `json:"from"`	
+	From             string    `json:"from"`
 }

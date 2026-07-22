@@ -6,13 +6,13 @@ import (
 )
 
 type Response struct {
-	ID        uint      `json:"id"`
-	Nombre    string    `json:"nombre"`
-	Version   float64   `json:"version"`
-	Activo    bool      `json:"activo"`
+	ID      uint    `json:"id"`
+	Nombre  string  `json:"nombre"`
+	Version float64 `json:"version"`
+	Activo  bool    `json:"activo"`
 
-	AreaID    uint      `json:"area_id"`
-	Area      string    `json:"area"`
+	AreaID uint   `json:"area_id"`
+	Area   string `json:"area"`
 
 	CreatedAt time.Time `json:"created_at"`
 	UpdatedAt time.Time `json:"updated_at"`

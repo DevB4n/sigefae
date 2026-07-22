@@ -176,7 +176,6 @@ func (h *Handler) UpdateStatus(c *gin.Context) {
 	})
 }
 
-
 func (h *Handler) UpdatePassword(c *gin.Context) {
 
 	id, err := strconv.ParseUint(

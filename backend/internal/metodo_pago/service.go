@@ -2,7 +2,7 @@ package metodo_pago
 
 import (
 	"errors"
-	
+
 	"gorm.io/gorm"
 
 	"sigefae/internal/db"
@@ -189,8 +189,8 @@ func (s *Service) Update(id uint, req UpdateRequest) (*Response, error) {
 		Model(&db.MetodoPago{}).
 		Where("id = ?", id).
 		Updates(map[string]interface{}{
-			"nombre":        req.Nombre,
-			"tipo_pago_id":  req.TipoPagoID,
+			"nombre":       req.Nombre,
+			"tipo_pago_id": req.TipoPagoID,
 		}).Error; err != nil {
 
 		return nil, err

@@ -4,7 +4,6 @@ import (
 	"net/http"
 	"strconv"
 
-
 	"github.com/gin-gonic/gin"
 )
 
@@ -124,7 +123,6 @@ func (h *Handler) Update(c *gin.Context) {
 		})
 		return
 	}
-
 
 	response, err := h.service.Update(uint(id), request)
 	if err != nil {

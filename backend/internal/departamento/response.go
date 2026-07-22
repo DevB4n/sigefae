@@ -9,8 +9,8 @@ type PaisResponse struct {
 }
 
 type Response struct {
-	ID     uint          `json:"id"`
-	Nombre string        `json:"nombre"`
+	ID     uint   `json:"id"`
+	Nombre string `json:"nombre"`
 
 	PaisID uint          `json:"pais_id"`
 	Pais   *PaisResponse `json:"pais,omitempty"`

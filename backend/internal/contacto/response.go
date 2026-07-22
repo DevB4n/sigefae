@@ -21,7 +21,7 @@ func toResponse(c db.Contacto) Response {
 	proveedor := ""
 
 	if c.Proveedor != nil {
-	proveedor = c.Proveedor.RazonSocial
+		proveedor = c.Proveedor.RazonSocial
 	}
 
 	return Response{

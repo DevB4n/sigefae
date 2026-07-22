@@ -23,8 +23,8 @@ type LoginRequest struct {
 }
 
 type LoginResponse struct {
-	Token   string      `json:"token"`
-	Usuario UsuarioDTO  `json:"usuario"`
+	Token   string     `json:"token"`
+	Usuario UsuarioDTO `json:"usuario"`
 }
 
 type UsuarioDTO struct {

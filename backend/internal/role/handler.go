@@ -3,8 +3,8 @@ package role
 import (
 	"net/http"
 
-	"strconv"
 	"github.com/gin-gonic/gin"
+	"strconv"
 )
 
 type Handler struct {

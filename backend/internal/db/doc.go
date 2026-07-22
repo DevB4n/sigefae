@@ -15,7 +15,7 @@
 //   - TIMESTAMP y DATETIME -> time.Time
 //   - VARCHAR             -> string
 //   - INTEGER              -> uint / int (uint cuando es PK/FK, int cuando es
-//                             un campo numérico simple como "peso" o "orden")
+//     un campo numérico simple como "peso" o "orden")
 //   - BIGINT               -> int64
 //   - DOUBLE                -> float64
 //   - ENUM (orientacion_sello_recibido) -> string, se documenta el dominio
