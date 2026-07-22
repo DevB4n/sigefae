@@ -34,6 +34,7 @@ import (
 	"sigefae/internal/tipo_radicacion"
 	"sigefae/internal/estado_tarea"
 	"sigefae/internal/archivo_origen"
+	"sigefae/internal/correo"
 )
 
 func New(database *gorm.DB) *gin.Engine {
@@ -135,6 +136,9 @@ func New(database *gorm.DB) *gin.Engine {
 
 	archivoOrigenService := archivo_origen.New(database)
 	archivoOrigenHandler := archivo_origen.NewHandler(archivoOrigenService)
+
+	correoService := correo.New(database)
+	correoHandler := correo.NewHandler(correoService)
 	
 	api := router.Group("/api")
 	{
@@ -408,6 +412,16 @@ func New(database *gorm.DB) *gin.Engine {
 			admin.GET("/archivo-origen", archivoOrigenHandler.List)
 			admin.PUT("/archivo-origen/:id", archivoOrigenHandler.Update)
 			admin.PATCH("/archivo-origen/:id/activo", archivoOrigenHandler.UpdateStatus)
+
+			// =========================
+			// Correos
+			// =========================
+
+			admin.POST("/correo", correoHandler.Create)
+			admin.GET("/correo", correoHandler.List)
+			admin.PUT("/correo/:id", correoHandler.Update)
+			admin.PATCH("/correo/:id/estado", correoHandler.UpdateStatus)
+			admin.PATCH("/correos/:id/activo", correoHandler.Delete)
 		}
 	}
 

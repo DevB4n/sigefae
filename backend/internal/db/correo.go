@@ -20,6 +20,7 @@ type Correo struct {
 	IDEstado       uint          `gorm:"column:id_estado;index:idx_correo_estado" json:"id_estado"`
 	EstadoCorreo   *EstadoCorreo `gorm:"foreignKey:IDEstado;references:ID" json:"estado_correo,omitempty"`
 	DocumentosComerciales []DocumentoComercial `gorm:"foreignKey:CorreoID" json:"documentos_comerciales,omitempty"`
+	Activo  	   bool   `gorm:"column:activo;default:true" json:"activo"`
 }
 
 func (Correo) TableName() string { return "correo" }
