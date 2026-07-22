@@ -15,7 +15,9 @@ import (
 	"sigefae/internal/correo"
 	"sigefae/internal/db"
 	"sigefae/internal/departamento"
+	"sigefae/internal/detalle_documento_comercial"
 	"sigefae/internal/direccion"
+	"sigefae/internal/documento_comercial"
 	"sigefae/internal/estado_correo"
 	"sigefae/internal/estado_documento_radicado"
 	"sigefae/internal/estado_tarea"
@@ -35,8 +37,7 @@ import (
 	"sigefae/internal/tipo_persona"
 	"sigefae/internal/tipo_radicacion"
 	"sigefae/internal/user"
-	"sigefae/internal/documento_comercial"
-	"sigefae/internal/detalle_documento_comercial"
+	"sigefae/internal/codigo_qr"
 )
 
 func New(database *gorm.DB) *gin.Engine {
@@ -147,6 +148,9 @@ func New(database *gorm.DB) *gin.Engine {
 
 	detalleDocumentoComercialService := detalle_documento_comercial.New(database)
 	detalleDocumentoComercialHandler := detalle_documento_comercial.NewHandler(detalleDocumentoComercialService)
+
+	codigoQrService := codigo_qr.New(database)
+	codigoQrHandler := codigo_qr.NewHandler(codigoQrService)
 
 	api := router.Group("/api")
 	{
@@ -431,7 +435,7 @@ func New(database *gorm.DB) *gin.Engine {
 			admin.PATCH("/correos/:id/activo", correoHandler.Delete)
 
 			// =========================
-			// Documento omercial
+			// Documento Comercial
 			// =========================
 
 			admin.POST("/documentocomercial", documentoComercialHandler.Create)
@@ -439,10 +443,24 @@ func New(database *gorm.DB) *gin.Engine {
 			admin.PUT("/documentocomercial/:id", documentoComercialHandler.Update)
 			admin.PATCH("/documentocomercial/:id/activo", documentoComercialHandler.Delete)
 
+			// ==============================
+			// Detalle Documento Comercial
+			// ==============================
+
 			admin.POST("/detalledocumentocomercial", detalleDocumentoComercialHandler.Create)
 			admin.GET("/detalledocumentocomercial", detalleDocumentoComercialHandler.List)
 			admin.PUT("/detalledocumentocomercial/:id", detalleDocumentoComercialHandler.Update)
 			admin.PATCH("/detalledocumentocomercial/:id/activo", detalleDocumentoComercialHandler.Delete)
+
+			// ===============
+			// Codigo QR
+			// ===============
+
+			admin.POST("/codigoqr", codigoQrHandler.Create)
+			admin.GET("/codigoqr", codigoQrHandler.List)
+			admin.PUT("/codigoqr/:id", codigoQrHandler.Update)
+			admin.PATCH("/codigoqr/:id/activo", codigoQrHandler.Delete)
+
 		}
 	}
 

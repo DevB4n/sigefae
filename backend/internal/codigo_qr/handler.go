@@ -1,4 +1,4 @@
-package documento_comercial
+package codigo_qr
 
 import (
 	"net/http"
@@ -105,6 +105,7 @@ func (h *Handler) Update(c *gin.Context) {
 
 	c.JSON(http.StatusOK, response)
 }
+
 func (h *Handler) Delete(c *gin.Context) {
 
 	id, err := strconv.ParseUint(
@@ -132,6 +133,6 @@ func (h *Handler) Delete(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, gin.H{
-		"message": "estado cambiado exitosamente!",
+		"message": "estado actualizado correctamente",
 	})
 }

@@ -41,8 +41,9 @@ type DocumentoRadicado struct {
 func (DocumentoRadicado) TableName() string { return "documento_radicado" }
 
 type CodigoQr struct {
-	ID  uint   `gorm:"primaryKey;column:id" json:"id"`
-	Url string `gorm:"column:url;type:varchar(500)" json:"url"`
+	ID     uint   `gorm:"primaryKey;column:id" json:"id"`
+	Url    string `gorm:"column:url;type:varchar(500)" json:"url"`
+	Activo bool   `gorm:"column:activo;default:true" json:"activo"`
 }
 
 func (CodigoQr) TableName() string { return "codigo_qr" }
