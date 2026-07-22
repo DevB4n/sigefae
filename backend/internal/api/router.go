@@ -35,6 +35,7 @@ import (
 	"sigefae/internal/tipo_persona"
 	"sigefae/internal/tipo_radicacion"
 	"sigefae/internal/user"
+	"sigefae/internal/documento_comercial"
 )
 
 func New(database *gorm.DB) *gin.Engine {
@@ -139,6 +140,9 @@ func New(database *gorm.DB) *gin.Engine {
 
 	correoService := correo.New(database)
 	correoHandler := correo.NewHandler(correoService)
+
+	documentoComercialService := documento_comercial.New(database)
+	documentoComercialHandler := documento_comercial.NewHandler(documentoComercialService)
 
 	api := router.Group("/api")
 	{
@@ -421,6 +425,15 @@ func New(database *gorm.DB) *gin.Engine {
 			admin.PUT("/correo/:id", correoHandler.Update)
 			admin.PATCH("/correo/:id/estado", correoHandler.UpdateStatus)
 			admin.PATCH("/correos/:id/activo", correoHandler.Delete)
+
+			// =========================
+			// Documento omercial
+			// =========================
+
+			admin.POST("/documentocomercial", documentoComercialHandler.Create)
+			admin.GET("/documentocomercial", documentoComercialHandler.List)
+			admin.PUT("/documentocomercial/:id", documentoComercialHandler.Update)
+			admin.PATCH("/documentocomercial/:id/activo", documentoComercialHandler.Delete)
 		}
 	}
 
