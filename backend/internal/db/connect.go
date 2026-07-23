@@ -5,7 +5,7 @@ import (
 	"log"
 	"os"
 
-	"sigefae/internal/env"
+	"sigefae/env"
 
 	"gorm.io/driver/mysql"
 	"gorm.io/gorm"

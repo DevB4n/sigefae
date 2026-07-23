@@ -9,7 +9,7 @@ import (
 	"path/filepath"
 	"strings"
 
-	zipExtractor "sigefae/internal/zip"
+	zipExtractor "sigefae/procesos_aplicacion/descarga_correos/zip"
 )
 
 func (c *Client) Attachments(messageID string) ([]Attachment, error) {

@@ -4,9 +4,9 @@ import (
 	"fmt"
 	"log"
 
+	"sigefae/env"
 	"sigefae/internal/api"
 	"sigefae/internal/db"
-	"sigefae/internal/env"
 )
 
 func main() {
