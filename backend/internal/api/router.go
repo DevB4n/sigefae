@@ -45,6 +45,7 @@ import (
 	"sigefae/internal/comentario"
 	"sigefae/internal/archivo"
 	"sigefae/internal/tarea"
+	"sigefae/internal/registro_aprobacion"
 )
 
 func New(database *gorm.DB) *gin.Engine {
@@ -179,6 +180,9 @@ func New(database *gorm.DB) *gin.Engine {
 
 	tareaService := tarea.New(database)
 	tareaHandler := tarea.NewHandler(tareaService)
+
+	registroAprobacionService := registro_aprobacion.New(database)
+	registroAprobacionHandler := registro_aprobacion.NewHandler(registroAprobacionService)
 
 	api := router.Group("/api")
 	{
@@ -542,6 +546,13 @@ func New(database *gorm.DB) *gin.Engine {
 			admin.POST("/tarea", tareaHandler.Create)
 			admin.GET("/tarea", tareaHandler.List)
 			admin.PUT("/tarea/:id", tareaHandler.Update)
+
+			// =========================
+			// Registro Aprobación
+			// =========================
+
+			admin.POST("/registroaprobacion", registroAprobacionHandler.Create)
+			admin.GET("/registroaprobacion", registroAprobacionHandler.List)
 		}
 	}
 
