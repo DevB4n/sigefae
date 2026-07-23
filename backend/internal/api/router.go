@@ -43,6 +43,8 @@ import (
 	"sigefae/internal/trazabilidad"
 	"sigefae/internal/historial_asignacion"
 	"sigefae/internal/comentario"
+	"sigefae/internal/archivo"
+	"sigefae/internal/tarea"
 )
 
 func New(database *gorm.DB) *gin.Engine {
@@ -171,6 +173,12 @@ func New(database *gorm.DB) *gin.Engine {
 
 	comentarioService := comentario.New(database)
 	comentarioHandler := comentario.NewHandler(comentarioService)
+
+	archivoService := archivo.New(database)
+	archivoHandler := archivo.NewHandler(archivoService)
+
+	tareaService := tarea.New(database)
+	tareaHandler := tarea.NewHandler(tareaService)
 
 	api := router.Group("/api")
 	{
@@ -517,6 +525,23 @@ func New(database *gorm.DB) *gin.Engine {
 
 			admin.POST("/comentario", comentarioHandler.Create)
 			admin.GET("/comentario", comentarioHandler.List)
+
+			// =========================
+			// Archivo
+			// =========================
+
+			admin.POST("/archivo", archivoHandler.Create)
+			admin.GET("/archivo", archivoHandler.List)
+			admin.PUT("/archivo/:id", archivoHandler.Update)
+			admin.DELETE("/archivo/:id", archivoHandler.Delete)
+
+			// =========================
+			// Tarea
+			// =========================
+
+			admin.POST("/tarea", tareaHandler.Create)
+			admin.GET("/tarea", tareaHandler.List)
+			admin.PUT("/tarea/:id", tareaHandler.Update)
 		}
 	}
 
