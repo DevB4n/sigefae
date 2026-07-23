@@ -60,7 +60,6 @@ func (s *Service) Create(req CreateDTO) (*Response, error) {
 		return nil, err
 	}
 
-
 	// ==========================
 	// Validar ruta repetida
 	// ==========================
@@ -152,7 +151,6 @@ func (s *Service) Update(id uint, req UpdateDTO) (*Response, error) {
 	if err != nil {
 		return nil, err
 	}
-
 
 	// ==========================
 	// Validar ruta repetida

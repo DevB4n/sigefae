@@ -7,7 +7,6 @@ type CreateDTO struct {
 	UsuarioID           uint `json:"usuario_id" binding:"required"`
 }
 
-
 type CerrarAsignacionDTO struct {
-	Hasta time.Time `json:"hasta"`//se cierra automaticamente cuando se hace una nueva asignacion a ese documento radicado, no hay otro metodo
+	Hasta time.Time `json:"hasta"` //se cierra automaticamente cuando se hace una nueva asignacion a ese documento radicado, no hay otro metodo
 }

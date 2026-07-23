@@ -3,9 +3,9 @@ package codigo_qr
 import "sigefae/internal/db"
 
 type Response struct {
-	ID      uint   `json:"id"`
-	Url     string `json:"url"`
-	Activo  bool   `json:"activo"`
+	ID     uint   `json:"id"`
+	Url    string `json:"url"`
+	Activo bool   `json:"activo"`
 }
 
 func toResponse(qr db.CodigoQr) Response {

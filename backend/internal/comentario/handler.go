@@ -29,7 +29,6 @@ func (h *Handler) Create(c *gin.Context) {
 		return
 	}
 
-
 	response, err := h.service.Create(request)
 
 	if err != nil {
@@ -40,7 +39,6 @@ func (h *Handler) Create(c *gin.Context) {
 
 		return
 	}
-
 
 	c.JSON(http.StatusCreated, response)
 }
@@ -56,7 +54,6 @@ func (h *Handler) List(c *gin.Context) {
 
 		return
 	}
-
 
 	c.JSON(http.StatusOK, response)
 }

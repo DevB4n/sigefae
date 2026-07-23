@@ -179,11 +179,11 @@ func (s *Service) Update(id uint, req UpdateDTO) (*Response, error) {
 
 	if err := s.db.Model(&tarea).Updates(map[string]interface{}{
 		"usuario_asignado_id": req.UsuarioAsignadoID,
-		"estado_id": req.EstadoID,
-		"descripcion": req.Descripcion,
-		"fecha_inicio": req.FechaInicio,
-		"fecha_limite": req.FechaLimite,
-		"fecha_finalizacion": req.FechaFinalizacion,
+		"estado_id":           req.EstadoID,
+		"descripcion":         req.Descripcion,
+		"fecha_inicio":        req.FechaInicio,
+		"fecha_limite":        req.FechaLimite,
+		"fecha_finalizacion":  req.FechaFinalizacion,
 	}).Error; err != nil {
 
 		return nil, err

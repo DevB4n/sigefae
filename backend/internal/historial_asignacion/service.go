@@ -8,11 +8,9 @@ import (
 	"sigefae/internal/db"
 )
 
-
 type Service struct {
 	db *gorm.DB
 }
-
 
 func New(database *gorm.DB) *Service {
 
@@ -23,7 +21,6 @@ func New(database *gorm.DB) *Service {
 func (s *Service) Create(req CreateDTO) (*Response, error) {
 
 	now := time.Now()
-
 
 	// Cerrar asignación anterior si existe
 
@@ -38,18 +35,15 @@ func (s *Service) Create(req CreateDTO) (*Response, error) {
 			now,
 		)
 
-
 	historial := db.HistorialAsignacion{
 		DocumentoRadicadoID: req.DocumentoRadicadoID,
 		UsuarioID:           req.UsuarioID,
 		Desde:               now,
 	}
 
-
 	if err := s.db.Create(&historial).Error; err != nil {
 		return nil, err
 	}
-
 
 	response := toResponse(historial)
 
@@ -59,7 +53,6 @@ func (s *Service) List() ([]Response, error) {
 
 	var historial []db.HistorialAsignacion
 
-
 	if err := s.db.
 		Order("desde DESC").
 		Find(&historial).Error; err != nil {
@@ -67,9 +60,7 @@ func (s *Service) List() ([]Response, error) {
 		return nil, err
 	}
 
-
 	response := make([]Response, 0, len(historial))
-
 
 	for _, item := range historial {
 
@@ -78,7 +69,6 @@ func (s *Service) List() ([]Response, error) {
 			toResponse(item),
 		)
 	}
-
 
 	return response, nil
 }

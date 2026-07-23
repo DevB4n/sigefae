@@ -205,14 +205,14 @@ func (s *Service) Update(id uint, dto UpdateDTO) (*Response, error) {
 	// ==========================
 
 	if err := s.db.Model(&notificacion).Updates(map[string]interface{}{
-		"usuario_id":             dto.UsuarioID,
-		"documento_radicado_id":  dto.DocumentoRadicadoID,
-		"mensaje":                dto.Mensaje,
-		"estado":                 dto.Estado,
-		"tipo":                   dto.Tipo,
-		"fecha_creacion":         dto.FechaCreacion,
-		"fecha_envio":            dto.FechaEnvio,
-		"fecha_lectura":          dto.FechaLectura,
+		"usuario_id":            dto.UsuarioID,
+		"documento_radicado_id": dto.DocumentoRadicadoID,
+		"mensaje":               dto.Mensaje,
+		"estado":                dto.Estado,
+		"tipo":                  dto.Tipo,
+		"fecha_creacion":        dto.FechaCreacion,
+		"fecha_envio":           dto.FechaEnvio,
+		"fecha_lectura":         dto.FechaLectura,
 	}).Error; err != nil {
 
 		return nil, err

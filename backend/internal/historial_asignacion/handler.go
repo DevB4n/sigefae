@@ -20,7 +20,6 @@ func (h *Handler) Create(c *gin.Context) {
 
 	var request CreateDTO
 
-
 	if err := c.ShouldBindJSON(&request); err != nil {
 
 		c.JSON(http.StatusBadRequest, gin.H{
@@ -30,9 +29,7 @@ func (h *Handler) Create(c *gin.Context) {
 		return
 	}
 
-
 	response, err := h.service.Create(request)
-
 
 	if err != nil {
 
@@ -43,13 +40,11 @@ func (h *Handler) Create(c *gin.Context) {
 		return
 	}
 
-
 	c.JSON(http.StatusCreated, response)
 }
 func (h *Handler) List(c *gin.Context) {
 
 	response, err := h.service.List()
-
 
 	if err != nil {
 
@@ -59,7 +54,6 @@ func (h *Handler) List(c *gin.Context) {
 
 		return
 	}
-
 
 	c.JSON(http.StatusOK, response)
 }

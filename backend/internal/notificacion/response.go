@@ -13,23 +13,23 @@ type UsuarioResponse struct {
 }
 
 type DocumentoRadicadoResponse struct {
-	ID              uint   `json:"id"`
-	NumeroRadicado  string `json:"numero_radicado"`
-	EstadoPosesion  string `json:"estado_posesion"`
+	ID             uint   `json:"id"`
+	NumeroRadicado string `json:"numero_radicado"`
+	EstadoPosesion string `json:"estado_posesion"`
 }
 
 type Response struct {
-	ID                    uint                        `json:"id"`
-	UsuarioID             uint                        `json:"usuario_id"`
-	Usuario               *UsuarioResponse            `json:"usuario,omitempty"`
-	DocumentoRadicadoID   *uint                       `json:"documento_radicado_id,omitempty"`
-	DocumentoRadicado     *DocumentoRadicadoResponse  `json:"documento_radicado,omitempty"`
-	Mensaje               string                      `json:"mensaje"`
-	Estado                string                      `json:"estado"`
-	Tipo                  string                      `json:"tipo"`
-	FechaCreacion         time.Time                   `json:"fecha_creacion"`
-	FechaEnvio            *time.Time                  `json:"fecha_envio,omitempty"`
-	FechaLectura          *time.Time                  `json:"fecha_lectura,omitempty"`
+	ID                  uint                       `json:"id"`
+	UsuarioID           uint                       `json:"usuario_id"`
+	Usuario             *UsuarioResponse           `json:"usuario,omitempty"`
+	DocumentoRadicadoID *uint                      `json:"documento_radicado_id,omitempty"`
+	DocumentoRadicado   *DocumentoRadicadoResponse `json:"documento_radicado,omitempty"`
+	Mensaje             string                     `json:"mensaje"`
+	Estado              string                     `json:"estado"`
+	Tipo                string                     `json:"tipo"`
+	FechaCreacion       time.Time                  `json:"fecha_creacion"`
+	FechaEnvio          *time.Time                 `json:"fecha_envio,omitempty"`
+	FechaLectura        *time.Time                 `json:"fecha_lectura,omitempty"`
 }
 
 func toResponse(n db.Notificacion) Response {

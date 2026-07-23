@@ -8,11 +8,9 @@ import (
 	"sigefae/internal/db"
 )
 
-
 type Service struct {
 	db *gorm.DB
 }
-
 
 func New(database *gorm.DB) *Service {
 
@@ -29,11 +27,9 @@ func (s *Service) Create(req CreateDTO) (*Response, error) {
 		Fecha:               time.Now(),
 	}
 
-
 	if err := s.db.Create(&comentario).Error; err != nil {
 		return nil, err
 	}
-
 
 	response := toResponse(comentario)
 
@@ -43,7 +39,6 @@ func (s *Service) List() ([]Response, error) {
 
 	var comentarios []db.Comentario
 
-
 	if err := s.db.
 		Order("fecha DESC").
 		Find(&comentarios).Error; err != nil {
@@ -51,9 +46,7 @@ func (s *Service) List() ([]Response, error) {
 		return nil, err
 	}
 
-
 	response := make([]Response, 0, len(comentarios))
-
 
 	for _, comentario := range comentarios {
 
@@ -62,7 +55,6 @@ func (s *Service) List() ([]Response, error) {
 			toResponse(comentario),
 		)
 	}
-
 
 	return response, nil
 }

@@ -14,7 +14,6 @@ type Response struct {
 	Fecha               time.Time `json:"fecha"`
 }
 
-
 func toResponse(comentario db.Comentario) Response {
 
 	return Response{

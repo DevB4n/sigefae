@@ -7,9 +7,9 @@ import (
 )
 
 type DocumentoComercialResponse struct {
-	ID                uint   `json:"id"`
-	Tipo              string `json:"tipo"`
-	NumeroDocumento   string `json:"numero_documento"`
+	ID              uint   `json:"id"`
+	Tipo            string `json:"tipo"`
+	NumeroDocumento string `json:"numero_documento"`
 }
 
 type TipoRadicacionResponse struct {
@@ -48,31 +48,32 @@ type MetodoPagoResponse struct {
 }
 
 type Response struct {
-	ID                     uint                               `json:"id"`
-	DocumentoComercialID   uint                               `json:"documento_comercial_id"`
-	DocumentoComercial     *DocumentoComercialResponse        `json:"documento_comercial,omitempty"`
-	TipoRadicacionID       uint                               `json:"tipo_radicacion_id"`
-	TipoRadicacion         *TipoRadicacionResponse            `json:"tipo_radicacion,omitempty"`
-	RutaID                 uint                               `json:"ruta_id"`
-	Ruta                   *RutaResponse                      `json:"ruta,omitempty"`
-	NumeroRadicado         string                             `json:"numero_radicado"`
-	FechaRadicacion        time.Time                          `json:"fecha_radicacion"`
-	UsuarioActualID        uint                               `json:"usuario_actual_id"`
-	UsuarioActual          *UsuarioResponse                   `json:"usuario,omitempty"`
-	EstadoPosesion         string                             `json:"estado_posesion"`
-	PasoActualID           *uint                              `json:"paso_actual_id,omitempty"`
-	PasoActual             *PasoRutaResponse                  `json:"paso_actual,omitempty"`
-	PasoPendienteRetornoID *uint                              `json:"paso_pendiente_retorno_id,omitempty"`
-	PasoPendienteRetorno   *PasoRutaResponse                  `json:"paso_pendiente_retorno,omitempty"`
-	EstadoID               uint                               `json:"estado_id"`
-	Estado                 *EstadoDocumentoRadicadoResponse   `json:"estado,omitempty"`
-	UltimaActividad        *time.Time                         `json:"ultima_actividad,omitempty"`
-	QrID                   uint                               `json:"qr_id"`
-	Qr                     *CodigoQrResponse                  `json:"qr,omitempty"`
-	MetodoPagoID           uint                               `json:"metodo_pago_id"`
-	MetodoPago             *MetodoPagoResponse                `json:"metodo_pago,omitempty"`
-	UpdatedAt              time.Time                          `json:"updated_at"`
-}	
+	ID                     uint                             `json:"id"`
+	DocumentoComercialID   uint                             `json:"documento_comercial_id"`
+	DocumentoComercial     *DocumentoComercialResponse      `json:"documento_comercial,omitempty"`
+	TipoRadicacionID       uint                             `json:"tipo_radicacion_id"`
+	TipoRadicacion         *TipoRadicacionResponse          `json:"tipo_radicacion,omitempty"`
+	RutaID                 uint                             `json:"ruta_id"`
+	Ruta                   *RutaResponse                    `json:"ruta,omitempty"`
+	NumeroRadicado         string                           `json:"numero_radicado"`
+	FechaRadicacion        time.Time                        `json:"fecha_radicacion"`
+	UsuarioActualID        uint                             `json:"usuario_actual_id"`
+	UsuarioActual          *UsuarioResponse                 `json:"usuario,omitempty"`
+	EstadoPosesion         string                           `json:"estado_posesion"`
+	PasoActualID           *uint                            `json:"paso_actual_id,omitempty"`
+	PasoActual             *PasoRutaResponse                `json:"paso_actual,omitempty"`
+	PasoPendienteRetornoID *uint                            `json:"paso_pendiente_retorno_id,omitempty"`
+	PasoPendienteRetorno   *PasoRutaResponse                `json:"paso_pendiente_retorno,omitempty"`
+	EstadoID               uint                             `json:"estado_id"`
+	Estado                 *EstadoDocumentoRadicadoResponse `json:"estado,omitempty"`
+	UltimaActividad        *time.Time                       `json:"ultima_actividad,omitempty"`
+	QrID                   uint                             `json:"qr_id"`
+	Qr                     *CodigoQrResponse                `json:"qr,omitempty"`
+	MetodoPagoID           uint                             `json:"metodo_pago_id"`
+	MetodoPago             *MetodoPagoResponse              `json:"metodo_pago,omitempty"`
+	UpdatedAt              time.Time                        `json:"updated_at"`
+}
+
 func toResponse(documento db.DocumentoRadicado) Response {
 
 	response := Response{

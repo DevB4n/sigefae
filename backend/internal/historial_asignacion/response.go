@@ -14,7 +14,6 @@ type Response struct {
 	Hasta               *time.Time `json:"hasta"`
 }
 
-
 func toResponse(
 	historial db.HistorialAsignacion,
 ) Response {

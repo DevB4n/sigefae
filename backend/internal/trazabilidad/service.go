@@ -47,7 +47,6 @@ func (s *Service) List() ([]Response, error) {
 		return nil, err
 	}
 
-
 	response := make([]Response, 0, len(trazabilidades))
 
 	for _, trazabilidad := range trazabilidades {
@@ -57,7 +56,6 @@ func (s *Service) List() ([]Response, error) {
 			toResponse(trazabilidad),
 		)
 	}
-
 
 	return response, nil
 }

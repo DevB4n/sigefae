@@ -1,12 +1,13 @@
 package codigo_qr
 
-import(
+import (
 	"errors"
 
 	"gorm.io/gorm"
 
 	"sigefae/internal/db"
 )
+
 type Service struct {
 	db *gorm.DB
 }
