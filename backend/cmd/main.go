@@ -7,6 +7,7 @@ import (
 	"sigefae/env"
 	"sigefae/internal/api"
 	"sigefae/internal/db"
+	"sigefae/procesos_aplicacion/descarga_correos"
 )
 
 func main() {
@@ -41,8 +42,11 @@ func main() {
 	fmt.Println("Database connected successfully.")
 
 	// ========================================
-	// API
+	// API & Tareas en Segundo Plano
 	// ========================================
+
+	// Iniciar la tarea de descarga de correos en segundo plano
+	go descarga_correos.Start(cfg)
 
 	router := api.New(database)
 

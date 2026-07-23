@@ -3,10 +3,11 @@ package sync
 import (
 	"encoding/json"
 	"os"
+	"path/filepath"
 	"time"
 )
 
-const stateFile = "internal/sync/state.json"
+const stateFile = "storage/sync/state.json"
 
 type State struct {
 	LastSync time.Time `json:"last_sync"`
@@ -40,6 +41,10 @@ func (s *Service) Update(last time.Time) error {
 
 	data, err := json.MarshalIndent(state, "", "    ")
 	if err != nil {
+		return err
+	}
+
+	if err := os.MkdirAll(filepath.Dir(stateFile), 0755); err != nil {
 		return err
 	}
 
