@@ -481,6 +481,7 @@ func New(database *gorm.DB) *gin.Engine {
 
 			admin.POST("/correo", correoHandler.Create)
 			admin.GET("/correo", correoHandler.List)
+			admin.GET("/correo/:id", correoHandler.GetByID)
 			admin.PUT("/correo/:id", correoHandler.Update)
 			admin.PATCH("/correo/:id/estado", correoHandler.UpdateStatus)
 			admin.PATCH("/correos/:id/activo", correoHandler.Delete)
@@ -574,6 +575,11 @@ func New(database *gorm.DB) *gin.Engine {
 			admin.GET("/registroaprobacion", registroAprobacionHandler.List)
 		}
 	}
+
+	// =========================
+	// Servir archivos estáticos
+	// =========================
+	router.Static("/api/storage", "storage")
 
 	return router
 }

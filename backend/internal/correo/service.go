@@ -2,6 +2,8 @@ package correo
 
 import (
 	"errors"
+	"os"
+	"path/filepath"
 
 	"gorm.io/gorm"
 
@@ -142,6 +144,35 @@ func (s *Service) List() ([]Response, error) {
 	}
 
 	return response, nil
+}
+
+func (s *Service) GetByID(id uint) (*Response, error) {
+
+	var correo db.Correo
+
+	if err := s.db.
+		Preload("EstadoCorreo").
+		Where("id = ? AND activo = ?", id, true).
+		First(&correo).Error; err != nil {
+		return nil, err
+	}
+
+	response := toResponse(correo)
+
+	// Listar archivos físicos en el almacenamiento
+	dir := filepath.Join("storage", "mails", correo.IDMensaje)
+	files, err := os.ReadDir(dir)
+	if err == nil {
+		var archivos []string
+		for _, f := range files {
+			if !f.IsDir() {
+				archivos = append(archivos, f.Name())
+			}
+		}
+		response.Archivos = archivos
+	}
+
+	return &response, nil
 }
 
 func (s *Service) UpdateStatus(id uint, idEstado uint) error {

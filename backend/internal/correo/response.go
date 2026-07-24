@@ -24,6 +24,7 @@ type Response struct {
 	ReplyTo        string                `json:"reply_to"`
 	IDEstado       uint                  `json:"id_estado"`
 	EstadoCorreo   *EstadoCorreoResponse `json:"estado_correo,omitempty"`
+	Archivos       []string              `json:"archivos,omitempty"`
 	Activo         bool                  `json:"activo"`
 }
 
