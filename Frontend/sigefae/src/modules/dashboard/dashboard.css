@@ -89,9 +89,13 @@ body {
 .sidebar-title {
     font-size:.82em; font-weight:700;
     text-transform:uppercase; letter-spacing:1px;
-    display:flex; align-items:center; gap:10px;
+    place-content: center;
+    display:flex; 
+    align-items:center; gap:10px;
 }
-
+.sidebar-title i{
+    scale: 1.6;
+}
 .menu-nav { flex:1; overflow-y:auto; padding:10px; }
 .menu-nav::-webkit-scrollbar { width:5px; }
 .menu-nav::-webkit-scrollbar-track { background:var(--gray-100); }

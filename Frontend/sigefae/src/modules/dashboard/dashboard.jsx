@@ -32,7 +32,7 @@ export default function ProcesosLogistica() {
         <aside className={`sidebar ${isSidebarOpen ? "open" : ""}`}>
           <div className="sidebar-header">
             <div className="sidebar-title">
-              <i className="fas fa-clipboard-list" />
+              <i class="fa-solid fa-gear"></i>
             </div>
           </div>
 
