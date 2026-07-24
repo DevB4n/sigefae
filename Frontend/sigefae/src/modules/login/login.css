@@ -1,0 +1,67 @@
+@import "../../assets/fonts/amsi_pro/stylesheet.css";
+body{
+    box-sizing: border-box;
+    padding: 0;
+    margin: 0;
+}
+.login-container{
+    height: 100vh;
+    width: 100vw;
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    place-content: center;
+}
+.form-container{
+    background-color:#e7e1cb;
+    width: 30vw;
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    place-content: center;
+    gap:2vh
+}
+.form-container input{
+    font-family: "Amsi Pro";
+    font-weight:normal ;
+    font-style: normal;
+    width: 12vw;
+    height: 3vh;
+    border-radius: 6px;
+    border-width: 0;
+    border: 1px solid black;
+}
+.form-container button{
+    font-family: "Amsi Pro";
+    font-weight:normal ;
+    font-style: normal;
+    width: 10vw;
+    height: 3vh;
+    border-radius: 25px;
+    background-color: #155FA9;
+    color: white;
+    border-width:0 ;
+    box-shadow: none;
+    cursor: pointer;
+    outline: none;
+}
+.form-container button:active{
+    transform: scale(0.9);
+}
+.logo-container{
+    background-image:
+        linear-gradient(rgba(0,0,0,0.4), rgba(0,0,0,0.35)),
+        url("./src/assets/login/login-bg.avif");
+    background-position: center;
+    background-repeat: no-repeat;
+    background-size: cover;
+    padding-left: 15vw;
+    width: 70vw;
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+    
+    align-items: center;
+    place-content: center;
+}
