@@ -31,7 +31,7 @@ func (c *Client) ListMessages(lastSync time.Time) ([]Message, error) {
 	}
 
 	graphURL := fmt.Sprintf(
-		"%s/users/%s/messages?%s",
+		"%s/users/%s/mailFolders/inbox/messages?%s",
 		baseURL,
 		c.userEmail,
 		values.Encode(),

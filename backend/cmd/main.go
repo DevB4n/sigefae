@@ -46,7 +46,7 @@ func main() {
 	// ========================================
 
 	// Iniciar la tarea de descarga de correos en segundo plano
-	go descarga_correos.Start(cfg)
+	go descarga_correos.Start(cfg, database)
 
 	router := api.New(database)
 

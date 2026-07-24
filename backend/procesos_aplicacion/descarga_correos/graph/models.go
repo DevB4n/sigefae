@@ -16,11 +16,21 @@ type EmailAddress struct {
 }
 
 type Message struct {
-	ID               string    `json:"id"`
-	Subject          string    `json:"subject"`
-	HasAttachments   bool      `json:"hasAttachments"`
-	ReceivedDateTime time.Time `json:"receivedDateTime"`
-	From             Recipient `json:"from"`
+	ID               string      `json:"id"`
+	Subject          string      `json:"subject"`
+	HasAttachments   bool        `json:"hasAttachments"`
+	ReceivedDateTime time.Time   `json:"receivedDateTime"`
+	From             Recipient   `json:"from"`
+	ToRecipients     []Recipient `json:"toRecipients"`
+	CcRecipients     []Recipient `json:"ccRecipients"`
+	BccRecipients    []Recipient `json:"bccRecipients"`
+	ReplyTo          []Recipient `json:"replyTo"`
+	Body             ItemBody    `json:"body"`
+}
+
+type ItemBody struct {
+	ContentType string `json:"contentType"`
+	Content     string `json:"content"`
 }
 
 type AttachmentsResponse struct {
