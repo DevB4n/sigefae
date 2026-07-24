@@ -1,15 +1,24 @@
+import { useState } from "react";
 import "./dashboard.css";
+import "@fortawesome/fontawesome-free/css/all.min.css";
+import logo from "../../assets/login/logo.png";
 
 export default function ProcesosLogistica() {
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+
   return (
     <>
       {/* ── HEADER ─────────────────────────────────────────────────── */}
       <header className="top-header">
         <div className="header-left">
-          <button className="menu-toggle" title="Menú">
+          <button
+            className="menu-toggle"
+            title="Menú"
+            onClick={() => setIsSidebarOpen(!isSidebarOpen)}
+          >
             <i className="fas fa-bars" />
           </button>
-          <img src="" alt="Logo" className="logo" />
+          <img src={logo} alt="Logo" className="logo" />
           <div className="header-text">
             <h1>SIGEFAE</h1>
             <p>Sistema de Gestion de Facturas Electronicas</p>
@@ -20,16 +29,14 @@ export default function ProcesosLogistica() {
       {/* ── LAYOUT ─────────────────────────────────────────────────── */}
       <div className="main-container">
         {/* SIDEBAR */}
-        <aside className="sidebar">
+        <aside className={`sidebar ${isSidebarOpen ? "open" : ""}`}>
           <div className="sidebar-header">
             <div className="sidebar-title">
               <i className="fas fa-clipboard-list" />
-              
             </div>
           </div>
 
-          <nav className="menu-nav">
-          </nav>
+          <nav className="menu-nav"></nav>
         </aside>
 
         {/* ÁREA DE CONTENIDO */}
@@ -37,7 +44,7 @@ export default function ProcesosLogistica() {
           <div className="content-header">
             <div className="content-title">
               <div className="content-icon">
-                <i className="fas fa-truck" />
+                <i className="fa-solid fa-file"></i>
               </div>
               <div>
                 <h2>Procesos administrativos</h2>
@@ -49,7 +56,7 @@ export default function ProcesosLogistica() {
           <div className="content-body">
             <div className="welcome-wrap">
               <div className="welcome-icon">
-                <i className="fas fa-boxes" />
+                <i className="fa-regular fa-user"></i>
               </div>
               <h2>Bienvenido, Usuario</h2>
               <p>
