@@ -729,6 +729,157 @@ body {
     color: #065f46;
 }
 
+/* ── CATÁLOGOS ───────────────────────────────────────── */
+.catalogos-container {
+    padding: 20px;
+    flex: 1;
+    overflow-y: auto;
+}
+
+.catalogo-tabs {
+    display: flex;
+    gap: 4px;
+    margin-bottom: 20px;
+    border-bottom: 2px solid var(--gray-200);
+}
+
+.catalogo-tabs button {
+    padding: 12px 24px;
+    border: none;
+    background: none;
+    cursor: pointer;
+    font-weight: 600;
+    color: var(--gray-600);
+    border-bottom: 3px solid transparent;
+    transition: all 0.2s;
+    font-size: 0.9em;
+}
+
+.catalogo-tabs button:hover {
+    color: var(--pardo-blue);
+}
+
+.catalogo-tabs button.active {
+    color: var(--pardo-navy);
+    border-bottom-color: var(--pardo-yellow);
+}
+
+.catalogo-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+}
+
+.catalogo-header h3 {
+    color: var(--pardo-navy);
+    font-size: 1.1em;
+}
+
+.catalogo-form {
+    background: var(--gray-50);
+    padding: 20px;
+    border-radius: 12px;
+    margin-bottom: 24px;
+    border: 1px solid var(--gray-200);
+}
+
+.catalogo-form h4 {
+    margin-bottom: 16px;
+    color: var(--pardo-navy);
+    font-size: 1em;
+}
+
+.catalogo-form-row {
+    display: flex;
+    gap: 16px;
+    align-items: flex-end;
+    flex-wrap: wrap;
+}
+
+.catalogo-form input,
+.catalogo-form select {
+    padding: 8px 12px;
+    border: 1px solid var(--gray-200);
+    border-radius: 8px;
+    font-size: 0.9em;
+    min-width: 240px;
+    font-family: inherit;
+}
+
+.catalogo-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.9em;
+    background: white;
+    border-radius: 8px;
+    overflow: hidden;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+}
+
+.catalogo-table th {
+    background: var(--gray-50);
+    padding: 14px 16px;
+    text-align: left;
+    font-weight: 600;
+    color: var(--gray-600);
+    border-bottom: 2px solid var(--gray-200);
+    font-size: 0.8em;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.catalogo-table td {
+    padding: 14px 16px;
+    border-bottom: 1px solid var(--gray-200);
+    color: var(--gray-900);
+}
+
+.catalogo-table tr:hover {
+    background: rgba(44, 82, 130, 0.02);
+}
+
+.catalogo-actions {
+    display: flex;
+    gap: 8px;
+}
+
+.btn-icon {
+    width: 34px;
+    height: 34px;
+    border-radius: 8px;
+    border: none;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.85em;
+    transition: all 0.2s;
+}
+
+.btn-edit {
+    background: #e0e7ff;
+    color: #4f46e5;
+}
+
+.btn-edit:hover {
+    background: #c7d2fe;
+}
+
+.btn-toggle {
+    background: #fee2e2;
+    color: #dc2626;
+}
+
+.btn-toggle.active {
+    background: #d1fae5;
+    color: #065f46;
+}
+
+.btn-toggle:hover {
+    opacity: 0.8;
+}
+
 /* ── RESPONSIVE ───────────────────────────────────────── */
 @media (max-width:1024px) {
     .sidebar.open { width:260px; }

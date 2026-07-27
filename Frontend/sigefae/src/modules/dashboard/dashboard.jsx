@@ -10,6 +10,16 @@ export default function ProcesosLogistica() {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [activeTab, setActiveTab] = useState("welcome");
 
+
+    // ── Catálogos Admin ──
+  const [catalogoActivo, setCatalogoActivo] = useState("tipo-radicacion");
+  const [catalogoItems, setCatalogoItems] = useState([]);
+  const [catalogoLoading, setCatalogoLoading] = useState(false);
+  const [showCatalogoForm, setShowCatalogoForm] = useState(false);
+  const [catalogoEditing, setCatalogoEditing] = useState(null);
+  const [catalogoForm, setCatalogoForm] = useState({ nombre: "", tipo_pago_id: "" });
+  const [tiposPagoCatalogo, setTiposPagoCatalogo] = useState([]);
+
   // ── Correos ──
   const [correos, setCorreos] = useState([]);
   const [selectedCorreoId, setSelectedCorreoId] = useState(null);
@@ -49,6 +59,101 @@ export default function ProcesosLogistica() {
   const [selectedRadicadoId, setSelectedRadicadoId] = useState(null);
   const [radicadoDetail, setRadicadoDetail] = useState(null);
   const [loadingRadicados, setLoadingRadicados] = useState(false);
+  
+  const catalogoConfig = {
+    "tipo-radicacion": { endpoint: "tipo-radicacion", label: "Tipo de Radicación", hasTipoPago: false, updateMethod: "PUT" },
+    "tipos-pago":      { endpoint: "tipos-pago",      label: "Tipo de Pago",      hasTipoPago: false, updateMethod: "PATCH" },
+    "metodos-pago":    { endpoint: "metodos-pago",      label: "Método de Pago",    hasTipoPago: true,  updateMethod: "PATCH" },
+  };
+
+    const loadCatalogo = async (tipo) => {
+    const cfg = catalogoConfig[tipo];
+    setCatalogoLoading(true);
+    try {
+      const res = await fetch(`${API}/${cfg.endpoint}`, {
+        headers: { Authorization: `Bearer ${obtenerToken()}` },
+      });
+      const data = await res.json();
+      setCatalogoItems(Array.isArray(data) ? data : []);
+    } catch (err) {
+      console.error(err);
+      setCatalogoItems([]);
+    } finally {
+      setCatalogoLoading(false);
+    }
+  };
+
+  const openCatalogoCreate = () => {
+    setCatalogoEditing(null);
+    setCatalogoForm({ nombre: "", tipo_pago_id: "" });
+    setShowCatalogoForm(true);
+  };
+
+  const openCatalogoEdit = (item) => {
+    setCatalogoEditing(item);
+    setCatalogoForm({
+      nombre: item.nombre || "",
+      tipo_pago_id: item.tipo_pago_id ? String(item.tipo_pago_id) : "",
+    });
+    setShowCatalogoForm(true);
+  };
+
+  const handleCatalogoFormChange = (e) => {
+    const { name, value } = e.target;
+    setCatalogoForm(prev => ({ ...prev, [name]: value }));
+  };
+
+  const handleCatalogoSubmit = async () => {
+    if (!catalogoForm.nombre.trim()) {
+      alert("El nombre es obligatorio");
+      return;
+    }
+
+    const cfg = catalogoConfig[catalogoActivo];
+    const isEdit = !!catalogoEditing;
+    const url = isEdit ? `${API}/${cfg.endpoint}/${catalogoEditing.id}` : `${API}/${cfg.endpoint}`;
+    const method = isEdit ? cfg.updateMethod : "POST";
+
+    const body = { nombre: catalogoForm.nombre.trim() };
+    if (cfg.hasTipoPago) {
+      if (!catalogoForm.tipo_pago_id) {
+        alert("Debe seleccionar un tipo de pago");
+        return;
+      }
+      body.tipo_pago_id = parseInt(catalogoForm.tipo_pago_id);
+    }
+
+    try {
+      const res = await fetch(url, {
+        method,
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${obtenerToken()}` },
+        body: JSON.stringify(body),
+      });
+      if (!res.ok) {
+        const errData = await res.json();
+        throw new Error(errData.error || "Error guardando");
+      }
+      setShowCatalogoForm(false);
+      loadCatalogo(catalogoActivo);
+    } catch (err) {
+      alert("Error: " + err.message);
+    }
+  };
+
+  const handleToggleCatalogoStatus = async (item) => {
+    const cfg = catalogoConfig[catalogoActivo];
+    try {
+      const res = await fetch(`${API}/${cfg.endpoint}/${item.id}/activo`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${obtenerToken()}` },
+        body: JSON.stringify({ activo: !item.activo }),
+      });
+      if (!res.ok) throw new Error("Error cambiando estado");
+      loadCatalogo(catalogoActivo);
+    } catch (err) {
+      alert(err.message);
+    }
+  };
 
   // Cargar lista de correos
   useEffect(() => {
@@ -61,6 +166,24 @@ export default function ProcesosLogistica() {
         .finally(() => setLoading(false));
     }
   }, [activeTab]);
+
+
+    // Cargar catálogo activo
+  useEffect(() => {
+    if (activeTab === "catalogos") {
+      loadCatalogo(catalogoActivo);
+    }
+  }, [activeTab, catalogoActivo]);
+
+  // Cargar tipos de pago cuando se necesiten (para métodos de pago)
+  useEffect(() => {
+    if (activeTab === "catalogos" && catalogoActivo === "metodos-pago") {
+      fetch(`${API}/tipos-pago`, { headers: { Authorization: `Bearer ${obtenerToken()}` } })
+        .then(r => r.json())
+        .then(data => setTiposPagoCatalogo(Array.isArray(data) ? data : []))
+        .catch(err => console.error(err));
+    }
+  }, [activeTab, catalogoActivo]);
 
   // Cargar detalle del correo
   useEffect(() => {
@@ -268,6 +391,7 @@ export default function ProcesosLogistica() {
       case "correos": return { icon: "fa-solid fa-envelope", title: "Recepción de Correos", subtitle: "Gestiona las facturas electrónicas recibidas" };
       case "documentos": return { icon: "fa-solid fa-file-invoice", title: "Documentos Pendientes", subtitle: "Revisa, completa y aprueba documentos para radicación" };
       case "radicados": return { icon: "fa-solid fa-stamp", title: "Documentos Radicados", subtitle: "Consulta el estado de los documentos radicados" };
+      case "catalogos": return { icon: "fa-solid fa-sliders", title: "Catálogos del Sistema", subtitle: "Gestiona tipos de radicación, pagos y métodos" };
       default: return { icon: "fa-solid fa-house", title: "Procesos administrativos", subtitle: "Selecciona un formato del menú lateral" };
     }
   };
@@ -625,12 +749,120 @@ export default function ProcesosLogistica() {
       </div>
     </div>
   );
+    const renderCatalogos = () => {
+    const cfg = catalogoConfig[catalogoActivo];
+
+    return (
+      <div className="catalogos-container">
+        <div className="catalogo-tabs">
+          {Object.entries(catalogoConfig).map(([key, c]) => (
+            <button
+              key={key}
+              className={catalogoActivo === key ? "active" : ""}
+              onClick={() => setCatalogoActivo(key)}
+            >
+              {c.label}
+            </button>
+          ))}
+        </div>
+
+        <div className="catalogo-header">
+          <h3>{cfg.label}</h3>
+          <button className="doc-btn doc-btn-primary" onClick={openCatalogoCreate}>
+            <i className="fa-solid fa-plus"></i> Nuevo {cfg.label}
+          </button>
+        </div>
+
+        {showCatalogoForm && (
+          <div className="catalogo-form">
+            <h4>{catalogoEditing ? "Editar" : "Crear"} {cfg.label}</h4>
+            <div className="catalogo-form-row">
+              <div className="modal-field" style={{ flex: 1 }}>
+                <label>Nombre <span className="required">*</span></label>
+                <input
+                  type="text"
+                  name="nombre"
+                  value={catalogoForm.nombre}
+                  onChange={handleCatalogoFormChange}
+                  placeholder={`Nombre del ${cfg.label.toLowerCase()}`}
+                />
+              </div>
+              {cfg.hasTipoPago && (
+                <div className="modal-field" style={{ flex: 1 }}>
+                  <label>Tipo de Pago <span className="required">*</span></label>
+                  <select name="tipo_pago_id" value={catalogoForm.tipo_pago_id} onChange={handleCatalogoFormChange}>
+                    <option value="">Seleccione...</option>
+                    {tiposPagoCatalogo.map(tp => (
+                      <option key={tp.id} value={tp.id}>{tp.nombre}</option>
+                    ))}
+                  </select>
+                </div>
+              )}
+              <div style={{ display: "flex", gap: 8 }}>
+                <button className="doc-btn doc-btn-secondary" onClick={() => setShowCatalogoForm(false)}>Cancelar</button>
+                <button className="doc-btn doc-btn-primary" onClick={handleCatalogoSubmit}>
+                  <i className="fa-solid fa-floppy-disk"></i> Guardar
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {catalogoLoading ? (
+          <p>Cargando...</p>
+        ) : catalogoItems.length === 0 ? (
+          <p style={{ color: "#6b7280" }}>No hay registros.</p>
+        ) : (
+          <table className="catalogo-table">
+            <thead>
+              <tr>
+                <th>ID</th>
+                <th>Nombre</th>
+                {cfg.hasTipoPago && <th>Tipo de Pago</th>}
+                <th>Estado</th>
+                <th style={{ width: 120 }}>Acciones</th>
+              </tr>
+            </thead>
+            <tbody>
+              {catalogoItems.map(item => (
+                <tr key={item.id}>
+                  <td>{item.id}</td>
+                  <td>{item.nombre}</td>
+                  {cfg.hasTipoPago && <td>{item.tipo_pago || "—"}</td>}
+                  <td>
+                    <span className={`status-badge ${item.activo ? "radicado" : "doc-pendiente"}`}>
+                      {item.activo ? "Activo" : "Inactivo"}
+                    </span>
+                  </td>
+                  <td>
+                    <div className="catalogo-actions">
+                      <button className="btn-icon btn-edit" onClick={() => openCatalogoEdit(item)} title="Editar">
+                        <i className="fa-solid fa-pen"></i>
+                      </button>
+                      <button
+                        className={`btn-icon btn-toggle ${item.activo ? "active" : ""}`}
+                        onClick={() => handleToggleCatalogoStatus(item)}
+                        title={item.activo ? "Desactivar" : "Activar"}
+                      >
+                        <i className={`fa-solid ${item.activo ? "fa-check" : "fa-xmark"}`}></i>
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        )}
+      </div>
+    );
+  };
 
   const renderContent = () => {
     switch (activeTab) {
       case "correos": return renderCorreos();
       case "documentos": return renderDocumentos();
       case "radicados": return renderRadicados();
+      case "catalogos": return renderCatalogos();
       default: return renderWelcome();
     }
   };
@@ -660,6 +892,18 @@ export default function ProcesosLogistica() {
             <a href="#" className={`menu-item ${activeTab === "radicados" ? "active" : ""}`} onClick={(e) => { e.preventDefault(); setActiveTab("radicados"); setIsSidebarOpen(false); }}>
               <div className="item-icon"><i className="fa-solid fa-stamp"></i></div>
               <div className="item-text"><span className="item-nombre">Radicados</span></div>
+            </a>
+                        <a 
+              href="#" 
+              className={`menu-item ${activeTab === "catalogos" ? "active" : ""}`}
+              onClick={(e) => { e.preventDefault(); setActiveTab("catalogos"); setIsSidebarOpen(false); }}
+            >
+              <div className="item-icon">
+                <i className="fa-solid fa-sliders"></i>
+              </div>
+              <div className="item-text">
+                <span className="item-nombre">Catálogos</span>
+              </div>
             </a>
           </nav>
         </aside>
