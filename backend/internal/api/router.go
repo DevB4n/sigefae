@@ -521,6 +521,7 @@ func New(database *gorm.DB) *gin.Engine {
 
 			admin.POST("/documentoradicado", documentoRadicadoHandler.Create)
 			admin.GET("/documentoradicado", documentoRadicadoHandler.List)
+			admin.GET("/documentoradicado/:id", documentoRadicadoHandler.GetByID)
 			admin.PUT("/documentoradicado/:id", documentoRadicadoHandler.Update)
 
 			// =========================

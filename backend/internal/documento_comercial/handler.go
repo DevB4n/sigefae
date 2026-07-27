@@ -60,50 +60,26 @@ func (h *Handler) List(c *gin.Context) {
 
 	c.JSON(http.StatusOK, response)
 }
-
 func (h *Handler) Update(c *gin.Context) {
-
-	id, err := strconv.ParseUint(
-		c.Param("id"),
-		10,
-		64,
-	)
-
+	id, err := strconv.ParseUint(c.Param("id"), 10, 64)
 	if err != nil {
-
-		c.JSON(http.StatusBadRequest, gin.H{
-			"error": "id inválido",
-		})
-
+		c.JSON(http.StatusBadRequest, gin.H{"error": "id inválido"})
 		return
 	}
 
-	var dto UpdateDTO
-
+	var dto UpdateDocumentoComercialDTO
 	if err := c.ShouldBindJSON(&dto); err != nil {
-
-		c.JSON(http.StatusBadRequest, gin.H{
-			"error": err.Error(),
-		})
-
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
 
-	response, err := h.service.Update(
-		uint(id),
-		dto,
-	)
-
+	doc, err := h.service.Update(uint(id), dto)
 	if err != nil {
-
-		c.JSON(http.StatusBadRequest, gin.H{
-			"error": err.Error(),
-		})
-
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
 
-	c.JSON(http.StatusOK, response)
+	c.JSON(http.StatusOK, doc)
 }
 func (h *Handler) Delete(c *gin.Context) {
 
