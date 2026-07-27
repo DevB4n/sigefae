@@ -135,3 +135,44 @@ func (h *Handler) Delete(c *gin.Context) {
 		"message": "estado cambiado exitosamente!",
 	})
 }
+
+func (h *Handler) GetByID(c *gin.Context) {
+
+	id, err := strconv.ParseUint(
+		c.Param("id"),
+		10,
+		64,
+	)
+
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error": "id inválido",
+		})
+		return
+	}
+
+	response, err := h.service.GetByID(uint(id))
+
+	if err != nil {
+		c.JSON(http.StatusNotFound, gin.H{
+			"error": err.Error(),
+		})
+		return
+	}
+
+	c.JSON(http.StatusOK, response)
+}
+
+func (h *Handler) ListPendientes(c *gin.Context) {
+
+	response, err := h.service.ListPendientes()
+
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error": err.Error(),
+		})
+		return
+	}
+
+	c.JSON(http.StatusOK, response)
+}

@@ -506,3 +506,71 @@ func (s *Service) Delete(id uint) error {
 
 	return s.db.Save(&documento).Error
 }
+
+func (s *Service) GetByID(id uint) (*Response, error) {
+
+	var documento db.DocumentoComercial
+
+	if err := s.db.
+		Preload("Proveedor").
+		Preload("Proveedor.TipoDocumento").
+		Preload("Proveedor.Direccion").
+		Preload("Proveedor.Direccion.Municipio").
+		Preload("Proveedor.Direccion.Municipio.Departamento").
+		Preload("Receptor").
+		Preload("Area").
+		Preload("TipoFactura").
+		Preload("Moneda").
+		Preload("Correo").
+		Preload("Correo.EstadoCorreo").
+		Preload("Detalles").
+		First(&documento, id).Error; err != nil {
+
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, errors.New("el documento comercial no existe")
+		}
+
+		return nil, err
+	}
+
+	response := toResponse(documento)
+
+	return &response, nil
+}
+
+// ListPendientes devuelve documentos comerciales que están "Procesados" (extraídos del XML)
+// pero que aún NO han sido radicados. Estos son los que la persona debe revisar.
+func (s *Service) ListPendientes() ([]Response, error) {
+
+	var documentos []db.DocumentoComercial
+
+	// Documentos que:
+	// 1. Tienen correo asociado (origen digital)
+	// 2. NO tienen un documento_radicado asociado
+	subQuery := s.db.Table("documento_radicado").Select("documento_comercial_id")
+
+	if err := s.db.
+		Preload("Proveedor").
+		Preload("Receptor").
+		Preload("Area").
+		Preload("TipoFactura").
+		Preload("Moneda").
+		Preload("Correo").
+		Preload("Correo.EstadoCorreo").
+		Preload("Detalles").
+		Where("id NOT IN (?)", subQuery).
+		Where("activo = ?", true).
+		Order("created_at DESC").
+		Find(&documentos).Error; err != nil {
+
+		return nil, err
+	}
+
+	response := make([]Response, 0, len(documentos))
+
+	for _, documento := range documentos {
+		response = append(response, toResponse(documento))
+	}
+
+	return response, nil
+}

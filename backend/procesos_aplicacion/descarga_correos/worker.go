@@ -9,8 +9,10 @@ import (
 	"sigefae/env"
 	"sigefae/internal/correo"
 	"sigefae/procesos_aplicacion/crear_correos"
+	"sigefae/procesos_aplicacion/crear_documentos_comerciales"
 	"sigefae/procesos_aplicacion/descarga_correos/graph"
 	"sigefae/procesos_aplicacion/descarga_correos/sync"
+	"path/filepath"
 )
 
 func Start(cfg *env.Env, database *gorm.DB) {
@@ -26,14 +28,14 @@ func Start(cfg *env.Env, database *gorm.DB) {
 	log.Println("[Descarga Correos] Servicio iniciado en segundo plano (5 min interval)")
 
 	// Ejecutar la primera sincronización inmediatamente
-	if err := processMails(client, syncService, correoService); err != nil {
+	if err := processMails(client, syncService, correoService, database); err != nil {
 		log.Printf("[Descarga Correos] Error sincronizando correos: %v\n", err)
 	}
 
 	for {
 		<-ticker.C
 		log.Println("[Descarga Correos] Iniciando sincronización de correos...")
-		if err := processMails(client, syncService, correoService); err != nil {
+		if err := processMails(client, syncService, correoService, database); err != nil {
 			log.Printf("[Descarga Correos] Error sincronizando correos: %v\n", err)
 		} else {
 			log.Println("[Descarga Correos] Sincronización finalizada correctamente.")
@@ -41,7 +43,7 @@ func Start(cfg *env.Env, database *gorm.DB) {
 	}
 }
 
-func processMails(client *graph.Client, syncService *sync.Service, correoService *correo.Service) error {
+func processMails(client *graph.Client, syncService *sync.Service, correoService *correo.Service, database *gorm.DB) error {
 	lastSync := syncService.LastSync()
 
 	messages, err := client.ListMessages(lastSync)
@@ -65,9 +67,16 @@ func processMails(client *graph.Client, syncService *sync.Service, correoService
 			continue
 		}
 
-		if err := crear_correos.ProcesarYCrear(msg, correoService); err != nil {
+		creado, err := crear_correos.ProcesarYCrear(msg, correoService)
+		if err != nil {
 			log.Printf("Error registrando el correo %s en la base de datos: %v\n", msg.ID, err)
 			continue
+		}
+		
+		// 3. Parsear XML (si existe) y llenar base de datos (Fase 1 del Plan)
+		folderPath := filepath.Join("storage", "mails", msg.ID)
+		if err := crear_documentos_comerciales.ProcesarCarpetaCorreo(database, creado.ID, folderPath); err != nil {
+			log.Printf("Error procesando XML para el correo %s: %v\n", msg.ID, err)
 		}
 	}
 

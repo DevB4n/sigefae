@@ -492,6 +492,8 @@ func New(database *gorm.DB) *gin.Engine {
 
 			admin.POST("/documentocomercial", documentoComercialHandler.Create)
 			admin.GET("/documentocomercial", documentoComercialHandler.List)
+			admin.GET("/documentocomercial/pendientes", documentoComercialHandler.ListPendientes)
+			admin.GET("/documentocomercial/:id", documentoComercialHandler.GetByID)
 			admin.PUT("/documentocomercial/:id", documentoComercialHandler.Update)
 			admin.PATCH("/documentocomercial/:id/activo", documentoComercialHandler.Delete)
 

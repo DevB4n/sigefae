@@ -7,7 +7,7 @@ import (
 	"sigefae/procesos_aplicacion/descarga_correos/graph"
 )
 
-func ProcesarYCrear(msg graph.Message, correoSvc *correo.Service) error {
+func ProcesarYCrear(msg graph.Message, correoSvc *correo.Service) (*correo.Response, error) {
 	req := correo.CreateRequest{
 		Asunto:         msg.Subject,
 		De:             msg.From.EmailAddress.Address,
@@ -21,8 +21,7 @@ func ProcesarYCrear(msg graph.Message, correoSvc *correo.Service) error {
 		IDEstado:       1,
 	}
 
-	_, err := correoSvc.Create(req)
-	return err
+	return correoSvc.Create(req)
 }
 
 func joinRecipients(recipients []graph.Recipient) string {

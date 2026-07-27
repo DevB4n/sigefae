@@ -39,6 +39,15 @@ type CorreoResponse struct {
 	IDMensaje string `json:"id_mensaje"`
 }
 
+type DetalleResponse struct {
+	ID          uint    `json:"id"`
+	Descripcion string  `json:"descripcion"`
+	Cantidad    float64 `json:"cantidad"`
+	ValorUnit   float64 `json:"valor_unitario"`
+	IvaUnit     float64 `json:"iva_unitario"`
+	Total       float64 `json:"total"`
+}
+
 type Response struct {
 	ID uint `json:"id"`
 
@@ -77,6 +86,8 @@ type Response struct {
 
 	CorreoID *uint           `json:"correo_id,omitempty"`
 	Correo   *CorreoResponse `json:"correo,omitempty"`
+
+	Detalles []DetalleResponse `json:"detalles,omitempty"`
 
 	Activo bool `json:"activo"`
 
@@ -153,6 +164,19 @@ func toResponse(documento db.DocumentoComercial) Response {
 			ID:        documento.Correo.ID,
 			Asunto:    documento.Correo.Asunto,
 			IDMensaje: documento.Correo.IDMensaje,
+		}
+	}
+
+	if len(documento.Detalles) > 0 {
+		for _, d := range documento.Detalles {
+			response.Detalles = append(response.Detalles, DetalleResponse{
+				ID:          d.ID,
+				Descripcion: d.Descripcion,
+				Cantidad:    d.Cantidad,
+				ValorUnit:   d.ValorUnit,
+				IvaUnit:     d.IvaUnit,
+				Total:       d.Total,
+			})
 		}
 	}
 
