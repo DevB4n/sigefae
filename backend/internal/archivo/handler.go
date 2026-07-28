@@ -174,6 +174,12 @@ func (h *Handler) Download(c *gin.Context) {
 		return
 	}
 
-	c.Header("Content-Disposition", fmt.Sprintf("attachment; filename=\"%s\"", archivo.Nombre))
+	// inline = preview en navegador, attachment = descarga forzada
+	disposition := "inline"
+	if c.Query("download") == "1" {
+		disposition = "attachment"
+	}
+
+	c.Header("Content-Disposition", fmt.Sprintf("%s; filename=\"%s\"", disposition, archivo.Nombre))
 	c.File(archivo.Ruta)
 }

@@ -39,6 +39,19 @@ func Seed(db *gorm.DB) error {
 			return err
 		}
 	}
+	// ==========================
+	// Estados de Tarea (NUEVO)
+	// ==========================
+	estadosTarea := []EstadoTarea{
+		{ID: 1, Nombre: "Pendiente", Activo: true},
+		{ID: 2, Nombre: "En Proceso", Activo: true},
+		{ID: 3, Nombre: "Completada", Activo: true},
+	}
+	for _, estado := range estadosTarea {
+		if err := db.Where("id = ?", estado.ID).FirstOrCreate(&estado).Error; err != nil {
+			return err
+		}
+	}
 
 	// ==========================
 	// Roles
@@ -115,6 +128,22 @@ func Seed(db *gorm.DB) error {
 	if err := db.
 		Where("email = ?", aprobador.Email).
 		FirstOrCreate(&aprobador).Error; err != nil {
+		return err
+	}
+	
+	// ==========================
+	// Área General (para facturas sin área definida)
+	// ==========================
+	areaGeneral := Area{ID: 1, Nombre: "General", Activo: true}
+	if err := db.Where("id = ?", areaGeneral.ID).FirstOrCreate(&areaGeneral).Error; err != nil {
+		return err
+	}
+
+	// ==========================
+	// Moneda COP
+	// ==========================
+	monedaCOP := Moneda{ID: 1, Nombre: "Peso Colombiano", Codigo: "COP", Activo: true}
+	if err := db.Where("id = ?", monedaCOP.ID).FirstOrCreate(&monedaCOP).Error; err != nil {
 		return err
 	}
 

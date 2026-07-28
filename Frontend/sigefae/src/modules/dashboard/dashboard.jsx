@@ -15,13 +15,14 @@ export default function ProcesosLogistica() {
   const userRol = obtenerRol();
   const userId = obtenerUserId();
   const esAprobador = userRol === "Aprobador";
+ 
+  
+  const handleSubirAnexo = async (e, radicadoId) => {
+  const file = e.target.files[0];
+  if (!file) return;
 
-    const handleSubirAnexo = async (e, radicadoId) => {
-    const file = e.target.files[0];
-    if (!file) return;
-
-    const formData = new FormData();
-    formData.append("file", file);
+  const formData = new FormData();
+  formData.append("file", file);
 
     try {
       const res = await fetch(`${API}/documentoradicado/${radicadoId}/anexos`, {
@@ -115,6 +116,86 @@ export default function ProcesosLogistica() {
   const [tareaDetail, setTareaDetail] = useState(null);
   const [loadingTareas, setLoadingTareas] = useState(false);
 
+    // ── Flujo de tareas del radicado ──
+  const [tareasFlujo, setTareasFlujo] = useState([]);
+
+  // Cargar tareas cuando se selecciona un radicado o tarea
+  useEffect(() => {
+    const radicadoId = selectedRadicadoId || selectedTareaId;
+    if (radicadoId) {
+      fetch(`${API}/documentoradicado/${radicadoId}/tareas`, {
+        headers: { Authorization: `Bearer ${obtenerToken()}` }
+      })
+        .then(r => r.json())
+        .then(data => setTareasFlujo(Array.isArray(data) ? data : []))
+        .catch(err => console.error(err));
+    } else {
+      setTareasFlujo([]);
+    }
+  }, [selectedRadicadoId, selectedTareaId]);
+
+  const renderFlujoAprobacion = () => (
+    <div className="doc-section">
+      <h4><i className="fa-solid fa-route"></i> Flujo de Aprobación</h4>
+      {tareasFlujo.length === 0 ? (
+        <p style={{ color: "#6b7280", fontSize: "0.9em" }}>No hay pasos definidos para este flujo.</p>
+      ) : (
+        <table className="doc-items-table">
+          <thead>
+            <tr>
+              <th>Usuario</th>
+              <th>Correo</th>
+              <th>Acción a realizar</th>
+              <th>Estado</th>
+              <th>Fecha Realización</th>
+            </tr>
+          </thead>
+          <tbody>
+            {tareasFlujo.map((t) => (
+              <tr key={t.id} style={t.estado?.nombre === "En Proceso" ? { background: "rgba(44,82,130,0.05)" } : {}}>
+                <td>{t.usuario_asignado?.nombre || "—"}</td>
+                <td>{t.usuario_asignado?.email || "—"}</td>
+                <td>{t.descripcion}</td>
+                <td>
+                  <span className={`status-badge ${
+                    t.estado?.nombre === "Completada" ? "radicado" :
+                    t.estado?.nombre === "En Proceso" ? "doc-pendiente" : ""
+                  }`}>
+                    {t.estado?.nombre || "Pendiente"}
+                  </span>
+                </td>
+                <td>{t.fecha_finalizacion ? new Date(t.fecha_finalizacion).toLocaleString() : "—"}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      )}
+    </div>
+  );
+
+  // ── Completar tarea ──
+  const handleCompletarTarea = async (tareaId, radicadoId) => {
+    try {
+      const res = await fetch(`${API}/tarea/${tareaId}/completar`, {
+        method: "PATCH",
+        headers: { Authorization: `Bearer ${obtenerToken()}` }
+      });
+      if (!res.ok) throw new Error("Error completando tarea");
+
+      alert("Tarea completada correctamente");
+
+      if (activeTab === "tareas") {
+        setSelectedTareaId(null);
+        setTimeout(() => setSelectedTareaId(radicadoId), 10);
+      } else if (activeTab === "radicados") {
+        setSelectedRadicadoId(null);
+        setTimeout(() => setSelectedRadicadoId(radicadoId), 10);
+      }
+    } catch (err) {
+      alert("Error: " + err.message);
+    }
+  };
+
   const catalogoConfig = {
     "tipo-radicacion": { endpoint: "tipo-radicacion", label: "Tipo de Radicación", method: "PUT", fields: ["nombre"] },
     "tipos-pago":      { endpoint: "tipos-pago",      label: "Tipo de Pago",      method: "PATCH", fields: ["nombre"] },
@@ -122,6 +203,7 @@ export default function ProcesosLogistica() {
     "areas":           { endpoint: "areas",           label: "Área",              method: "PATCH", fields: ["nombre"] },
     "rutas":           { endpoint: "rutas",           label: "Ruta",              method: "PUT",   fields: ["nombre", "area_id"] },
     "pasos-ruta":      { endpoint: "pasos-ruta",      label: "Paso de Ruta",      method: "PUT",   fields: ["ruta_id", "orden", "nombre", "usuario_id"] },
+    "reglas-monto":    { endpoint: "regla-monto-ruta",label: "Regla de Monto", method: "PUT", fields: ["monto_minimo", "moneda_id", "posicion_insercion", "usuario_aprobador_id"] },
   };
 
   const loadCatalogo = async (tipo) => {
@@ -513,6 +595,75 @@ export default function ProcesosLogistica() {
     }
   };
 
+
+    // ── Ver anexo en nueva pestaña (preview) ──
+  const handleVerAnexo = async (archivoId, nombre) => {
+    try {
+      const res = await fetch(`${API}/archivo/${archivoId}/download`, {
+        headers: { Authorization: `Bearer ${obtenerToken()}` }
+      });
+      if (!res.ok) throw new Error("Error obteniendo archivo");
+
+      const blob = await res.blob();
+      const url = window.URL.createObjectURL(blob);
+      window.open(url, "_blank");
+
+      // Liberar memoria después de 1 minuto
+      setTimeout(() => window.URL.revokeObjectURL(url), 60000);
+    } catch (err) {
+      alert("Error: " + err.message);
+    }
+  };
+
+  // ── Descargar anexo directamente ──
+  const handleDescargarAnexo = async (archivoId, nombre) => {
+    try {
+      const res = await fetch(`${API}/archivo/${archivoId}/download`, {
+        headers: { Authorization: `Bearer ${obtenerToken()}` }
+      });
+      if (!res.ok) throw new Error("Error descargando archivo");
+
+      const blob = await res.blob();
+      const url = window.URL.createObjectURL(blob);
+
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = nombre;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+
+      setTimeout(() => window.URL.revokeObjectURL(url), 60000);
+    } catch (err) {
+      alert("Error: " + err.message);
+    }
+  };
+
+  // ── Borrar anexo (solo admin) ──
+  const handleBorrarAnexo = async (archivoId, radicadoId) => {
+    if (!confirm("¿Está seguro de eliminar este archivo?")) return;
+    try {
+      const res = await fetch(`${API}/archivo/${archivoId}`, {
+        method: "DELETE",
+        headers: { Authorization: `Bearer ${obtenerToken()}` }
+      });
+      if (!res.ok) throw new Error("Error eliminando archivo");
+
+      alert("Archivo eliminado");
+
+      // Refrescar detalle según pestaña activa
+      if (activeTab === "tareas") {
+        setSelectedTareaId(null);
+        setTimeout(() => setSelectedTareaId(radicadoId), 10);
+      } else if (activeTab === "radicados") {
+        setSelectedRadicadoId(null);
+        setTimeout(() => setSelectedRadicadoId(radicadoId), 10);
+      }
+    } catch (err) {
+      alert("Error: " + err.message);
+    }
+  };
+
   const getTabInfo = () => {
     switch (activeTab) {
       case "correos": return { icon: "fa-solid fa-envelope", title: "Recepción de Correos", subtitle: "Gestiona las facturas electrónicas recibidas" };
@@ -830,24 +981,42 @@ export default function ProcesosLogistica() {
           <div className="doc-body">
             {/* ── Anexos (CORREGIDO: radicadoDetail en vez de tareaDetail) ── */}
             {radicadoDetail.archivos && radicadoDetail.archivos.length > 0 && (
-              <div className="doc-section">
-                <h4><i className="fa-solid fa-paperclip"></i> Anexos ({radicadoDetail.archivos.length})</h4>
-                <div className="attachments-grid">
-                  {radicadoDetail.archivos.map((arch) => (
-                    <div key={arch.id} className="attachment-card">
-                      <i className={`fa-solid fa-file${arch.extension === 'pdf' ? '-pdf' : arch.extension === 'xml' ? '-code' : ''}`}></i>
-                      <span className="attachment-name" title={arch.nombre}>{arch.nombre}</span>
-                      <a 
-                        href={`${API}/archivo/${arch.id}/download`} 
-                        className="attachment-btn btn-default"
+  <div className="doc-section">
+    <h4><i className="fa-solid fa-paperclip"></i> Anexos ({radicadoDetail.archivos.length})</h4>
+    <div className="attachments-grid">
+      {radicadoDetail.archivos.map((arch) => {
+        const ext = arch.extension?.toLowerCase() || "";
+        const esPreview = ["pdf", "jpg", "jpeg", "png", "gif", "txt"].includes(ext);
+        return (
+          <div key={arch.id} className="attachment-card" style={{ position: "relative" }}>
+            <i className={`fa-solid fa-file${ext === 'pdf' ? '-pdf' : ext === 'xml' ? '-code' : ''}`}></i>
+            <span className="attachment-name" title={arch.nombre}>{arch.nombre}</span>
+
+                  <div style={{ display: "flex", gap: 6, flexWrap: "wrap", justifyContent: "center" }}>
+                    {esPreview && (
+                      <button className="attachment-btn btn-pdf" onClick={() => handleVerAnexo(arch.id, arch.nombre)}>
+                        <i className="fa-solid fa-eye"></i> Ver
+                      </button>
+                    )}
+                    <button className="attachment-btn btn-default" onClick={() => handleDescargarAnexo(arch.id, arch.nombre)}>
+                      <i className="fa-solid fa-download"></i> Descargar
+                    </button>
+                    {userRol === "Superadministrador" && (
+                      <button
+                        className="attachment-btn btn-toggle"
+                        onClick={() => handleBorrarAnexo(arch.id, radicadoDetail.id)}
+                        title="Eliminar"
                       >
-                        Descargar
-                      </a>
-                    </div>
-                  ))}
+                        <i className="fa-solid fa-xmark"></i>
+                      </button>
+                    )}
+                  </div>
                 </div>
-              </div>
-            )}
+              );
+            })}
+          </div>
+        </div>
+      )}
 
             {/* ── Subir nuevo anexo (CORREGIDO: radicadoDetail.id en vez de tareaDetail.id) ── */}
             <div className="doc-section">
@@ -865,7 +1034,7 @@ export default function ProcesosLogistica() {
                 <i className="fa-solid fa-upload"></i> Seleccionar archivo
               </button>
             </div>
-
+            {renderFlujoAprobacion()}
             <div className="doc-section">
               <h4><i className="fa-solid fa-circle-info"></i> Información del Radicado</h4>
               <div className="doc-grid">
@@ -957,24 +1126,42 @@ export default function ProcesosLogistica() {
             <div className="doc-body">
                             {/* ── Anexos ── */}
               {tareaDetail.archivos && tareaDetail.archivos.length > 0 && (
-                <div className="doc-section">
-                  <h4><i className="fa-solid fa-paperclip"></i> Anexos ({tareaDetail.archivos.length})</h4>
-                  <div className="attachments-grid">
-                {tareaDetail.archivos.map((arch) => (
-                      <div key={arch.id} className="attachment-card">
-                        <i className={`fa-solid fa-file${arch.extension === 'pdf' ? '-pdf' : arch.extension === 'xml' ? '-code' : ''}`}></i>
-                        <span className="attachment-name" title={arch.nombre}>{arch.nombre}</span>
-                        <a 
-                          href={`${API}/archivo/${arch.id}/download`} 
-                          className="attachment-btn btn-default"
-                        >
-                          Descargar
-                        </a>
-                      </div>
-                    ))}
-                  </div>
+  <div className="doc-section">
+    <h4><i className="fa-solid fa-paperclip"></i> Anexos ({tareaDetail.archivos.length})</h4>
+    <div className="attachments-grid">
+      {tareaDetail.archivos.map((arch) => {
+        const ext = arch.extension?.toLowerCase() || "";
+        const esPreview = ["pdf", "jpg", "jpeg", "png", "gif", "txt"].includes(ext);
+        return (
+          <div key={arch.id} className="attachment-card" style={{ position: "relative" }}>
+            <i className={`fa-solid fa-file${ext === 'pdf' ? '-pdf' : ext === 'xml' ? '-code' : ''}`}></i>
+            <span className="attachment-name" title={arch.nombre}>{arch.nombre}</span>
+
+                <div style={{ display: "flex", gap: 6, flexWrap: "wrap", justifyContent: "center" }}>
+                  {esPreview && (
+                    <button className="attachment-btn btn-pdf" onClick={() => handleVerAnexo(arch.id, arch.nombre)}>
+                      <i className="fa-solid fa-eye"></i> Ver
+                    </button>
+                  )}
+                  <button className="attachment-btn btn-default" onClick={() => handleDescargarAnexo(arch.id, arch.nombre)}>
+                    <i className="fa-solid fa-download"></i> Descargar
+                  </button>
+                  {userRol === "Superadministrador" && (
+                    <button
+                      className="attachment-btn btn-toggle"
+                      onClick={() => handleBorrarAnexo(arch.id, tareaDetail.id)}
+                      title="Eliminar"
+                    >
+                      <i className="fa-solid fa-xmark"></i>
+                    </button>
+                  )}
                 </div>
-              )}
+              </div>
+            );
+          })}
+        </div>
+      </div>
+    )}
 
               {/* ── Subir nuevo anexo ── */}
               <div className="doc-section">
@@ -992,6 +1179,7 @@ export default function ProcesosLogistica() {
                   <i className="fa-solid fa-upload"></i> Seleccionar archivo
                 </button>
               </div>
+              {renderFlujoAprobacion()}
               <div className="doc-section">
                 <h4><i className="fa-solid fa-circle-info"></i> Información del Radicado</h4>
                 <div className="doc-grid">
@@ -1037,12 +1225,31 @@ export default function ProcesosLogistica() {
               )}
             </div>
 
-            {/* Aquí irán los botones de acción futuros: Aprobar, Rechazar, Comentar, etc. */}
-            <div className="doc-actions">
-              <button className="doc-btn doc-btn-primary" disabled>
-                <i className="fa-solid fa-check"></i> Acciones próximamente
-              </button>
-            </div>
+                        <div className="doc-actions">
+              {(() => {
+                const tareaActiva = tareasFlujo.find(t => t.estado?.nombre === "En Proceso");
+                const esResponsable = tareaActiva && (tareaActiva.usuario_asignado_id === userId || tareaDetail.usuario_actual?.id === userId);
+                
+                if (esResponsable && tareaDetail.estado_posesion !== "Completado") {
+                  return (
+                    <button 
+                      className="doc-btn doc-btn-primary" 
+                      onClick={() => handleCompletarTarea(tareaActiva.id, tareaDetail.id)}
+                    >
+                      <i className="fa-solid fa-check"></i> Marcar como Completado
+                    </button>
+                  );
+                }
+                if (tareaDetail.estado_posesion === "Completado") {
+                  return (
+                    <span className="status-badge radicado" style={{ padding: "10px 16px" }}>
+                      <i className="fa-solid fa-check-circle"></i> Proceso Finalizado
+                    </span>
+                  );
+                }
+                return null;
+              })()}
+            </div>  
           </div>
         )}
       </div>

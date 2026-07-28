@@ -46,6 +46,7 @@ import (
 	"sigefae/internal/tipo_radicacion"
 	"sigefae/internal/trazabilidad"
 	"sigefae/internal/user"
+	"sigefae/internal/regla_monto_ruta"
 )
 
 func New(database *gorm.DB) *gin.Engine {
@@ -198,10 +199,13 @@ func New(database *gorm.DB) *gin.Engine {
 	archivoHandler := archivo.NewHandler(archivoService)
 
 	tareaService := tarea.New(database)
-	tareaHandler := tarea.NewHandler(tareaService)
+	tareaHandler := tarea.NewHandler(tareaService, database)
 
 	registroAprobacionService := registro_aprobacion.New(database)
 	registroAprobacionHandler := registro_aprobacion.NewHandler(registroAprobacionService)
+	
+	reglaMontoRutaService := regla_monto_ruta.New(database)
+	reglaMontoRutaHandler := regla_monto_ruta.NewHandler(reglaMontoRutaService)
 
 	api := router.Group("/api")
 	{
@@ -221,7 +225,9 @@ func New(database *gorm.DB) *gin.Engine {
     protected.POST("/documentoradicado/:documento_radicado_id/anexos", archivoHandler.UploadAnexo)
     protected.GET("/archivo", archivoHandler.List)  // si quieres listar todos (opcional)
 	protected.GET("/archivo/:id/download", archivoHandler.Download)
-	
+	//tarea
+	protected.GET("/documentoradicado/:id/tareas", tareaHandler.ListByRadicado)
+	protected.PATCH("/tarea/:id/completar", tareaHandler.Completar)
 
 	{
 
@@ -581,6 +587,15 @@ func New(database *gorm.DB) *gin.Engine {
 
 			admin.POST("/registroaprobacion", registroAprobacionHandler.Create)
 			admin.GET("/registroaprobacion", registroAprobacionHandler.List)
+
+			// =========================
+			// Regla Monto Ruta
+			// =========================
+
+			admin.POST("/regla-monto-ruta", reglaMontoRutaHandler.Create)
+			admin.GET("/regla-monto-ruta", reglaMontoRutaHandler.List)
+			admin.PUT("/regla-monto-ruta/:id", reglaMontoRutaHandler.Update)
+			admin.DELETE("/regla-monto-ruta/:id", reglaMontoRutaHandler.Delete)
 		}
 	}
 
