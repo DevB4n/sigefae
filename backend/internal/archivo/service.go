@@ -2,7 +2,13 @@ package archivo
 
 import (
 	"errors"
+	"fmt"
+	"io"
+	"mime/multipart"
 	"os"
+	"path/filepath"
+	"strings"
+	"time"
 
 	"gorm.io/gorm"
 
@@ -223,4 +229,81 @@ func (s *Service) Delete(id uint) error {
 	// ==========================
 
 	return s.db.Delete(&archivo).Error
+}
+func (s *Service) UploadAnexo(documentoRadicadoID uint, fileHeader *multipart.FileHeader, rutaBase string) (*Response, error) {
+	// Crear carpeta si no existe
+	dir := filepath.Join(rutaBase, "anexos", fmt.Sprintf("%d", documentoRadicadoID))
+	if err := os.MkdirAll(dir, os.ModePerm); err != nil {
+		return nil, err
+	}
+
+	// Nombre único para evitar colisiones
+	ext := filepath.Ext(fileHeader.Filename)
+	nombreBase := strings.TrimSuffix(fileHeader.Filename, ext)
+	nombreLimpio := strings.ReplaceAll(nombreBase, " ", "_")
+	nombreFinal := fmt.Sprintf("%s_%d%s", nombreLimpio, time.Now().Unix(), ext)
+	rutaFinal := filepath.Join(dir, nombreFinal)
+
+	// Guardar archivo físico
+	src, err := fileHeader.Open()
+	if err != nil {
+		return nil, err
+	}
+	defer src.Close()
+
+	dst, err := os.Create(rutaFinal)
+	if err != nil {
+		return nil, err
+	}
+	defer dst.Close()
+
+	if _, err := io.Copy(dst, src); err != nil {
+		return nil, err
+	}
+
+	// Obtener tamaño
+	info, err := dst.Stat()
+	if err != nil {
+		return nil, err
+	}
+
+	// Buscar o crear origen "Anexo"
+	var origen db.ArchivoOrigen
+	if err := s.db.Where("nombre = ?", "Anexo").First(&origen).Error; err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			origen = db.ArchivoOrigen{Nombre: "Anexo", Activo: true}
+			if err := s.db.Create(&origen).Error; err != nil {
+				return nil, err
+			}
+		} else {
+			return nil, err
+		}
+	}
+
+	// Crear registro en BD
+	archivo := db.Archivo{
+		DocumentoRadicadoID: documentoRadicadoID,
+		Nombre:              fileHeader.Filename,
+		Extension:           strings.TrimPrefix(ext, "."),
+		Peso:                info.Size(),
+		Ruta:                rutaFinal,
+		OrigenID:            origen.ID,
+	}
+
+	if err := s.db.Create(&archivo).Error; err != nil {
+		return nil, err
+	}
+
+	resp := toResponse(archivo)
+	return &resp, nil
+}
+func (s *Service) GetByID(id uint) (*db.Archivo, error) {
+	var archivo db.Archivo
+	if err := s.db.First(&archivo, id).Error; err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, errors.New("archivo no encontrado")
+		}
+		return nil, err
+	}
+	return &archivo, nil
 }

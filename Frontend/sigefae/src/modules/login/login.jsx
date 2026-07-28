@@ -20,6 +20,10 @@ function Login() {
 
             guardarToken(data.token);
 
+            // ── Guardar datos del usuario para el rol-based dashboard ──
+            localStorage.setItem("rol", data.usuario.rol);
+            localStorage.setItem("user_id", data.usuario.id);
+
             navigate("/dashboard");
 
         } catch (error) {

@@ -7,3 +7,13 @@ type CreateDTO struct {
 	MetodoPagoID         uint   `json:"metodo_pago_id" binding:"required"`
 	NumeroRadicado       string `json:"numero_radicado"` // opcional, si vacío se autogenera
 }
+type UpdateDTO struct {
+	TipoRadicacionID uint   `json:"tipo_radicacion_id"`
+	RutaID           uint   `json:"ruta_id"`
+	MetodoPagoID     uint   `json:"metodo_pago_id"`
+	NumeroRadicado   string `json:"numero_radicado"`
+	UsuarioActualID  uint   `json:"usuario_actual_id"`
+	EstadoPosesion   string `json:"estado_posesion"`
+	PasoActualID     uint   `json:"paso_actual_id"`
+	EstadoID         uint   `json:"estado_id"`
+}

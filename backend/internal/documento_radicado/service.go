@@ -50,13 +50,20 @@ func (s *Service) Create(dto CreateDTO, usuarioID uint) (*db.DocumentoRadicado, 
 		return nil, errors.New("el método de pago no existe")
 	}
 
-	// ── 4. Obtener primer paso de la ruta ──
+		// ── 4. Obtener primer paso de la ruta ──
 	var primerPaso db.PasoRuta
 	var primerPasoID *uint
-	err := s.db.Where("ruta_id = ?", dto.RutaID).Order("id ASC").First(&primerPaso).Error
+	responsableID := usuarioID
+	estadoPosesion := "Libre" // por defecto
+
+	err := s.db.Where("ruta_id = ?", dto.RutaID).Order("orden ASC, id ASC").First(&primerPaso).Error
 	if err == nil {
 		id := primerPaso.ID
 		primerPasoID = &id
+		if primerPaso.UsuarioID != 0 {
+			responsableID = primerPaso.UsuarioID
+		}
+		estadoPosesion = "EnProceso" // ← hay ruta y responsable asignado
 	}
 
 	// ── 5. Obtener estado inicial (el primero por ID) ──
@@ -98,8 +105,8 @@ func (s *Service) Create(dto CreateDTO, usuarioID uint) (*db.DocumentoRadicado, 
 		RutaID:               dto.RutaID,
 		NumeroRadicado:       numeroRadicado,
 		FechaRadicacion:      time.Now(),
-		UsuarioActualID:      usuarioID,
-		EstadoPosesion:       "Libre",
+		UsuarioActualID:      responsableID,
+		EstadoPosesion:       estadoPosesion,
 		PasoActualID:         primerPasoID,
 		EstadoID:             estadoInicial.ID,
 		MetodoPagoID:         dto.MetodoPagoID,
@@ -120,58 +127,127 @@ func (s *Service) Create(dto CreateDTO, usuarioID uint) (*db.DocumentoRadicado, 
 		Preload("DocumentoComercial.Detalles").
 		Preload("TipoRadicacion").
 		Preload("Ruta").
-		Preload("UsuarioActual").
+		Preload("UsuarioActual").        
 		Preload("PasoActual").
+		Preload("PasoActual.Usuario").
 		Preload("Estado").
 		Preload("MetodoPago").
 		Preload("Qr").
+		Preload("Archivos").           // ← AGREGA ESTO
+    	Preload("Archivos.Origen").    // ← opcional, si quieres ver de dónde
 		First(&radicado, radicado.ID).Error; err != nil {
 		return nil, err
 	}
 
 	return &radicado, nil
 }
-
 func (s *Service) List() ([]db.DocumentoRadicado, error) {
 	var radicados []db.DocumentoRadicado
-	err := s.db.
+
+	if err := s.db.
 		Preload("DocumentoComercial").
 		Preload("DocumentoComercial.Proveedor").
 		Preload("DocumentoComercial.Receptor").
 		Preload("TipoRadicacion").
 		Preload("Ruta").
-		Preload("UsuarioActual").
-		Preload("PasoActual").
-		Preload("Estado").
 		Preload("MetodoPago").
+		Preload("Estado").
+		Preload("PasoActual").
+		Preload("UsuarioActual").
+		Preload("Archivos").
 		Preload("Qr").
-		Order("fecha_radicacion DESC").
-		Find(&radicados).Error
-	return radicados, err
-}
+		Order("fecha_radicacion DESC"). 
+		Find(&radicados).Error; err != nil {
+		return nil, err
+	}
 
+	return radicados, nil
+}
 func (s *Service) GetByID(id uint) (*db.DocumentoRadicado, error) {
 	var radicado db.DocumentoRadicado
-	err := s.db.
+
+	if err := s.db.
 		Preload("DocumentoComercial").
 		Preload("DocumentoComercial.Proveedor").
 		Preload("DocumentoComercial.Receptor").
-		Preload("DocumentoComercial.Area").
-		Preload("DocumentoComercial.Moneda").
-		Preload("DocumentoComercial.Detalles").
 		Preload("TipoRadicacion").
 		Preload("Ruta").
-		Preload("UsuarioActual").
-		Preload("PasoActual").
-		Preload("Estado").
 		Preload("MetodoPago").
+		Preload("Estado").
+		Preload("PasoActual").
+		Preload("UsuarioActual").
+		Preload("Archivos").        // ← anexos incluidos
 		Preload("Qr").
-		First(&radicado, id).Error
-	if err != nil {
+		First(&radicado, id).Error; err != nil {
+
 		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return nil, errors.New("el radicado no existe")
+			return nil, errors.New("documento radicado no encontrado")
 		}
 		return nil, err
 	}
+
+	return &radicado, nil
+}
+func (s *Service) Update(id uint, dto UpdateDTO) (*db.DocumentoRadicado, error) {
+	var radicado db.DocumentoRadicado
+
+	if err := s.db.First(&radicado, id).Error; err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, errors.New("documento radicado no encontrado")
+		}
+		return nil, err
+	}
+
+	// Construir mapa solo con campos que vienen en el JSON (updates parciales)
+	updates := map[string]interface{}{}
+
+	if dto.TipoRadicacionID != 0 {
+		updates["tipo_radicacion_id"] = dto.TipoRadicacionID
+	}
+	if dto.RutaID != 0 {
+		updates["ruta_id"] = dto.RutaID
+	}
+	if dto.MetodoPagoID != 0 {
+		updates["metodo_pago_id"] = dto.MetodoPagoID
+	}
+	if dto.NumeroRadicado != "" {
+		updates["numero_radicado"] = dto.NumeroRadicado
+	}
+	if dto.UsuarioActualID != 0 {
+		updates["usuario_actual_id"] = dto.UsuarioActualID
+	}
+	if dto.EstadoPosesion != "" {
+		updates["estado_posesion"] = dto.EstadoPosesion
+	}
+	if dto.PasoActualID != 0 {
+		updates["paso_actual_id"] = dto.PasoActualID
+	}
+	if dto.EstadoID != 0 {
+		updates["estado_id"] = dto.EstadoID
+	}
+
+	if len(updates) > 0 {
+		if err := s.db.Model(&radicado).Updates(updates).Error; err != nil {
+			return nil, err
+		}
+	}
+
+	// Recargar con todos los preloads
+	if err := s.db.
+		Preload("DocumentoComercial").
+		Preload("DocumentoComercial.Proveedor").
+		Preload("DocumentoComercial.Receptor").
+		Preload("TipoRadicacion").
+		Preload("Ruta").
+		Preload("MetodoPago").
+		Preload("Estado").
+		Preload("PasoActual").
+		Preload("UsuarioActual").
+		Preload("Archivos").
+		Preload("Qr").
+		First(&radicado, id).Error; err != nil {
+		return nil, err
+	}
+
 	return &radicado, nil
 }

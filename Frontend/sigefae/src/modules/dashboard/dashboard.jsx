@@ -6,19 +6,68 @@ import { obtenerToken } from "../auth/token.js";
 
 const API = "http://localhost:8080/api";
 
+// ── Helpers para leer datos del usuario logueado ──
+const obtenerRol = () => localStorage.getItem("rol") || "";
+const obtenerUserId = () => parseInt(localStorage.getItem("user_id")) || 0;
+
 export default function ProcesosLogistica() {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
-  const [activeTab, setActiveTab] = useState("welcome");
+  const userRol = obtenerRol();
+  const userId = obtenerUserId();
+  const esAprobador = userRol === "Aprobador";
 
+    const handleSubirAnexo = async (e, radicadoId) => {
+    const file = e.target.files[0];
+    if (!file) return;
 
-    // ── Catálogos Admin ──
+    const formData = new FormData();
+    formData.append("file", file);
+
+    try {
+      const res = await fetch(`${API}/documentoradicado/${radicadoId}/anexos`, {
+        method: "POST",
+        headers: { Authorization: `Bearer ${obtenerToken()}` },
+        body: formData,
+      });
+
+      if (!res.ok) {
+        const err = await res.json();
+        throw new Error(err.error || "Error subiendo archivo");
+      }
+
+      alert("Archivo subido correctamente");
+
+      // Refrescar según la pestaña activa
+      if (activeTab === "tareas") {
+        setSelectedTareaId(null);
+        setTimeout(() => setSelectedTareaId(radicadoId), 10);
+      } else if (activeTab === "radicados") {
+        setSelectedRadicadoId(null);
+        setTimeout(() => setSelectedRadicadoId(radicadoId), 10);
+      }
+    } catch (err) {
+      alert("Error: " + err.message);
+    }
+
+    e.target.value = "";
+  };
+
+  // Si es aprobador, arranca directo en "tareas"
+  const [activeTab, setActiveTab] = useState(esAprobador ? "tareas" : "welcome");
+
+  // ── Catálogos Admin ──
   const [catalogoActivo, setCatalogoActivo] = useState("tipo-radicacion");
   const [catalogoItems, setCatalogoItems] = useState([]);
   const [catalogoLoading, setCatalogoLoading] = useState(false);
   const [showCatalogoForm, setShowCatalogoForm] = useState(false);
   const [catalogoEditing, setCatalogoEditing] = useState(null);
-  const [catalogoForm, setCatalogoForm] = useState({ nombre: "", tipo_pago_id: "" });
+  const [catalogoForm, setCatalogoForm] = useState({});
+
+  // Catálogos auxiliares para dropdowns
   const [tiposPagoCatalogo, setTiposPagoCatalogo] = useState([]);
+  const [areasCatalogo, setAreasCatalogo] = useState([]);
+  const [rutasCatalogo, setRutasCatalogo] = useState([]);
+  const [usuariosCatalogo, setUsuariosCatalogo] = useState([]);
 
   // ── Correos ──
   const [correos, setCorreos] = useState([]);
@@ -59,14 +108,23 @@ export default function ProcesosLogistica() {
   const [selectedRadicadoId, setSelectedRadicadoId] = useState(null);
   const [radicadoDetail, setRadicadoDetail] = useState(null);
   const [loadingRadicados, setLoadingRadicados] = useState(false);
-  
+
+  // ── Mis Tareas (filtradas para el aprobador) ──
+  const [misTareas, setMisTareas] = useState([]);
+  const [selectedTareaId, setSelectedTareaId] = useState(null);
+  const [tareaDetail, setTareaDetail] = useState(null);
+  const [loadingTareas, setLoadingTareas] = useState(false);
+
   const catalogoConfig = {
-    "tipo-radicacion": { endpoint: "tipo-radicacion", label: "Tipo de Radicación", hasTipoPago: false, updateMethod: "PUT" },
-    "tipos-pago":      { endpoint: "tipos-pago",      label: "Tipo de Pago",      hasTipoPago: false, updateMethod: "PATCH" },
-    "metodos-pago":    { endpoint: "metodos-pago",      label: "Método de Pago",    hasTipoPago: true,  updateMethod: "PATCH" },
+    "tipo-radicacion": { endpoint: "tipo-radicacion", label: "Tipo de Radicación", method: "PUT", fields: ["nombre"] },
+    "tipos-pago":      { endpoint: "tipos-pago",      label: "Tipo de Pago",      method: "PATCH", fields: ["nombre"] },
+    "metodos-pago":    { endpoint: "metodos-pago",    label: "Método de Pago",    method: "PATCH", fields: ["nombre", "tipo_pago_id"] },
+    "areas":           { endpoint: "areas",           label: "Área",              method: "PATCH", fields: ["nombre"] },
+    "rutas":           { endpoint: "rutas",           label: "Ruta",              method: "PUT",   fields: ["nombre", "area_id"] },
+    "pasos-ruta":      { endpoint: "pasos-ruta",      label: "Paso de Ruta",      method: "PUT",   fields: ["ruta_id", "orden", "nombre", "usuario_id"] },
   };
 
-    const loadCatalogo = async (tipo) => {
+  const loadCatalogo = async (tipo) => {
     const cfg = catalogoConfig[tipo];
     setCatalogoLoading(true);
     try {
@@ -85,42 +143,60 @@ export default function ProcesosLogistica() {
 
   const openCatalogoCreate = () => {
     setCatalogoEditing(null);
-    setCatalogoForm({ nombre: "", tipo_pago_id: "" });
+    const empty = {};
+    catalogoConfig[catalogoActivo].fields.forEach(f => empty[f] = f === "orden" ? 1 : "");
+    setCatalogoForm(empty);
     setShowCatalogoForm(true);
   };
 
   const openCatalogoEdit = (item) => {
     setCatalogoEditing(item);
-    setCatalogoForm({
-      nombre: item.nombre || "",
-      tipo_pago_id: item.tipo_pago_id ? String(item.tipo_pago_id) : "",
+    const values = {};
+    catalogoConfig[catalogoActivo].fields.forEach(f => {
+      values[f] = item[f] !== undefined ? String(item[f]) : "";
     });
+    setCatalogoForm(values);
     setShowCatalogoForm(true);
   };
 
   const handleCatalogoFormChange = (e) => {
-    const { name, value } = e.target;
-    setCatalogoForm(prev => ({ ...prev, [name]: value }));
+    const { name, value, type } = e.target;
+    setCatalogoForm(prev => ({
+      ...prev,
+      [name]: type === "number" ? (value === "" ? 0 : parseInt(value)) : value
+    }));
   };
 
   const handleCatalogoSubmit = async () => {
-    if (!catalogoForm.nombre.trim()) {
-      alert("El nombre es obligatorio");
-      return;
-    }
-
     const cfg = catalogoConfig[catalogoActivo];
     const isEdit = !!catalogoEditing;
     const url = isEdit ? `${API}/${cfg.endpoint}/${catalogoEditing.id}` : `${API}/${cfg.endpoint}`;
-    const method = isEdit ? cfg.updateMethod : "POST";
+    const method = isEdit ? cfg.method : "POST";
 
-    const body = { nombre: catalogoForm.nombre.trim() };
-    if (cfg.hasTipoPago) {
-      if (!catalogoForm.tipo_pago_id) {
-        alert("Debe seleccionar un tipo de pago");
-        return;
+    const body = {};
+    cfg.fields.forEach(f => {
+      if (f === "orden" || f.includes("_id")) {
+        body[f] = parseInt(catalogoForm[f]) || 0;
+      } else {
+        body[f] = catalogoForm[f]?.trim() || "";
       }
-      body.tipo_pago_id = parseInt(catalogoForm.tipo_pago_id);
+    });
+
+    if (!body.nombre && cfg.fields.includes("nombre")) {
+      alert("El nombre es obligatorio");
+      return;
+    }
+    if (cfg.fields.includes("area_id") && !body.area_id) {
+      alert("Debe seleccionar un área");
+      return;
+    }
+    if (cfg.fields.includes("ruta_id") && !body.ruta_id) {
+      alert("Debe seleccionar una ruta");
+      return;
+    }
+    if (cfg.fields.includes("usuario_id") && !body.usuario_id) {
+      alert("Debe seleccionar un usuario");
+      return;
     }
 
     try {
@@ -167,11 +243,27 @@ export default function ProcesosLogistica() {
     }
   }, [activeTab]);
 
-
-    // Cargar catálogo activo
+  // Cargar catálogo activo
   useEffect(() => {
     if (activeTab === "catalogos") {
       loadCatalogo(catalogoActivo);
+    }
+  }, [activeTab, catalogoActivo]);
+
+  // Cargar catálogos auxiliares según la pestaña activa
+  useEffect(() => {
+    if (activeTab !== "catalogos") return;
+    const headers = { Authorization: `Bearer ${obtenerToken()}` };
+
+    if (catalogoActivo === "metodos-pago") {
+      fetch(`${API}/tipos-pago`, { headers }).then(r => r.json()).then(d => setTiposPagoCatalogo(Array.isArray(d) ? d : []));
+    }
+    if (catalogoActivo === "rutas" || catalogoActivo === "pasos-ruta") {
+      fetch(`${API}/areas`, { headers }).then(r => r.json()).then(d => setAreasCatalogo(Array.isArray(d) ? d : []));
+    }
+    if (catalogoActivo === "pasos-ruta") {
+      fetch(`${API}/rutas`, { headers }).then(r => r.json()).then(d => setRutasCatalogo(Array.isArray(d) ? d : []));
+      fetch(`${API}/usuarios`, { headers }).then(r => r.json()).then(d => setUsuariosCatalogo(Array.isArray(d) ? d : []));
     }
   }, [activeTab, catalogoActivo]);
 
@@ -220,7 +312,7 @@ export default function ProcesosLogistica() {
             setDocDetail(data);
             setEditForm({
               orden_compra: data.orden_compra || "",
-              id_area: data.id_area || "",
+              id_area: data.id_area || data.area?.id || "",
               asunto: data.asunto || "",
               fecha_vencimiento: data.fecha_vencimiento ? data.fecha_vencimiento.split("T")[0] : "",
               orientacion_sello_recibido: data.orientacion_sello_recibido || "",
@@ -275,6 +367,38 @@ export default function ProcesosLogistica() {
     }
   }, [selectedRadicadoId]);
 
+  // ── Cargar MIS TAREAS (filtradas por usuario logueado) ──
+    useEffect(() => {
+    if (activeTab === "tareas") {
+      setLoadingTareas(true);
+      fetch(`${API}/documentoradicado`, { headers: { Authorization: `Bearer ${obtenerToken()}` } })
+        .then((res) => res.json())
+        .then((data) => {
+          console.log("userId desde localStorage:", userId, "tipo:", typeof userId);
+          console.log("Respuesta del backend:", data);
+          if (Array.isArray(data)) {
+            data.forEach(r => console.log("radicado id:", r.id, "usuario_actual_id:", r.usuario_actual_id, "tipo:", typeof r.usuario_actual_id));
+            const asignados = data.filter(r => r.usuario_actual_id === userId);
+            console.log("Filtrados:", asignados);
+            setMisTareas(asignados);
+          }
+        })
+        .catch((err) => console.error(err))
+        .finally(() => setLoadingTareas(false));
+    }
+  }, [activeTab, userId]);
+
+  // Cargar detalle de una tarea
+  useEffect(() => {
+    if (selectedTareaId) {
+      setTareaDetail(null);
+      fetch(`${API}/documentoradicado/${selectedTareaId}`, { headers: { Authorization: `Bearer ${obtenerToken()}` } })
+        .then((res) => res.json())
+        .then((data) => { if (data && data.id) setTareaDetail(data); })
+        .catch((err) => console.error(err));
+    }
+  }, [selectedTareaId]);
+
   const handleVerArchivo = (filename) => {
     if (!correoDetail) return;
     const url = `${API}/storage/mails/${correoDetail.id_mensaje}/${filename}`;
@@ -295,7 +419,6 @@ export default function ProcesosLogistica() {
 
   const handleSave = async () => {
     if (!selectedDocId) return;
-    setSaving(true);
 
     const payload = {
       orden_compra: editForm.orden_compra || "",
@@ -306,6 +429,12 @@ export default function ProcesosLogistica() {
       numero_folios: parseInt(editForm.numero_folios) || 0,
     };
 
+    if (!payload.id_area || payload.id_area === 0) {
+      alert("Debe seleccionar un área válida");
+      return;
+    }
+
+    setSaving(true);
     try {
       const res = await fetch(`${API}/documentocomercial/${selectedDocId}`, {
         method: "PUT",
@@ -358,7 +487,7 @@ export default function ProcesosLogistica() {
       tipo_radicacion_id: parseInt(radicarForm.tipo_radicacion_id),
       ruta_id: parseInt(radicarForm.ruta_id),
       metodo_pago_id: parseInt(radicarForm.metodo_pago_id),
-      numero_radicado: radicarForm.numero_radicado || undefined,
+      numero_radicado: radicarForm.numero_radicado?.trim() || "",
     };
 
     try {
@@ -373,11 +502,9 @@ export default function ProcesosLogistica() {
       }
 
       closeRadicarModal();
-      // Refrescar pendientes (el documento ya no debe aparecer)
       setSelectedDocId(null);
       setDocDetail(null);
       setDocumentos(prev => prev.filter(d => d.id !== radicarDocId));
-      // Cambiar a radicados
       setActiveTab("radicados");
     } catch (err) {
       alert("Error al radicar: " + err.message);
@@ -392,6 +519,7 @@ export default function ProcesosLogistica() {
       case "documentos": return { icon: "fa-solid fa-file-invoice", title: "Documentos Pendientes", subtitle: "Revisa, completa y aprueba documentos para radicación" };
       case "radicados": return { icon: "fa-solid fa-stamp", title: "Documentos Radicados", subtitle: "Consulta el estado de los documentos radicados" };
       case "catalogos": return { icon: "fa-solid fa-sliders", title: "Catálogos del Sistema", subtitle: "Gestiona tipos de radicación, pagos y métodos" };
+      case "tareas": return { icon: "fa-solid fa-clipboard-list", title: "Mis Tareas", subtitle: "Documentos radicados asignados a ti" };
       default: return { icon: "fa-solid fa-house", title: "Procesos administrativos", subtitle: "Selecciona un formato del menú lateral" };
     }
   };
@@ -441,7 +569,7 @@ export default function ProcesosLogistica() {
   const renderWelcome = () => (
     <div className="content-body">
       <div className="welcome-wrap">
-        <div className="welcome-icon"><i className="fa-regular fa-user"></i></div>
+        <div className="welcome-icon"><i className="fa-solid fa-user"></i></div>
         <h2>Bienvenido, Usuario</h2>
         <p>En la barra a tu izquierda encontraras todos los procesos de SIGEFAE.</p>
       </div>
@@ -667,100 +795,343 @@ export default function ProcesosLogistica() {
   );
 
   const renderRadicados = () => (
+  <div className="correos-container">
+    <div className="correos-list">
+      <h3>Documentos Radicados ({radicados.length})</h3>
+      {loadingRadicados ? <p style={{ padding: "15px" }}>Cargando...</p> : radicados.length === 0 ? (
+        <p style={{ padding: "15px", color: "#6b7280" }}>No hay documentos radicados.</p>
+      ) : (
+        radicados.map((rad) => (
+          <div key={rad.id} className={`correo-item ${selectedRadicadoId === rad.id ? "active" : ""}`} onClick={() => setSelectedRadicadoId(rad.id)}>
+            <div className="correo-item-header">
+              <strong>{rad.documento_comercial?.numero_documento || "—"}</strong>
+              <span className="correo-date">{new Date(rad.fecha_radicacion).toLocaleDateString()}</span>
+            </div>
+            <div className="correo-item-subject">{rad.documento_comercial?.tipo || "—"} — {rad.numero_radicado}</div>
+            <div className="correo-item-status"><span className="status-badge radicado">{rad.estado?.nombre || "Radicado"}</span></div>
+          </div>
+        ))
+      )}
+    </div>
+
+    <div className="correo-detail">
+      {!selectedRadicadoId ? (
+        <div className="correo-empty"><i className="fa-solid fa-stamp"></i><p>Selecciona un radicado para ver su detalle</p></div>
+      ) : !radicadoDetail ? <p style={{ padding: "20px" }}>Cargando detalle...</p> : (
+        <div className="doc-detail-content">
+          <div className="doc-header">
+            <div className="doc-header-top">
+              <h2>Radicado #{radicadoDetail.numero_radicado}</h2>
+              <span className="doc-total">{radicadoDetail.estado?.nombre || "—"}</span>
+            </div>
+            <p className="doc-cufe"><strong>Documento:</strong> {radicadoDetail.documento_comercial?.tipo} {radicadoDetail.documento_comercial?.numero_documento}</p>
+          </div>
+
+          <div className="doc-body">
+            {/* ── Anexos (CORREGIDO: radicadoDetail en vez de tareaDetail) ── */}
+            {radicadoDetail.archivos && radicadoDetail.archivos.length > 0 && (
+              <div className="doc-section">
+                <h4><i className="fa-solid fa-paperclip"></i> Anexos ({radicadoDetail.archivos.length})</h4>
+                <div className="attachments-grid">
+                  {radicadoDetail.archivos.map((arch) => (
+                    <div key={arch.id} className="attachment-card">
+                      <i className={`fa-solid fa-file${arch.extension === 'pdf' ? '-pdf' : arch.extension === 'xml' ? '-code' : ''}`}></i>
+                      <span className="attachment-name" title={arch.nombre}>{arch.nombre}</span>
+                      <a 
+                        href={`${API}/archivo/${arch.id}/download`} 
+                        className="attachment-btn btn-default"
+                      >
+                        Descargar
+                      </a>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* ── Subir nuevo anexo (CORREGIDO: radicadoDetail.id en vez de tareaDetail.id) ── */}
+            <div className="doc-section">
+              <h4><i className="fa-solid fa-cloud-arrow-up"></i> Adjuntar archivo</h4>
+              <input 
+                type="file" 
+                id="anexo-input-radicado"
+                onChange={(e) => handleSubirAnexo(e, radicadoDetail.id)} 
+                style={{ display: 'none' }}
+              />
+              <button 
+                className="doc-btn doc-btn-secondary" 
+                onClick={() => document.getElementById('anexo-input-radicado').click()}
+              >
+                <i className="fa-solid fa-upload"></i> Seleccionar archivo
+              </button>
+            </div>
+
+            <div className="doc-section">
+              <h4><i className="fa-solid fa-circle-info"></i> Información del Radicado</h4>
+              <div className="doc-grid">
+                <div className="doc-field"><label>Número Radicado</label><span>{radicadoDetail.numero_radicado}</span></div>
+                <div className="doc-field"><label>Fecha Radicación</label><span>{new Date(radicadoDetail.fecha_radicacion).toLocaleString()}</span></div>
+                <div className="doc-field"><label>Tipo Radicación</label><span>{radicadoDetail.tipo_radicacion?.nombre || "—"}</span></div>
+                <div className="doc-field"><label>Ruta</label><span>{radicadoDetail.ruta?.nombre || "—"}</span></div>
+                <div className="doc-field"><label>Método de Pago</label><span>{radicadoDetail.metodo_pago?.nombre || "—"}</span></div>
+                <div className="doc-field"><label>Estado Posesión</label><span>{radicadoDetail.estado_posesion || "—"}</span></div>
+                <div className="doc-field"><label>Paso Actual</label><span>{radicadoDetail.paso_actual?.nombre || "Inicio"}</span></div>
+                <div className="doc-field"><label>Responsable</label><span>{radicadoDetail.usuario_actual?.nombre || "—"}</span></div>
+              </div>
+            </div>
+
+            {radicadoDetail.documento_comercial && (
+              <>
+                <div className="doc-section">
+                  <h4><i className="fa-solid fa-file-invoice"></i> Documento Comercial</h4>
+                  <div className="doc-grid">
+                    <div className="doc-field"><label>Tipo</label><span>{radicadoDetail.documento_comercial.tipo}</span></div>
+                    <div className="doc-field"><label>Número</label><span>{radicadoDetail.documento_comercial.numero_documento}</span></div>
+                    <div className="doc-field"><label>Proveedor</label><span>{radicadoDetail.documento_comercial.proveedor?.razon_social || "—"}</span></div>
+                    <div className="doc-field"><label>Receptor</label><span>{radicadoDetail.documento_comercial.receptor?.nombre || "—"}</span></div>
+                  </div>
+                </div>
+
+                <div className="doc-section">
+                  <h4><i className="fa-solid fa-calculator"></i> Valores</h4>
+                  <div className="doc-totals">
+                    <div className="doc-total-row"><span>Subtotal</span><span>{formatCurrency(radicadoDetail.documento_comercial.subtotal)}</span></div>
+                    <div className="doc-total-row"><span>IVA</span><span>{formatCurrency(radicadoDetail.documento_comercial.iva)}</span></div>
+                    <div className="doc-total-row total-final"><span>Total</span><span>{formatCurrency(radicadoDetail.documento_comercial.total)}</span></div>
+                  </div>
+                </div>
+              </>
+            )}
+
+            {radicadoDetail.qr && (
+              <div className="doc-section">
+                <h4><i className="fa-solid fa-qrcode"></i> Código QR</h4>
+                <p style={{ fontSize: "0.85em", color: "#6b7280", wordBreak: "break-all" }}>{radicadoDetail.qr.url}</p>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+    </div>
+  </div>
+);
+
+  // ── NUEVO: Panel de Mis Tareas (solo para aprobadores) ──
+  const renderTareas = () => (
     <div className="correos-container">
       <div className="correos-list">
-        <h3>Documentos Radicados ({radicados.length})</h3>
-        {loadingRadicados ? <p style={{ padding: "15px" }}>Cargando...</p> : radicados.length === 0 ? (
-          <p style={{ padding: "15px", color: "#6b7280" }}>No hay documentos radicados.</p>
+        <h3>Mis Tareas ({misTareas.length})</h3>
+        {loadingTareas ? <p style={{ padding: "15px" }}>Cargando...</p> : misTareas.length === 0 ? (
+          <p style={{ padding: "15px", color: "#6b7280" }}>No tienes documentos asignados.</p>
         ) : (
-          radicados.map((rad) => (
-            <div key={rad.id} className={`correo-item ${selectedRadicadoId === rad.id ? "active" : ""}`} onClick={() => setSelectedRadicadoId(rad.id)}>
+          misTareas.map((rad) => (
+            <div key={rad.id} className={`correo-item ${selectedTareaId === rad.id ? "active" : ""}`} onClick={() => setSelectedTareaId(rad.id)}>
               <div className="correo-item-header">
                 <strong>{rad.documento_comercial?.numero_documento || "—"}</strong>
                 <span className="correo-date">{new Date(rad.fecha_radicacion).toLocaleDateString()}</span>
               </div>
               <div className="correo-item-subject">{rad.documento_comercial?.tipo || "—"} — {rad.numero_radicado}</div>
-              <div className="correo-item-status"><span className="status-badge radicado">{rad.estado?.nombre || "Radicado"}</span></div>
+              <div className="correo-item-status">
+                <span className={`status-badge ${rad.estado_posesion === "EnProceso" ? "radicado" : "doc-pendiente"}`}>
+                  {rad.estado_posesion || "Sin estado"}
+                </span>
+              </div>
             </div>
           ))
         )}
       </div>
 
       <div className="correo-detail">
-        {!selectedRadicadoId ? (
-          <div className="correo-empty"><i className="fa-solid fa-stamp"></i><p>Selecciona un radicado para ver su detalle</p></div>
-        ) : !radicadoDetail ? <p style={{ padding: "20px" }}>Cargando detalle...</p> : (
+        {!selectedTareaId ? (
+          <div className="correo-empty"><i className="fa-solid fa-clipboard-list"></i><p>Selecciona una tarea para ver su detalle</p></div>
+        ) : !tareaDetail ? <p style={{ padding: "20px" }}>Cargando detalle...</p> : (
           <div className="doc-detail-content">
             <div className="doc-header">
               <div className="doc-header-top">
-                <h2>Radicado #{radicadoDetail.numero_radicado}</h2>
-                <span className="doc-total">{radicadoDetail.estado?.nombre || "—"}</span>
+                <h2>Radicado #{tareaDetail.numero_radicado}</h2>
+                <span className="doc-total">{tareaDetail.estado?.nombre || "—"}</span>
               </div>
-              <p className="doc-cufe"><strong>Documento:</strong> {radicadoDetail.documento_comercial?.tipo} {radicadoDetail.documento_comercial?.numero_documento}</p>
+              <p className="doc-cufe"><strong>Documento:</strong> {tareaDetail.documento_comercial?.tipo} {tareaDetail.documento_comercial?.numero_documento}</p>
             </div>
 
             <div className="doc-body">
+                            {/* ── Anexos ── */}
+              {tareaDetail.archivos && tareaDetail.archivos.length > 0 && (
+                <div className="doc-section">
+                  <h4><i className="fa-solid fa-paperclip"></i> Anexos ({tareaDetail.archivos.length})</h4>
+                  <div className="attachments-grid">
+                {tareaDetail.archivos.map((arch) => (
+                      <div key={arch.id} className="attachment-card">
+                        <i className={`fa-solid fa-file${arch.extension === 'pdf' ? '-pdf' : arch.extension === 'xml' ? '-code' : ''}`}></i>
+                        <span className="attachment-name" title={arch.nombre}>{arch.nombre}</span>
+                        <a 
+                          href={`${API}/archivo/${arch.id}/download`} 
+                          className="attachment-btn btn-default"
+                        >
+                          Descargar
+                        </a>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* ── Subir nuevo anexo ── */}
+              <div className="doc-section">
+                <h4><i className="fa-solid fa-cloud-arrow-up"></i> Adjuntar archivo</h4>
+                <input 
+                  type="file" 
+                  id="anexo-input"
+                  onChange={(e) => handleSubirAnexo(e, tareaDetail.id)} 
+                  style={{ display: 'none' }}
+                />
+                <button 
+                  className="doc-btn doc-btn-secondary" 
+                  onClick={() => document.getElementById('anexo-input').click()}
+                >
+                  <i className="fa-solid fa-upload"></i> Seleccionar archivo
+                </button>
+              </div>
               <div className="doc-section">
                 <h4><i className="fa-solid fa-circle-info"></i> Información del Radicado</h4>
                 <div className="doc-grid">
-                  <div className="doc-field"><label>Número Radicado</label><span>{radicadoDetail.numero_radicado}</span></div>
-                  <div className="doc-field"><label>Fecha Radicación</label><span>{new Date(radicadoDetail.fecha_radicacion).toLocaleString()}</span></div>
-                  <div className="doc-field"><label>Tipo Radicación</label><span>{radicadoDetail.tipo_radicacion?.nombre || "—"}</span></div>
-                  <div className="doc-field"><label>Ruta</label><span>{radicadoDetail.ruta?.nombre || "—"}</span></div>
-                  <div className="doc-field"><label>Método de Pago</label><span>{radicadoDetail.metodo_pago?.nombre || "—"}</span></div>
-                  <div className="doc-field"><label>Estado Posesión</label><span>{radicadoDetail.estado_posesion || "—"}</span></div>
-                  <div className="doc-field"><label>Paso Actual</label><span>{radicadoDetail.paso_actual?.nombre || "Inicio"}</span></div>
-                  <div className="doc-field"><label>Responsable</label><span>{radicadoDetail.usuario_actual?.nombre || "—"}</span></div>
+                  <div className="doc-field"><label>Número Radicado</label><span>{tareaDetail.numero_radicado}</span></div>
+                  <div className="doc-field"><label>Fecha Radicación</label><span>{new Date(tareaDetail.fecha_radicacion).toLocaleString()}</span></div>
+                  <div className="doc-field"><label>Tipo Radicación</label><span>{tareaDetail.tipo_radicacion?.nombre || "—"}</span></div>
+                  <div className="doc-field"><label>Ruta</label><span>{tareaDetail.ruta?.nombre || "—"}</span></div>
+                  <div className="doc-field"><label>Método de Pago</label><span>{tareaDetail.metodo_pago?.nombre || "—"}</span></div>
+                  <div className="doc-field"><label>Estado Posesión</label><span>{tareaDetail.estado_posesion || "—"}</span></div>
+                  <div className="doc-field"><label>Paso Actual</label><span>{tareaDetail.paso_actual?.nombre || "Inicio"}</span></div>
+                  <div className="doc-field"><label>Responsable</label><span>{tareaDetail.usuario_actual?.nombre || "—"}</span></div>
                 </div>
               </div>
 
-              {radicadoDetail.documento_comercial && (
+              {tareaDetail.documento_comercial && (
                 <>
                   <div className="doc-section">
                     <h4><i className="fa-solid fa-file-invoice"></i> Documento Comercial</h4>
                     <div className="doc-grid">
-                      <div className="doc-field"><label>Tipo</label><span>{radicadoDetail.documento_comercial.tipo}</span></div>
-                      <div className="doc-field"><label>Número</label><span>{radicadoDetail.documento_comercial.numero_documento}</span></div>
-                      <div className="doc-field"><label>Proveedor</label><span>{radicadoDetail.documento_comercial.proveedor?.razon_social || "—"}</span></div>
-                      <div className="doc-field"><label>Receptor</label><span>{radicadoDetail.documento_comercial.receptor?.nombre || "—"}</span></div>
+                      <div className="doc-field"><label>Tipo</label><span>{tareaDetail.documento_comercial.tipo}</span></div>
+                      <div className="doc-field"><label>Número</label><span>{tareaDetail.documento_comercial.numero_documento}</span></div>
+                      <div className="doc-field"><label>Proveedor</label><span>{tareaDetail.documento_comercial.proveedor?.razon_social || "—"}</span></div>
+                      <div className="doc-field"><label>Receptor</label><span>{tareaDetail.documento_comercial.receptor?.nombre || "—"}</span></div>
                     </div>
                   </div>
 
                   <div className="doc-section">
                     <h4><i className="fa-solid fa-calculator"></i> Valores</h4>
                     <div className="doc-totals">
-                      <div className="doc-total-row"><span>Subtotal</span><span>{formatCurrency(radicadoDetail.documento_comercial.subtotal)}</span></div>
-                      <div className="doc-total-row"><span>IVA</span><span>{formatCurrency(radicadoDetail.documento_comercial.iva)}</span></div>
-                      <div className="doc-total-row total-final"><span>Total</span><span>{formatCurrency(radicadoDetail.documento_comercial.total)}</span></div>
+                      <div className="doc-total-row"><span>Subtotal</span><span>{formatCurrency(tareaDetail.documento_comercial.subtotal)}</span></div>
+                      <div className="doc-total-row"><span>IVA</span><span>{formatCurrency(tareaDetail.documento_comercial.iva)}</span></div>
+                      <div className="doc-total-row total-final"><span>Total</span><span>{formatCurrency(tareaDetail.documento_comercial.total)}</span></div>
                     </div>
                   </div>
                 </>
               )}
 
-              {radicadoDetail.qr && (
+              {tareaDetail.qr && (
                 <div className="doc-section">
                   <h4><i className="fa-solid fa-qrcode"></i> Código QR</h4>
-                  <p style={{ fontSize: "0.85em", color: "#6b7280", wordBreak: "break-all" }}>{radicadoDetail.qr.url}</p>
+                  <p style={{ fontSize: "0.85em", color: "#6b7280", wordBreak: "break-all" }}>{tareaDetail.qr.url}</p>
                 </div>
               )}
+            </div>
+
+            {/* Aquí irán los botones de acción futuros: Aprobar, Rechazar, Comentar, etc. */}
+            <div className="doc-actions">
+              <button className="doc-btn doc-btn-primary" disabled>
+                <i className="fa-solid fa-check"></i> Acciones próximamente
+              </button>
             </div>
           </div>
         )}
       </div>
     </div>
   );
-    const renderCatalogos = () => {
+
+  const renderCatalogos = () => {
     const cfg = catalogoConfig[catalogoActivo];
+
+    const renderFormField = (field) => {
+      const value = catalogoForm[field] || "";
+      if (field === "tipo_pago_id") {
+        return (
+          <div className="modal-field" key={field}>
+            <label>Tipo de Pago <span className="required">*</span></label>
+            <select name={field} value={value} onChange={handleCatalogoFormChange}>
+              <option value="">Seleccione...</option>
+              {tiposPagoCatalogo.map(tp => <option key={tp.id} value={tp.id}>{tp.nombre}</option>)}
+            </select>
+          </div>
+        );
+      }
+      if (field === "area_id") {
+        return (
+          <div className="modal-field" key={field}>
+            <label>Área <span className="required">*</span></label>
+            <select name={field} value={value} onChange={handleCatalogoFormChange}>
+              <option value="">Seleccione...</option>
+              {areasCatalogo.map(a => <option key={a.id} value={a.id}>{a.nombre}</option>)}
+            </select>
+          </div>
+        );
+      }
+      if (field === "ruta_id") {
+        return (
+          <div className="modal-field" key={field}>
+            <label>Ruta <span className="required">*</span></label>
+            <select name={field} value={value} onChange={handleCatalogoFormChange}>
+              <option value="">Seleccione...</option>
+              {rutasCatalogo.map(r => <option key={r.id} value={r.id}>{r.nombre}</option>)}
+            </select>
+          </div>
+        );
+      }
+      if (field === "usuario_id") {
+        return (
+          <div className="modal-field" key={field}>
+            <label>Usuario Responsable <span className="required">*</span></label>
+            <select name={field} value={value} onChange={handleCatalogoFormChange}>
+              <option value="">Seleccione...</option>
+              {usuariosCatalogo.map(u => <option key={u.id} value={u.id}>{u.nombre}</option>)}
+            </select>
+          </div>
+        );
+      }
+      if (field === "orden") {
+        return (
+          <div className="modal-field" key={field} style={{ maxWidth: 120 }}>
+            <label>Orden <span className="required">*</span></label>
+            <input type="number" name={field} value={value} onChange={handleCatalogoFormChange} min="1" />
+          </div>
+        );
+      }
+      return (
+        <div className="modal-field" key={field} style={{ flex: 1 }}>
+          <label>Nombre <span className="required">*</span></label>
+          <input type="text" name={field} value={value} onChange={handleCatalogoFormChange} placeholder={`Nombre del ${cfg.label.toLowerCase()}`} />
+        </div>
+      );
+    };
+
+    const getColumnLabel = (field) => {
+      const map = { nombre: "Nombre", tipo_pago: "Tipo de Pago", area: "Área", ruta: "Ruta", orden: "Orden", usuario: "Usuario" };
+      return map[field] || field;
+    };
+
+    const getItemDisplay = (item, field) => {
+      if (field === "tipo_pago_id") return item.tipo_pago || "—";
+      if (field === "area_id") return item.area || "—";
+      if (field === "ruta_id") return item.ruta || "—";
+      if (field === "usuario_id") return item.usuario || "—";
+      return item[field] !== undefined ? item[field] : "—";
+    };
 
     return (
       <div className="catalogos-container">
         <div className="catalogo-tabs">
           {Object.entries(catalogoConfig).map(([key, c]) => (
-            <button
-              key={key}
-              className={catalogoActivo === key ? "active" : ""}
-              onClick={() => setCatalogoActivo(key)}
-            >
+            <button key={key} className={catalogoActivo === key ? "active" : ""} onClick={() => setCatalogoActivo(key)}>
               {c.label}
             </button>
           ))}
@@ -777,28 +1148,8 @@ export default function ProcesosLogistica() {
           <div className="catalogo-form">
             <h4>{catalogoEditing ? "Editar" : "Crear"} {cfg.label}</h4>
             <div className="catalogo-form-row">
-              <div className="modal-field" style={{ flex: 1 }}>
-                <label>Nombre <span className="required">*</span></label>
-                <input
-                  type="text"
-                  name="nombre"
-                  value={catalogoForm.nombre}
-                  onChange={handleCatalogoFormChange}
-                  placeholder={`Nombre del ${cfg.label.toLowerCase()}`}
-                />
-              </div>
-              {cfg.hasTipoPago && (
-                <div className="modal-field" style={{ flex: 1 }}>
-                  <label>Tipo de Pago <span className="required">*</span></label>
-                  <select name="tipo_pago_id" value={catalogoForm.tipo_pago_id} onChange={handleCatalogoFormChange}>
-                    <option value="">Seleccione...</option>
-                    {tiposPagoCatalogo.map(tp => (
-                      <option key={tp.id} value={tp.id}>{tp.nombre}</option>
-                    ))}
-                  </select>
-                </div>
-              )}
-              <div style={{ display: "flex", gap: 8 }}>
+              {cfg.fields.map(renderFormField)}
+              <div style={{ display: "flex", gap: 8, alignItems: "flex-end" }}>
                 <button className="doc-btn doc-btn-secondary" onClick={() => setShowCatalogoForm(false)}>Cancelar</button>
                 <button className="doc-btn doc-btn-primary" onClick={handleCatalogoSubmit}>
                   <i className="fa-solid fa-floppy-disk"></i> Guardar
@@ -817,8 +1168,10 @@ export default function ProcesosLogistica() {
             <thead>
               <tr>
                 <th>ID</th>
-                <th>Nombre</th>
-                {cfg.hasTipoPago && <th>Tipo de Pago</th>}
+                {cfg.fields.filter(f => f !== "tipo_pago_id").map(f => (
+                  <th key={f}>{getColumnLabel(f === "area_id" ? "area" : f === "ruta_id" ? "ruta" : f === "usuario_id" ? "usuario" : f)}</th>
+                ))}
+                {cfg.fields.includes("tipo_pago_id") && <th>Tipo de Pago</th>}
                 <th>Estado</th>
                 <th style={{ width: 120 }}>Acciones</th>
               </tr>
@@ -827,8 +1180,10 @@ export default function ProcesosLogistica() {
               {catalogoItems.map(item => (
                 <tr key={item.id}>
                   <td>{item.id}</td>
-                  <td>{item.nombre}</td>
-                  {cfg.hasTipoPago && <td>{item.tipo_pago || "—"}</td>}
+                  {cfg.fields.filter(f => f !== "tipo_pago_id").map(f => (
+                    <td key={f}>{getItemDisplay(item, f)}</td>
+                  ))}
+                  {cfg.fields.includes("tipo_pago_id") && <td>{item.tipo_pago || "—"}</td>}
                   <td>
                     <span className={`status-badge ${item.activo ? "radicado" : "doc-pendiente"}`}>
                       {item.activo ? "Activo" : "Inactivo"}
@@ -839,11 +1194,7 @@ export default function ProcesosLogistica() {
                       <button className="btn-icon btn-edit" onClick={() => openCatalogoEdit(item)} title="Editar">
                         <i className="fa-solid fa-pen"></i>
                       </button>
-                      <button
-                        className={`btn-icon btn-toggle ${item.activo ? "active" : ""}`}
-                        onClick={() => handleToggleCatalogoStatus(item)}
-                        title={item.activo ? "Desactivar" : "Activar"}
-                      >
+                      <button className={`btn-icon btn-toggle ${item.activo ? "active" : ""}`} onClick={() => handleToggleCatalogoStatus(item)} title={item.activo ? "Desactivar" : "Activar"}>
                         <i className={`fa-solid ${item.activo ? "fa-check" : "fa-xmark"}`}></i>
                       </button>
                     </div>
@@ -863,6 +1214,7 @@ export default function ProcesosLogistica() {
       case "documentos": return renderDocumentos();
       case "radicados": return renderRadicados();
       case "catalogos": return renderCatalogos();
+      case "tareas": return renderTareas();
       default: return renderWelcome();
     }
   };
@@ -881,30 +1233,33 @@ export default function ProcesosLogistica() {
         <aside className={`sidebar ${isSidebarOpen ? "open" : ""}`}>
           <div className="sidebar-header"><div className="sidebar-title"><i className="fa-solid fa-gear"></i></div></div>
           <nav className="menu-nav">
-            <a href="#" className={`menu-item ${activeTab === "correos" ? "active" : ""}`} onClick={(e) => { e.preventDefault(); setActiveTab("correos"); setIsSidebarOpen(false); }}>
-              <div className="item-icon"><i className="fa-solid fa-envelope"></i></div>
-              <div className="item-text"><span className="item-nombre">Correos</span></div>
-            </a>
-            <a href="#" className={`menu-item ${activeTab === "documentos" ? "active" : ""}`} onClick={(e) => { e.preventDefault(); setActiveTab("documentos"); setIsSidebarOpen(false); }}>
-              <div className="item-icon"><i className="fa-solid fa-file-invoice"></i></div>
-              <div className="item-text"><span className="item-nombre">Documentos</span></div>
-            </a>
-            <a href="#" className={`menu-item ${activeTab === "radicados" ? "active" : ""}`} onClick={(e) => { e.preventDefault(); setActiveTab("radicados"); setIsSidebarOpen(false); }}>
-              <div className="item-icon"><i className="fa-solid fa-stamp"></i></div>
-              <div className="item-text"><span className="item-nombre">Radicados</span></div>
-            </a>
-                        <a 
-              href="#" 
-              className={`menu-item ${activeTab === "catalogos" ? "active" : ""}`}
-              onClick={(e) => { e.preventDefault(); setActiveTab("catalogos"); setIsSidebarOpen(false); }}
-            >
-              <div className="item-icon">
-                <i className="fa-solid fa-sliders"></i>
-              </div>
-              <div className="item-text">
-                <span className="item-nombre">Catálogos</span>
-              </div>
-            </a>
+            {esAprobador ? (
+              // ── Menú reducido para Aprobador ──
+              <a href="#" className={`menu-item ${activeTab === "tareas" ? "active" : ""}`} onClick={(e) => { e.preventDefault(); setActiveTab("tareas"); setIsSidebarOpen(false); }}>
+                <div className="item-icon"><i className="fa-solid fa-clipboard-list"></i></div>
+                <div className="item-text"><span className="item-nombre">Mis Tareas</span></div>
+              </a>
+            ) : (
+              // ── Menú completo para Admin ──
+              <>
+                <a href="#" className={`menu-item ${activeTab === "correos" ? "active" : ""}`} onClick={(e) => { e.preventDefault(); setActiveTab("correos"); setIsSidebarOpen(false); }}>
+                  <div className="item-icon"><i className="fa-solid fa-envelope"></i></div>
+                  <div className="item-text"><span className="item-nombre">Correos</span></div>
+                </a>
+                <a href="#" className={`menu-item ${activeTab === "documentos" ? "active" : ""}`} onClick={(e) => { e.preventDefault(); setActiveTab("documentos"); setIsSidebarOpen(false); }}>
+                  <div className="item-icon"><i className="fa-solid fa-file-invoice"></i></div>
+                  <div className="item-text"><span className="item-nombre">Documentos</span></div>
+                </a>
+                <a href="#" className={`menu-item ${activeTab === "radicados" ? "active" : ""}`} onClick={(e) => { e.preventDefault(); setActiveTab("radicados"); setIsSidebarOpen(false); }}>
+                  <div className="item-icon"><i className="fa-solid fa-stamp"></i></div>
+                  <div className="item-text"><span className="item-nombre">Radicados</span></div>
+                </a>
+                <a href="#" className={`menu-item ${activeTab === "catalogos" ? "active" : ""}`} onClick={(e) => { e.preventDefault(); setActiveTab("catalogos"); setIsSidebarOpen(false); }}>
+                  <div className="item-icon"><i className="fa-solid fa-sliders"></i></div>
+                  <div className="item-text"><span className="item-nombre">Catálogos</span></div>
+                </a>
+              </>
+            )}
           </nav>
         </aside>
 

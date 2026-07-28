@@ -3,6 +3,7 @@ package archivo
 import (
 	"net/http"
 	"strconv"
+	"fmt"
 
 	"github.com/gin-gonic/gin"
 )
@@ -135,4 +136,44 @@ func (h *Handler) Delete(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{
 		"message": "archivo eliminado correctamente",
 	})
+}
+func (h *Handler) UploadAnexo(c *gin.Context) {
+    docID, err := strconv.ParseUint(c.Param("documento_radicado_id"), 10, 64)
+    if err != nil {
+        c.JSON(http.StatusBadRequest, gin.H{"error": "id de documento radicado inválido"})
+        return
+    }
+
+    fileHeader, err := c.FormFile("file")
+    if err != nil {
+        c.JSON(http.StatusBadRequest, gin.H{"error": "archivo requerido"})
+        return
+    }
+
+    // Ruta base donde guardar (ajústala a tu proyecto)
+    rutaBase := "storage"
+
+    response, err := h.service.UploadAnexo(uint(docID), fileHeader, rutaBase)
+    if err != nil {
+        c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+        return
+    }
+
+    c.JSON(http.StatusCreated, response)
+}
+func (h *Handler) Download(c *gin.Context) {
+	id, err := strconv.ParseUint(c.Param("id"), 10, 64)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "id inválido"})
+		return
+	}
+
+	archivo, err := h.service.GetByID(uint(id))
+	if err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.Header("Content-Disposition", fmt.Sprintf("attachment; filename=\"%s\"", archivo.Nombre))
+	c.File(archivo.Ruta)
 }

@@ -4,7 +4,6 @@ import (
 	"golang.org/x/crypto/bcrypt"
 	"gorm.io/gorm"
 )
-
 func Seed(db *gorm.DB) error {
 
 	// ==========================
@@ -24,7 +23,25 @@ func Seed(db *gorm.DB) error {
 	}
 
 	// ==========================
-	// Rol Superadministrador
+	// Estados de Radicación
+	// ==========================
+
+	estadosRadicacion := []EstadoDocumentoRadicado{
+		{ID: 1, Nombre: "En espera", Activo: true},
+		{ID: 2, Nombre: "En proceso", Activo: true},
+		{ID: 3, Nombre: "Finalizado", Activo: true},
+	}
+
+	for _, estado := range estadosRadicacion {
+		if err := db.
+			Where("id = ?", estado.ID).
+			FirstOrCreate(&estado).Error; err != nil {
+			return err
+		}
+	}
+
+	// ==========================
+	// Roles
 	// ==========================
 
 	superAdminRole := Rol{
@@ -37,11 +54,21 @@ func Seed(db *gorm.DB) error {
 		return err
 	}
 
+	aprobadorRole := Rol{
+		Nombre: "Aprobador",
+	}
+
+	if err := db.
+		Where("nombre = ?", aprobadorRole.Nombre).
+		FirstOrCreate(&aprobadorRole).Error; err != nil {
+		return err
+	}
+
 	// ==========================
-	// Contraseña
+	// Usuario: Administrador
 	// ==========================
 
-	hash, err := bcrypt.GenerateFromPassword(
+	hashAdmin, err := bcrypt.GenerateFromPassword(
 		[]byte("admin123"),
 		bcrypt.DefaultCost,
 	)
@@ -50,14 +77,10 @@ func Seed(db *gorm.DB) error {
 		return err
 	}
 
-	// ==========================
-	// Usuario inicial
-	// ==========================
-
 	admin := Usuario{
 		Nombre:         "Administrador",
 		Email:          "admin@sigefae.local",
-		HashContrasena: string(hash),
+		HashContrasena: string(hashAdmin),
 		Cargo:          "Superadministrador",
 		RolID:          superAdminRole.ID,
 	}
@@ -65,6 +88,33 @@ func Seed(db *gorm.DB) error {
 	if err := db.
 		Where("email = ?", admin.Email).
 		FirstOrCreate(&admin).Error; err != nil {
+		return err
+	}
+
+	// ==========================
+	// Usuario: Aprobador
+	// ==========================
+
+	hashAprobador, err := bcrypt.GenerateFromPassword(
+		[]byte("aprobador123"),
+		bcrypt.DefaultCost,
+	)
+
+	if err != nil {
+		return err
+	}
+
+	aprobador := Usuario{
+		Nombre:         "Juan Aprobador",
+		Email:          "aprobador@sigefae.local",
+		HashContrasena: string(hashAprobador),
+		Cargo:          "Aprobador de Documentos",
+		RolID:          aprobadorRole.ID,
+	}
+
+	if err := db.
+		Where("email = ?", aprobador.Email).
+		FirstOrCreate(&aprobador).Error; err != nil {
 		return err
 	}
 

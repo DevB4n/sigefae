@@ -214,6 +214,14 @@ func New(database *gorm.DB) *gin.Engine {
 
 	protected := router.Group("/api")
 	protected.Use(auth.Middleware(database))
+	// ── Cualquier usuario logueado puede leer radicados ──
+    protected.GET("/documentoradicado", documentoRadicadoHandler.List)
+    protected.GET("/documentoradicado/:id", documentoRadicadoHandler.GetByID)
+	    // ── Cualquier usuario logueado puede subir/leer anexos ──
+    protected.POST("/documentoradicado/:documento_radicado_id/anexos", archivoHandler.UploadAnexo)
+    protected.GET("/archivo", archivoHandler.List)  // si quieres listar todos (opcional)
+	protected.GET("/archivo/:id/download", archivoHandler.Download)
+	
 
 	{
 
@@ -520,8 +528,6 @@ func New(database *gorm.DB) *gin.Engine {
 			// =========================
 
 			admin.POST("/documentoradicado", documentoRadicadoHandler.Create)
-			admin.GET("/documentoradicado", documentoRadicadoHandler.List)
-			admin.GET("/documentoradicado/:id", documentoRadicadoHandler.GetByID)
 			admin.PUT("/documentoradicado/:id", documentoRadicadoHandler.Update)
 
 			// =========================
@@ -558,7 +564,6 @@ func New(database *gorm.DB) *gin.Engine {
 			// =========================
 
 			admin.POST("/archivo", archivoHandler.Create)
-			admin.GET("/archivo", archivoHandler.List)
 			admin.PUT("/archivo/:id", archivoHandler.Update)
 			admin.DELETE("/archivo/:id", archivoHandler.Delete)
 

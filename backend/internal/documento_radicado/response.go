@@ -58,7 +58,7 @@ type Response struct {
 	NumeroRadicado         string                           `json:"numero_radicado"`
 	FechaRadicacion        time.Time                        `json:"fecha_radicacion"`
 	UsuarioActualID        uint                             `json:"usuario_actual_id"`
-	UsuarioActual          *UsuarioResponse                 `json:"usuario,omitempty"`
+	UsuarioActual          *UsuarioResponse                 `json:"usuario_actual,omitempty"`
 	EstadoPosesion         string                           `json:"estado_posesion"`
 	PasoActualID           *uint                            `json:"paso_actual_id,omitempty"`
 	PasoActual             *PasoRutaResponse                `json:"paso_actual,omitempty"`

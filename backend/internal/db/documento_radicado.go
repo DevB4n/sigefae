@@ -17,7 +17,7 @@ type DocumentoRadicado struct {
 	NumeroRadicado         string                   `gorm:"column:numero_radicado;type:varchar(100);uniqueIndex:uk_numero_radicado" json:"numero_radicado"`
 	FechaRadicacion        time.Time                `gorm:"column:fecha_radicacion;index:idx_radicado_fecha" json:"fecha_radicacion"`
 	UsuarioActualID        uint                     `gorm:"column:usuario_actual_id;index:idx_radicado_usuario" json:"usuario_actual_id"`
-	UsuarioActual          *Usuario                 `gorm:"foreignKey:UsuarioActualID;references:ID" json:"usuario,omitempty"`
+	UsuarioActual          *Usuario                 `gorm:"foreignKey:UsuarioActualID;references:ID" json:"usuario_actual,omitempty"`
 	EstadoPosesion         string                   `gorm:"column:estado_posesion;type:varchar(50)" json:"estado_posesion"` // "Libre", "Tomado", "EnProceso"
 	PasoActualID           *uint                    `gorm:"column:paso_actual_id;index:idx_radicado_paso_actual" json:"paso_actual_id,omitempty"`
 	PasoActual             *PasoRuta                `gorm:"foreignKey:PasoActualID;references:ID" json:"paso_actual,omitempty"`
