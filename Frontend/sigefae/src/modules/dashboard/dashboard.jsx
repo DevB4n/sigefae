@@ -212,7 +212,7 @@ export default function ProcesosLogistica() {
         });
         const listaData = await listaRes.json();
         if (Array.isArray(listaData)) {
-          setMisTareas(listaData.filter(r => r.usuario_actual_id === userId));
+          setMisTareas(listaData.filter(r => r.usuario_actual_id === userId && r.estado_posesion !== "Completado"));
         }
       }
 
@@ -496,7 +496,7 @@ export default function ProcesosLogistica() {
           console.log("Respuesta del backend:", data);
           if (Array.isArray(data)) {
             data.forEach(r => console.log("radicado id:", r.id, "usuario_actual_id:", r.usuario_actual_id, "tipo:", typeof r.usuario_actual_id));
-            const asignados = data.filter(r => r.usuario_actual_id === userId);
+            const asignados = data.filter(r => r.usuario_actual_id === userId && r.estado_posesion !== "Completado");
             console.log("Filtrados:", asignados);
             setMisTareas(asignados);
           }

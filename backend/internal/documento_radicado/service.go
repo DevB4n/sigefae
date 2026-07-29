@@ -3,7 +3,10 @@ package documento_radicado
 import (
 	"errors"
 	"fmt"
-	"sort"
+	"io"
+	"os"
+	"path/filepath"
+	"strings"
 	"time"
 
 	"gorm.io/gorm"
@@ -123,6 +126,22 @@ func (s *Service) Create(dto CreateDTO, usuarioID uint) (*db.DocumentoRadicado, 
 			return err
 		}
 
+		// ── 10. Adjuntar archivos automáticamente desde el correo origen ──
+		// Consultamos explícitamente correo_id para no depender del mapeo del struct
+		var correoID *uint
+		tx.Model(&db.DocumentoComercial{}).
+			Select("correo_id").
+			Where("id = ?", dto.DocumentoComercialID).
+			Scan(&correoID)
+
+		if correoID != nil && *correoID != 0 {
+			if err := adjuntarArchivosDesdeCorreo(tx, &radicado, *correoID); err != nil {
+				fmt.Printf("[RADICADO %s] warning: no se pudieron adjuntar archivos del correo: %v\n", radicado.NumeroRadicado, err)
+			}
+		} else {
+			fmt.Printf("[RADICADO %s] info: documento comercial %d no tiene correo_id\n", radicado.NumeroRadicado, dto.DocumentoComercialID)
+		}
+
 		return nil
 	})
 
@@ -130,7 +149,7 @@ func (s *Service) Create(dto CreateDTO, usuarioID uint) (*db.DocumentoRadicado, 
 		return nil, err
 	}
 
-	// ── 10. Preload completo fuera de la transacción ──
+	// ── 11. Preload completo fuera de la transacción ──
 	if err := s.db.
 		Preload("DocumentoComercial").
 		Preload("DocumentoComercial.Proveedor").
@@ -259,89 +278,131 @@ func (s *Service) Update(id uint, dto UpdateDTO) (*db.DocumentoRadicado, error) 
 }
 
 // ─────────────────────────────────────────────────────────────
-// generarTareasDesdeRuta (FUNCIÓN PRIVADA DEL PACKAGE)
+// generarTareasDesdeRuta
 // ─────────────────────────────────────────────────────────────
 func generarTareasDesdeRuta(tx *gorm.DB, radicado *db.DocumentoRadicado, rutaID uint, docComercialID uint) error {
-	// 1. Traer pasos originales de la ruta
+	// ── 1. Pasos base de la ruta ──
 	var pasos []db.PasoRuta
-	if err := tx.Where("ruta_id = ? AND activo = ?", rutaID, true).Order("orden asc").Find(&pasos).Error; err != nil {
+	if err := tx.Where("ruta_id = ? AND activo = ?", rutaID, true).Order("orden asc, id asc").Find(&pasos).Error; err != nil {
 		return err
 	}
+	if len(pasos) == 0 {
+		return errors.New("la ruta no tiene pasos configurados")
+	}
 
-	// 2. Traer documento comercial para evaluar monto y área
+	// ── 2. Documento comercial (monto, área, moneda) ──
 	var docCom db.DocumentoComercial
 	if err := tx.First(&docCom, docComercialID).Error; err != nil {
 		return err
 	}
 
-	// 3. Evaluar reglas de monto que apliquen
+	// ── 3. Reglas de monto aplicables ──
 	var reglas []db.ReglaMontoRuta
-	tx.Where("activo = ? AND monto_minimo <= ?", true, docCom.Total).
-		Where("(area_id IS NULL OR area_id = ?) AND (ruta_id IS NULL OR ruta_id = ?)", docCom.IDArea, rutaID).
+	query := tx.Where("activo = ? AND monto_minimo <= ?", true, docCom.Total).
+		Where("(area_id IS NULL OR area_id = ?)", docCom.IDArea).
+		Where("(ruta_id IS NULL OR ruta_id = ?)", rutaID).
 		Preload("UsuarioAprobador").
-		Find(&reglas)
+		Preload("RolAprobador").
+		Order("monto_minimo desc")
 
-	// 4. Construir pasos finales (originales + reglas)
-	type pasoFinal struct {
-		Orden      int
-		Nombre     string
-		UsuarioID  uint
-		DesdeRegla bool
-	}
-	var finales []pasoFinal
-
-	for _, p := range pasos {
-		finales = append(finales, pasoFinal{Orden: p.Orden, Nombre: p.Nombre, UsuarioID: p.UsuarioID, DesdeRegla: false})
+	if err := query.Find(&reglas).Error; err != nil {
+		return err
 	}
 
+	// ── 4. Clasificar reglas por posición ──
+	var alInicio, antesDelFinal, alFinal []db.ReglaMontoRuta
 	for _, r := range reglas {
-		pf := pasoFinal{
-			Nombre:     "Aprobación especial por monto",
-			UsuarioID:  0,
-			DesdeRegla: true,
-		}
-		if r.UsuarioAprobadorID != nil {
-			pf.UsuarioID = *r.UsuarioAprobadorID
-		} else if r.RolAprobadorID != nil {
-			var usr db.Usuario
-			if err := tx.Where("id_rol = ? AND activo = ?", *r.RolAprobadorID, true).First(&usr).Error; err == nil {
-				pf.UsuarioID = usr.ID
-			}
-		}
-
 		switch r.PosicionInsercion {
 		case "PRIMERO":
-			pf.Orden = -1000
-			finales = append([]pasoFinal{pf}, finales...)
+			alInicio = append(alInicio, r)
 		case "ANTES_FINAL":
-			pf.Orden = 9998
-			finales = append(finales, pf)
+			antesDelFinal = append(antesDelFinal, r)
 		default: // ULTIMO
-			pf.Orden = 9999
-			finales = append(finales, pf)
+			alFinal = append(alFinal, r)
 		}
 	}
 
-	sort.Slice(finales, func(i, j int) bool {
-		return finales[i].Orden < finales[j].Orden
+	// ── 5. Helper para resolver usuario de una regla ──
+	resolverUsuario := func(r db.ReglaMontoRuta) uint {
+		if r.UsuarioAprobadorID != nil {
+			return *r.UsuarioAprobadorID
+		}
+		if r.RolAprobadorID != nil {
+			var usr db.Usuario
+			if err := tx.Where("id_rol = ? AND activo = ?", *r.RolAprobadorID, true).First(&usr).Error; err == nil {
+				return usr.ID
+			}
+		}
+		return 0
+	}
+
+	type pasoFinal struct {
+		Nombre    string
+		UsuarioID uint
+		EsRegla   bool
+	}
+
+	var flujo []pasoFinal
+
+	// 5.1 PRIMERO
+	for _, r := range alInicio {
+		flujo = append(flujo, pasoFinal{
+			Nombre:    fmt.Sprintf("Aprobación por monto ≥ %.2f", r.MontoMinimo),
+			UsuarioID: resolverUsuario(r),
+			EsRegla:   true,
+		})
+	}
+
+	// 5.2 Pasos base (todos menos el último)
+	for i := 0; i < len(pasos)-1; i++ {
+		p := pasos[i]
+		flujo = append(flujo, pasoFinal{
+			Nombre:    p.Nombre,
+			UsuarioID: p.UsuarioID,
+			EsRegla:   false,
+		})
+	}
+
+	// 5.3 ANTES_FINAL: justo antes del cierre del flujo base
+	for _, r := range antesDelFinal {
+		flujo = append(flujo, pasoFinal{
+			Nombre:    fmt.Sprintf("Aprobación por monto ≥ %.2f", r.MontoMinimo),
+			UsuarioID: resolverUsuario(r),
+			EsRegla:   true,
+		})
+	}
+
+	// 5.4 Último paso base (el cierre)
+	ultimoPaso := pasos[len(pasos)-1]
+	flujo = append(flujo, pasoFinal{
+		Nombre:    ultimoPaso.Nombre,
+		UsuarioID: ultimoPaso.UsuarioID,
+		EsRegla:   false,
 	})
 
-	// 5. Buscar estados base
+	// 5.5 ULTIMO: después de todo
+	for _, r := range alFinal {
+		flujo = append(flujo, pasoFinal{
+			Nombre:    fmt.Sprintf("Aprobación por monto ≥ %.2f", r.MontoMinimo),
+			UsuarioID: resolverUsuario(r),
+			EsRegla:   true,
+		})
+	}
+
+	// ── 6. Estados base ──
 	var estadoPendiente db.EstadoTarea
-	tx.Where("nombre = ?", "Pendiente").First(&estadoPendiente)
-	if estadoPendiente.ID == 0 {
-		estadoPendiente.ID = 1
+	if err := tx.Where("nombre = ?", "Pendiente").First(&estadoPendiente).Error; err != nil {
+		return errors.New("no se encontró el estado 'Pendiente' para tareas")
 	}
 	var estadoEnProceso db.EstadoTarea
-	tx.Where("nombre = ?", "En Proceso").First(&estadoEnProceso)
-	if estadoEnProceso.ID == 0 {
-		estadoEnProceso.ID = 2
+	if err := tx.Where("nombre = ?", "En Proceso").First(&estadoEnProceso).Error; err != nil {
+		return errors.New("no se encontró el estado 'En Proceso' para tareas")
 	}
 
 	now := time.Now()
 
-	// 6. Crear tareas
-	for i, pf := range finales {
+	// ── 7. Crear tareas en orden ──
+	for i, pf := range flujo {
 		uid := pf.UsuarioID
 		if uid == 0 && i == 0 {
 			uid = radicado.UsuarioActualID
@@ -365,4 +426,101 @@ func generarTareasDesdeRuta(tx *gorm.DB, radicado *db.DocumentoRadicado, rutaID 
 	}
 
 	return tx.Save(radicado).Error
+}
+
+// ─────────────────────────────────────────────────────────────
+// adjuntarArchivosDesdeCorreo
+// ─────────────────────────────────────────────────────────────
+func adjuntarArchivosDesdeCorreo(tx *gorm.DB, radicado *db.DocumentoRadicado, correoID uint) error {
+	// 1. Cargar el correo para obtener id_mensaje
+	var correo db.Correo
+	if err := tx.First(&correo, correoID).Error; err != nil {
+		return fmt.Errorf("correo origen no encontrado (id=%d): %w", correoID, err)
+	}
+	if correo.IDMensaje == "" {
+		return errors.New("correo no tiene id_mensaje definido")
+	}
+
+	// 2. Buscar origen "Sistema"
+	var origen db.ArchivoOrigen
+	origenID := uint(0)
+	if err := tx.Where("nombre = ? AND activo = ?", "Sistema", true).First(&origen).Error; err != nil {
+		fmt.Printf("[RADICADO %d] WARNING: origen 'Sistema' no encontrado: %v\n", radicado.ID, err)
+	} else {
+		origenID = origen.ID
+	}
+
+	// 3. Directorio fuente
+	srcDir := filepath.Join("storage", "mails", correo.IDMensaje)
+	entries, err := os.ReadDir(srcDir)
+	if err != nil {
+		return fmt.Errorf("no se pudo leer directorio origen %s: %w", srcDir, err)
+	}
+
+	// 4. Directorio destino
+	dstDir := filepath.Join("storage", "radicados", fmt.Sprintf("%d", radicado.ID))
+	if err := os.MkdirAll(dstDir, 0755); err != nil {
+		return fmt.Errorf("no se pudo crear directorio destino %s: %w", dstDir, err)
+	}
+
+		// 5. Copiar cada archivo (solo PDF)
+	for _, entry := range entries {
+		if entry.IsDir() {
+			continue
+		}
+
+		name := entry.Name()
+		ext := strings.ToLower(filepath.Ext(name))
+
+		// ← Solo archivos PDF
+		if ext != ".pdf" {
+			continue
+		}
+
+		srcPath := filepath.Join(srcDir, name)
+		dstPath := filepath.Join(dstDir, name)
+
+		if err := copyFile(srcPath, dstPath); err != nil {
+			fmt.Printf("[RADICADO %d] ERROR copiando %s: %v\n", radicado.ID, name, err)
+			continue
+		}
+
+		info, _ := os.Stat(dstPath)
+		peso := int64(0)
+		if info != nil {
+			peso = info.Size()
+		}
+
+		archivo := db.Archivo{
+			DocumentoRadicadoID: radicado.ID,
+			Nombre:              name,
+			Extension:           strings.TrimPrefix(ext, "."),
+			Ruta:                dstPath,
+			Peso:                peso,
+			OrigenID:            origenID,
+		}
+		if err := tx.Create(&archivo).Error; err != nil {
+			fmt.Printf("[RADICADO %d] ERROR guardando registro BD de %s: %v\n", radicado.ID, name, err)
+			continue
+		}
+	}
+
+	return nil
+}
+
+func copyFile(src, dst string) error {
+	source, err := os.Open(src)
+	if err != nil {
+		return err
+	}
+	defer source.Close()
+
+	destination, err := os.Create(dst)
+	if err != nil {
+		return err
+	}
+	defer destination.Close()
+
+	_, err = io.Copy(destination, source)
+	return err
 }

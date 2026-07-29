@@ -31,3 +31,7 @@ func (s *Service) Update(id uint, item *db.ReglaMontoRuta) error {
 func (s *Service) Delete(id uint) error {
 	return s.db.Model(&db.ReglaMontoRuta{}).Where("id = ?", id).Update("activo", false).Error
 }
+
+func (s *Service) UpdateStatus(id uint, activo bool) error {
+	return s.db.Model(&db.ReglaMontoRuta{}).Where("id = ?", id).Update("activo", activo).Error
+}

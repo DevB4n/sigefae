@@ -34,7 +34,7 @@ func Seed(db *gorm.DB) error {
 	}
 
 	// ==========================
-	// Estados de Tarea (NUEVO)
+	// Estados de Tarea
 	// ==========================
 	estadosTarea := []EstadoTarea{
 		{ID: 1, Nombre: "Pendiente", Activo: true},
@@ -97,7 +97,7 @@ func Seed(db *gorm.DB) error {
 	}
 
 	// ==========================
-	// Usuario: María Contadora (NUEVO)
+	// Usuario: María Contadora
 	// ==========================
 	hashMaria, err := bcrypt.GenerateFromPassword([]byte("maria123"), bcrypt.DefaultCost)
 	if err != nil {
@@ -127,6 +127,18 @@ func Seed(db *gorm.DB) error {
 	// ==========================
 	monedaCOP := Moneda{ID: 1, Nombre: "Peso Colombiano", Codigo: "COP", Activo: true}
 	if err := db.Where("id = ?", monedaCOP.ID).FirstOrCreate(&monedaCOP).Error; err != nil {
+		return err
+	}
+
+	// ==========================
+	// Origen de Archivo: Sistema  ← NUEVO
+	// ==========================
+	origenSistema := ArchivoOrigen{
+		ID:          1,
+		Nombre:      "Sistema",
+		Activo:      true,
+	}
+	if err := db.Where("id = ?", origenSistema.ID).FirstOrCreate(&origenSistema).Error; err != nil {
 		return err
 	}
 

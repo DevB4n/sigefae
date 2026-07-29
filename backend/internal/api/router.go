@@ -550,7 +550,9 @@ func New(database *gorm.DB) *gin.Engine {
 			admin.POST("/regla-monto-ruta", reglaMontoRutaHandler.Create)
 			admin.GET("/regla-monto-ruta", reglaMontoRutaHandler.List)
 			admin.PUT("/regla-monto-ruta/:id", reglaMontoRutaHandler.Update)
+			admin.PATCH("/regla-monto-ruta/:id/activo", reglaMontoRutaHandler.UpdateStatus)
 			admin.DELETE("/regla-monto-ruta/:id", reglaMontoRutaHandler.Delete)
+			
 		}
 	}
 
