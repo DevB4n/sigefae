@@ -307,3 +307,74 @@ func (s *Service) GetByID(id uint) (*db.Archivo, error) {
 	}
 	return &archivo, nil
 }
+
+func (s *Service) Reemplazar(id uint, fileHeader *multipart.FileHeader) (*Response, error) {
+	var archivo db.Archivo
+	if err := s.db.First(&archivo, id).Error; err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, errors.New("archivo no encontrado")
+		}
+		return nil, err
+	}
+
+	// Validar que sea PDF
+	ext := strings.ToLower(filepath.Ext(fileHeader.Filename))
+	if ext != ".pdf" {
+		return nil, errors.New("solo se permiten archivos PDF")
+	}
+
+	// Borrar archivo físico viejo
+	if archivo.Ruta != "" {
+		if err := os.Remove(archivo.Ruta); err != nil && !os.IsNotExist(err) {
+			return nil, err
+		}
+	}
+
+	// Guardar archivo nuevo en la misma carpeta
+	dir := filepath.Dir(archivo.Ruta)
+	if dir == "" || dir == "." {
+		dir = filepath.Join("storage", "anexos", fmt.Sprintf("%d", archivo.DocumentoRadicadoID))
+		if err := os.MkdirAll(dir, os.ModePerm); err != nil {
+			return nil, err
+		}
+	}
+
+	nombreBase := strings.TrimSuffix(fileHeader.Filename, ext)
+	nombreLimpio := strings.ReplaceAll(nombreBase, " ", "_")
+	nombreFinal := fmt.Sprintf("%s_%d%s", nombreLimpio, time.Now().Unix(), ext)
+	rutaFinal := filepath.Join(dir, nombreFinal)
+
+	src, err := fileHeader.Open()
+	if err != nil {
+		return nil, err
+	}
+	defer src.Close()
+
+	dst, err := os.Create(rutaFinal)
+	if err != nil {
+		return nil, err
+	}
+	defer dst.Close()
+
+	if _, err := io.Copy(dst, src); err != nil {
+		return nil, err
+	}
+
+	info, err := dst.Stat()
+	if err != nil {
+		return nil, err
+	}
+
+	// Actualizar registro (mismo ID, mismo radicado, mismo origen)
+	archivo.Nombre = fileHeader.Filename
+	archivo.Extension = strings.TrimPrefix(ext, ".")
+	archivo.Peso = info.Size()
+	archivo.Ruta = rutaFinal
+
+	if err := s.db.Save(&archivo).Error; err != nil {
+		return nil, err
+	}
+
+	resp := toResponse(archivo)
+	return &resp, nil
+}

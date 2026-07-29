@@ -231,6 +231,8 @@ func New(database *gorm.DB) *gin.Engine {
 		// moneda list
 		protected.GET("/monedas", monedaHandler.List)
 
+		protected.PATCH("/archivo/:id/reemplazar", archivoHandler.Reemplazar)
+
 		protected.GET("/me", func(c *gin.Context) {
 			user := c.MustGet("user").(db.Usuario)
 			c.JSON(http.StatusOK, gin.H{

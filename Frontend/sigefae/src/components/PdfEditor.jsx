@@ -319,17 +319,21 @@ export default function PdfEditor({ archivoId, radicadoId, onClose, onSaved }) {
     const newBytes = await doc.save();
     const blob = new Blob([newBytes], { type: "application/pdf" });
 
+        // ── REEMPLAZAR en vez de crear nuevo ──
     const formData = new FormData();
     formData.append("file", blob, "documento_editado.pdf");
 
     try {
-      const res = await fetch(`${API}/documentoradicado/${radicadoId}/anexos`, {
-        method: "POST",
+      const res = await fetch(`${API}/archivo/${archivoId}/reemplazar`, {
+        method: "PATCH",
         headers: { Authorization: `Bearer ${obtenerToken()}` },
         body: formData,
       });
-      if (!res.ok) throw new Error("Error subiendo");
-      alert("PDF guardado correctamente");
+      if (!res.ok) {
+        const errData = await res.json();
+        throw new Error(errData.error || "Error reemplazando archivo");
+      }
+      alert("PDF actualizado correctamente");
       onSaved && onSaved();
     } catch (err) {
       alert("Error: " + err.message);

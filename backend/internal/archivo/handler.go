@@ -183,3 +183,25 @@ func (h *Handler) Download(c *gin.Context) {
 	c.Header("Content-Disposition", fmt.Sprintf("%s; filename=\"%s\"", disposition, archivo.Nombre))
 	c.File(archivo.Ruta)
 }
+
+func (h *Handler) Reemplazar(c *gin.Context) {
+	id, err := strconv.ParseUint(c.Param("id"), 10, 64)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "id inválido"})
+		return
+	}
+
+	fileHeader, err := c.FormFile("file")
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "archivo requerido"})
+		return
+	}
+
+	response, err := h.service.Reemplazar(uint(id), fileHeader)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, response)
+}
