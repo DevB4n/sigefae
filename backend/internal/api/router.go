@@ -211,30 +211,28 @@ func New(database *gorm.DB) *gin.Engine {
 	{
 		api.POST("/auth/login", authHandler.Login)
 	}
-
 	// =========================
 	// Rutas protegidas
 	// =========================
 
 	protected := router.Group("/api")
 	protected.Use(auth.Middleware(database))
-	// ── Cualquier usuario logueado puede leer radicados ──
-    protected.GET("/documentoradicado", documentoRadicadoHandler.List)
-    protected.GET("/documentoradicado/:id", documentoRadicadoHandler.GetByID)
-	    // ── Cualquier usuario logueado puede subir/leer anexos ──
-    protected.POST("/documentoradicado/:documento_radicado_id/anexos", archivoHandler.UploadAnexo)
-    protected.GET("/archivo", archivoHandler.List)  // si quieres listar todos (opcional)
-	protected.GET("/archivo/:id/download", archivoHandler.Download)
-	//tarea
-	protected.GET("/documentoradicado/:id/tareas", tareaHandler.ListByRadicado)
-	protected.PATCH("/tarea/:id/completar", tareaHandler.Completar)
-
 	{
+		// ── Cualquier usuario logueado puede leer radicados ──
+		protected.GET("/documentoradicado", documentoRadicadoHandler.List)
+		protected.GET("/documentoradicado/:id", documentoRadicadoHandler.GetByID)
+		// ── Cualquier usuario logueado puede subir/leer anexos ──
+		protected.POST("/documentoradicado/:documento_radicado_id/anexos", archivoHandler.UploadAnexo)
+		protected.GET("/archivo", archivoHandler.List)
+		protected.GET("/archivo/:id/download", archivoHandler.Download)
+		// tarea
+		protected.GET("/documentoradicado/:id/tareas", tareaHandler.ListByRadicado)
+		protected.PATCH("/tarea/:id/completar", tareaHandler.Completar)
+		// moneda list
+		protected.GET("/monedas", monedaHandler.List)
 
 		protected.GET("/me", func(c *gin.Context) {
-
 			user := c.MustGet("user").(db.Usuario)
-
 			c.JSON(http.StatusOK, gin.H{
 				"id":     user.ID,
 				"nombre": user.Nombre,
@@ -242,22 +240,17 @@ func New(database *gorm.DB) *gin.Engine {
 				"cargo":  user.Cargo,
 				"rol":    user.Rol.Nombre,
 			})
-
 		})
 
 		// =========================
 		// Solo Superadministrador
 		// =========================
-
 		admin := protected.Group("")
 		admin.Use(auth.RequireRole("Superadministrador"))
-
 		{
-
 			// =========================
 			// Usuarios
 			// =========================
-
 			admin.POST("/usuarios", userHandler.Create)
 			admin.GET("/usuarios", userHandler.List)
 			admin.GET("/usuarios/:id", userHandler.GetByID)
@@ -268,13 +261,12 @@ func New(database *gorm.DB) *gin.Engine {
 			// =========================
 			// Roles
 			// =========================
-
 			admin.POST("/roles", roleHandler.Create)
 			admin.GET("/roles", roleHandler.List)
 			admin.PATCH("/roles/:id", roleHandler.Update)
 			admin.PATCH("/roles/:id/activo", roleHandler.UpdateStatus)
 
-			// =========================/pasos-ruta/:id/activo
+			// =========================
 			// Tipos de Pago
 			// =========================
 			admin.POST("/tipos-pago", tipoPagoHandler.Create)
@@ -285,7 +277,6 @@ func New(database *gorm.DB) *gin.Engine {
 			// =========================
 			// Métodos de Pago
 			// =========================
-
 			admin.POST("/metodos-pago", metodoPagoHandler.Create)
 			admin.GET("/metodos-pago", metodoPagoHandler.List)
 			admin.PATCH("/metodos-pago/:id", metodoPagoHandler.Update)
@@ -294,7 +285,6 @@ func New(database *gorm.DB) *gin.Engine {
 			// =========================
 			// Áreas
 			// =========================
-
 			admin.POST("/areas", areaHandler.Create)
 			admin.GET("/areas", areaHandler.List)
 			admin.PATCH("/areas/:id/activo", areaHandler.UpdateStatus)
@@ -303,7 +293,6 @@ func New(database *gorm.DB) *gin.Engine {
 			// =========================
 			// Tipos de Factura
 			// =========================
-
 			admin.POST("/tipos-factura", tipoFacturaHandler.Create)
 			admin.GET("/tipos-factura", tipoFacturaHandler.List)
 			admin.PUT("/tipos-factura/:id", tipoFacturaHandler.Update)
@@ -312,7 +301,6 @@ func New(database *gorm.DB) *gin.Engine {
 			// =========================
 			// Rutas
 			// =========================
-
 			admin.POST("/rutas", rutaHandler.Create)
 			admin.GET("/rutas", rutaHandler.List)
 			admin.PUT("/rutas/:id", rutaHandler.Update)
@@ -321,7 +309,6 @@ func New(database *gorm.DB) *gin.Engine {
 			// =========================
 			// Pasos de Ruta
 			// =========================
-
 			admin.POST("/pasos-ruta", pasoRutaHandler.Create)
 			admin.GET("/pasos-ruta", pasoRutaHandler.List)
 			admin.PUT("/pasos-ruta/:id", pasoRutaHandler.Update)
@@ -330,16 +317,13 @@ func New(database *gorm.DB) *gin.Engine {
 			// =========================
 			// Moneda
 			// =========================
-
 			admin.POST("/moneda", monedaHandler.Create)
-			admin.GET("/moneda", monedaHandler.List)
 			admin.PUT("/moneda/:id", monedaHandler.Update)
 			admin.PATCH("/moneda/:id/activo", monedaHandler.UpdateStatus)
 
 			// =========================
 			// Pais
 			// =========================
-
 			admin.POST("/pais", paisHandler.Create)
 			admin.GET("/pais", paisHandler.List)
 			admin.PUT("/pais/:id", paisHandler.Update)
@@ -348,52 +332,46 @@ func New(database *gorm.DB) *gin.Engine {
 			// =========================
 			// Departamento
 			// =========================
-
 			admin.POST("/departamento", departamentoHandler.Create)
 			admin.GET("/departamento", departamentoHandler.List)
 			admin.PUT("/departamento/:id", departamentoHandler.Update)
 			admin.PATCH("/departamento/:id/activo", departamentoHandler.UpdateStatus)
 
 			// =========================
-			//	Municipio
+			// Municipio
 			// =========================
-
 			admin.POST("/municipio", municipioHandler.Create)
 			admin.GET("/municipio", municipioHandler.List)
 			admin.PUT("/municipio/:id", municipioHandler.Update)
 			admin.PATCH("/municipio/:id/activo", municipioHandler.UpdateStatus)
 
 			// =========================
-			//	Direccion
+			// Direccion
 			// =========================
-
 			admin.POST("/direccion", direccionHandler.Create)
 			admin.GET("/direccion", direccionHandler.List)
 			admin.PUT("/direccion/:id", direccionHandler.Update)
 			admin.PATCH("/direccion/:id/activo", direccionHandler.UpdateStatus)
 
 			// =========================
-			//	Actividad_Economica
+			// Actividad Economica
 			// =========================
-
 			admin.POST("/actividad-economica", actividadEconomicaHandler.Create)
 			admin.GET("/actividad-economica", actividadEconomicaHandler.List)
 			admin.PUT("/actividad-economica/:id", actividadEconomicaHandler.Update)
 			admin.PATCH("/actividad-economica/:id/activo", actividadEconomicaHandler.UpdateStatus)
 
 			// =========================
-			//	Tipo_documento
+			// Tipo documento
 			// =========================
-
 			admin.POST("/tipo-documento", tipoDocumentoHandler.Create)
 			admin.GET("/tipo-documento", tipoDocumentoHandler.List)
 			admin.PUT("/tipo-documento/:id", tipoDocumentoHandler.Update)
 			admin.PATCH("/tipo-documento/:id/activo", tipoDocumentoHandler.UpdateStatus)
 
 			// =========================
-			// Categoria_proveedor
+			// Categoria proveedor
 			// =========================
-
 			admin.POST("/categoria-proveedor", categoriaProveedorHandler.Create)
 			admin.GET("/categoria-proveedor", categoriaProveedorHandler.List)
 			admin.PUT("/categoria-proveedor/:id", categoriaProveedorHandler.Update)
@@ -402,7 +380,6 @@ func New(database *gorm.DB) *gin.Engine {
 			// =========================
 			// Tipo Persona
 			// =========================
-
 			admin.POST("/tipo-persona", tipoPersonaHandler.Create)
 			admin.GET("/tipo-persona", tipoPersonaHandler.List)
 			admin.PUT("/tipo-persona/:id", tipoPersonaHandler.Update)
@@ -411,16 +388,14 @@ func New(database *gorm.DB) *gin.Engine {
 			// =========================
 			// Proveedor
 			// =========================
-
 			admin.POST("/proveedor", proveedorHandler.Create)
 			admin.GET("/proveedor", proveedorHandler.List)
 			admin.PUT("/proveedor/:id", proveedorHandler.Update)
 			admin.PATCH("/proveedor/:id/activo", proveedorHandler.UpdateStatus)
 
 			// =========================
-			//	Contacto
+			// Contacto
 			// =========================
-
 			admin.POST("/contacto", contactoHandler.Create)
 			admin.GET("/contacto", contactoHandler.List)
 			admin.PUT("/contacto/:id", contactoHandler.Update)
@@ -429,7 +404,6 @@ func New(database *gorm.DB) *gin.Engine {
 			// =========================
 			// Responsabilidad Fiscal
 			// =========================
-
 			admin.POST("/responsabilidad-fiscal", responsabilidadFiscalHandler.Create)
 			admin.GET("/responsabilidad-fiscal", responsabilidadFiscalHandler.List)
 			admin.PUT("/responsabilidad-fiscal/:id", responsabilidadFiscalHandler.Update)
@@ -438,7 +412,6 @@ func New(database *gorm.DB) *gin.Engine {
 			// =========================
 			// Receptor
 			// =========================
-
 			admin.POST("/receptor", receptorHandler.Create)
 			admin.GET("/receptor", receptorHandler.List)
 			admin.PUT("/receptor/:id", receptorHandler.Update)
@@ -447,7 +420,6 @@ func New(database *gorm.DB) *gin.Engine {
 			// =========================
 			// Estado Correo
 			// =========================
-
 			admin.POST("/estado-correo", estadoCorreoHandler.Create)
 			admin.GET("/estado-correo", estadoCorreoHandler.List)
 			admin.PUT("/estado-correo/:id", estadoCorreoHandler.Update)
@@ -456,7 +428,6 @@ func New(database *gorm.DB) *gin.Engine {
 			// =========================
 			// Estado Documento Radicado
 			// =========================
-
 			admin.POST("/estado-documento-radicado", estadoDocumentoRadicadoHandler.Create)
 			admin.GET("/estado-documento-radicado", estadoDocumentoRadicadoHandler.List)
 			admin.PUT("/estado-documento-radicado/:id", estadoDocumentoRadicadoHandler.Update)
@@ -465,7 +436,6 @@ func New(database *gorm.DB) *gin.Engine {
 			// =========================
 			// Tipo Radicación
 			// =========================
-
 			admin.POST("/tipo-radicacion", tipoRadicacionHandler.Create)
 			admin.GET("/tipo-radicacion", tipoRadicacionHandler.List)
 			admin.PUT("/tipo-radicacion/:id", tipoRadicacionHandler.Update)
@@ -474,7 +444,6 @@ func New(database *gorm.DB) *gin.Engine {
 			// =========================
 			// Estado Tarea
 			// =========================
-
 			admin.POST("/estado-tarea", estadoTareaHandler.Create)
 			admin.GET("/estado-tarea", estadoTareaHandler.List)
 			admin.PUT("/estado-tarea/:id", estadoTareaHandler.Update)
@@ -483,7 +452,6 @@ func New(database *gorm.DB) *gin.Engine {
 			// =========================
 			// Archivo Origen
 			// =========================
-
 			admin.POST("/archivo-origen", archivoOrigenHandler.Create)
 			admin.GET("/archivo-origen", archivoOrigenHandler.List)
 			admin.PUT("/archivo-origen/:id", archivoOrigenHandler.Update)
@@ -492,7 +460,6 @@ func New(database *gorm.DB) *gin.Engine {
 			// =========================
 			// Correos
 			// =========================
-
 			admin.POST("/correo", correoHandler.Create)
 			admin.GET("/correo", correoHandler.List)
 			admin.GET("/correo/:id", correoHandler.GetByID)
@@ -503,7 +470,6 @@ func New(database *gorm.DB) *gin.Engine {
 			// =========================
 			// Documento Comercial
 			// =========================
-
 			admin.POST("/documentocomercial", documentoComercialHandler.Create)
 			admin.GET("/documentocomercial", documentoComercialHandler.List)
 			admin.GET("/documentocomercial/pendientes", documentoComercialHandler.ListPendientes)
@@ -514,7 +480,6 @@ func New(database *gorm.DB) *gin.Engine {
 			// ==============================
 			// Detalle Documento Comercial
 			// ==============================
-
 			admin.POST("/detalledocumentocomercial", detalleDocumentoComercialHandler.Create)
 			admin.GET("/detalledocumentocomercial", detalleDocumentoComercialHandler.List)
 			admin.PUT("/detalledocumentocomercial/:id", detalleDocumentoComercialHandler.Update)
@@ -523,7 +488,6 @@ func New(database *gorm.DB) *gin.Engine {
 			// ===============
 			// Codigo QR
 			// ===============
-
 			admin.POST("/codigoqr", codigoQrHandler.Create)
 			admin.GET("/codigoqr", codigoQrHandler.List)
 			admin.PUT("/codigoqr/:id", codigoQrHandler.Update)
@@ -532,14 +496,12 @@ func New(database *gorm.DB) *gin.Engine {
 			// =========================
 			// Documento Radicado
 			// =========================
-
 			admin.POST("/documentoradicado", documentoRadicadoHandler.Create)
 			admin.PUT("/documentoradicado/:id", documentoRadicadoHandler.Update)
 
 			// =========================
 			// Notificacion
 			// =========================
-
 			admin.POST("/notificacion", notificacionHandler.Create)
 			admin.GET("/notificacion", notificacionHandler.List)
 			admin.PUT("/notificacion/:id", notificacionHandler.Update)
@@ -547,28 +509,24 @@ func New(database *gorm.DB) *gin.Engine {
 			// =========================
 			// Trazabilidad
 			// =========================
-
-			protected.POST("/trazabilidad", trazabilidadHandler.Create)
-			protected.GET("/trazabilidad", trazabilidadHandler.List)
+			admin.POST("/trazabilidad", trazabilidadHandler.Create)
+			admin.GET("/trazabilidad", trazabilidadHandler.List)
 
 			// =========================
 			// Historial Asignacion
 			// =========================
-
 			admin.POST("/historialasignacion", historialAsignacionHandler.Create)
 			admin.GET("/historialasignacion", historialAsignacionHandler.List)
 
 			// =========================
 			// Comentario
 			// =========================
-
 			admin.POST("/comentario", comentarioHandler.Create)
 			admin.GET("/comentario", comentarioHandler.List)
 
 			// =========================
 			// Archivo
 			// =========================
-
 			admin.POST("/archivo", archivoHandler.Create)
 			admin.PUT("/archivo/:id", archivoHandler.Update)
 			admin.DELETE("/archivo/:id", archivoHandler.Delete)
@@ -576,7 +534,6 @@ func New(database *gorm.DB) *gin.Engine {
 			// =========================
 			// Tarea
 			// =========================
-
 			admin.POST("/tarea", tareaHandler.Create)
 			admin.GET("/tarea", tareaHandler.List)
 			admin.PUT("/tarea/:id", tareaHandler.Update)
@@ -584,14 +541,12 @@ func New(database *gorm.DB) *gin.Engine {
 			// =========================
 			// Registro Aprobación
 			// =========================
-
 			admin.POST("/registroaprobacion", registroAprobacionHandler.Create)
 			admin.GET("/registroaprobacion", registroAprobacionHandler.List)
 
 			// =========================
 			// Regla Monto Ruta
 			// =========================
-
 			admin.POST("/regla-monto-ruta", reglaMontoRutaHandler.Create)
 			admin.GET("/regla-monto-ruta", reglaMontoRutaHandler.List)
 			admin.PUT("/regla-monto-ruta/:id", reglaMontoRutaHandler.Update)

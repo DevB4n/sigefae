@@ -92,6 +92,7 @@ export default function ProcesosLogistica() {
   const [tiposRadicacion, setTiposRadicacion] = useState([]);
   const [rutas, setRutas] = useState([]);
   const [metodosPago, setMetodosPago] = useState([]);
+  const [monedasCatalogo, setMonedasCatalogo] = useState([]);
 
   // ── Modal de Radicación ──
   const [showRadicarModal, setShowRadicarModal] = useState(false);
@@ -174,23 +175,47 @@ export default function ProcesosLogistica() {
   );
 
   // ── Completar tarea ──
-  const handleCompletarTarea = async (tareaId, radicadoId) => {
+    const handleCompletarTarea = async (tareaId, radicadoId) => {
     try {
       const res = await fetch(`${API}/tarea/${tareaId}/completar`, {
         method: "PATCH",
         headers: { Authorization: `Bearer ${obtenerToken()}` }
       });
-      if (!res.ok) throw new Error("Error completando tarea");
+      if (!res.ok) {
+        const errData = await res.json();
+        throw new Error(errData.error || "Error completando tarea");
+      }
 
       alert("Tarea completada correctamente");
 
-      if (activeTab === "tareas") {
-        setSelectedTareaId(null);
-        setTimeout(() => setSelectedTareaId(radicadoId), 10);
-      } else if (activeTab === "radicados") {
-        setSelectedRadicadoId(null);
-        setTimeout(() => setSelectedRadicadoId(radicadoId), 10);
+      // Recargar flujo directamente sin deseleccionar
+      const flujoRes = await fetch(`${API}/documentoradicado/${radicadoId}/tareas`, {
+        headers: { Authorization: `Bearer ${obtenerToken()}` }
+      });
+      const flujoData = await flujoRes.json();
+      setTareasFlujo(Array.isArray(flujoData) ? flujoData : []);
+
+      // Recargar detalle según pestaña
+      const detalleRes = await fetch(`${API}/documentoradicado/${radicadoId}`, {
+        headers: { Authorization: `Bearer ${obtenerToken()}` }
+      });
+      const detalleData = await detalleRes.json();
+      if (detalleData && detalleData.id) {
+        if (activeTab === "tareas") setTareaDetail(detalleData);
+        if (activeTab === "radicados") setRadicadoDetail(detalleData);
       }
+
+      // Si el documento ya no está asignado a este usuario, recargar la lista
+      if (activeTab === "tareas") {
+        const listaRes = await fetch(`${API}/documentoradicado`, {
+          headers: { Authorization: `Bearer ${obtenerToken()}` }
+        });
+        const listaData = await listaRes.json();
+        if (Array.isArray(listaData)) {
+          setMisTareas(listaData.filter(r => r.usuario_actual_id === userId));
+        }
+      }
+
     } catch (err) {
       alert("Error: " + err.message);
     }
@@ -257,13 +282,12 @@ export default function ProcesosLogistica() {
 
     const body = {};
     cfg.fields.forEach(f => {
-      if (f === "orden" || f.includes("_id")) {
-        body[f] = parseInt(catalogoForm[f]) || 0;
+      if (f === "orden" || f.includes("_id") || f === "monto_minimo") {
+        body[f] = parseFloat(catalogoForm[f]) || 0;
       } else {
         body[f] = catalogoForm[f]?.trim() || "";
       }
     });
-
     if (!body.nombre && cfg.fields.includes("nombre")) {
       alert("El nombre es obligatorio");
       return;
@@ -333,10 +357,17 @@ export default function ProcesosLogistica() {
   }, [activeTab, catalogoActivo]);
 
   // Cargar catálogos auxiliares según la pestaña activa
-  useEffect(() => {
+    useEffect(() => {
     if (activeTab !== "catalogos") return;
     const headers = { Authorization: `Bearer ${obtenerToken()}` };
 
+    if (catalogoActivo === "reglas-monto") {
+      fetch(`${API}/monedas`, { headers })
+        .then(r => r.ok ? r.json() : [])
+        .then(d => setMonedasCatalogo(Array.isArray(d) ? d : []))
+        .catch(() => setMonedasCatalogo([]));
+    }
+    
     if (catalogoActivo === "metodos-pago") {
       fetch(`${API}/tipos-pago`, { headers }).then(r => r.json()).then(d => setTiposPagoCatalogo(Array.isArray(d) ? d : []));
     }
@@ -344,11 +375,16 @@ export default function ProcesosLogistica() {
       fetch(`${API}/areas`, { headers }).then(r => r.json()).then(d => setAreasCatalogo(Array.isArray(d) ? d : []));
     }
     if (catalogoActivo === "pasos-ruta") {
-      fetch(`${API}/rutas`, { headers }).then(r => r.json()).then(d => setRutasCatalogo(Array.isArray(d) ? d : []));
+      fetch(`${API}/rutas`, { headers })
+        .then(r => r.json())
+        .then(d => setRutasCatalogo(Array.isArray(d) ? d : []))
+        .catch(err => console.error("Error cargando rutas:", err));
+    }
+    if (catalogoActivo === "pasos-ruta" || catalogoActivo === "reglas-monto") {
       fetch(`${API}/usuarios`, { headers }).then(r => r.json()).then(d => setUsuariosCatalogo(Array.isArray(d) ? d : []));
     }
   }, [activeTab, catalogoActivo]);
-
+  
   // Cargar tipos de pago cuando se necesiten (para métodos de pago)
   useEffect(() => {
     if (activeTab === "catalogos" && catalogoActivo === "metodos-pago") {
@@ -959,7 +995,16 @@ export default function ProcesosLogistica() {
               <span className="correo-date">{new Date(rad.fecha_radicacion).toLocaleDateString()}</span>
             </div>
             <div className="correo-item-subject">{rad.documento_comercial?.tipo || "—"} — {rad.numero_radicado}</div>
-            <div className="correo-item-status"><span className="status-badge radicado">{rad.estado?.nombre || "Radicado"}</span></div>
+            <div className="correo-item-status">
+              <span className={`status-badge ${
+                rad.estado_posesion === "Completado" ? "radicado" :
+                rad.estado_posesion === "EnProceso" ? "doc-pendiente" : ""
+              }`}>
+                {rad.estado_posesion === "Completado" ? "Finalizado" :
+                 rad.estado_posesion === "EnProceso" ? "En Proceso" :
+                 rad.estado_posesion === "Libre" ? "Libre" : "En espera"}
+              </span>
+            </div>
           </div>
         ))
       )}
@@ -973,7 +1018,11 @@ export default function ProcesosLogistica() {
           <div className="doc-header">
             <div className="doc-header-top">
               <h2>Radicado #{radicadoDetail.numero_radicado}</h2>
-              <span className="doc-total">{radicadoDetail.estado?.nombre || "—"}</span>
+              <span className="doc-total">{
+              radicadoDetail.estado_posesion === "Completado" ? "Finalizado" :
+              radicadoDetail.estado_posesion === "EnProceso" ? "En Proceso" :
+              radicadoDetail.estado_posesion === "Libre" ? "Libre" : "En espera"}
+            </span>
             </div>
             <p className="doc-cufe"><strong>Documento:</strong> {radicadoDetail.documento_comercial?.tipo} {radicadoDetail.documento_comercial?.numero_documento}</p>
           </div>
@@ -1101,8 +1150,15 @@ export default function ProcesosLogistica() {
               </div>
               <div className="correo-item-subject">{rad.documento_comercial?.tipo || "—"} — {rad.numero_radicado}</div>
               <div className="correo-item-status">
-                <span className={`status-badge ${rad.estado_posesion === "EnProceso" ? "radicado" : "doc-pendiente"}`}>
-                  {rad.estado_posesion || "Sin estado"}
+                <span className={`status-badge ${
+                  rad.estado_posesion === "Completado" ? "radicado" :
+                  rad.estado_posesion === "EnProceso" ? "doc-pendiente" : ""
+                    }`}>
+                  {
+                  rad.estado_posesion === "Completado" ? "Finalizado" :
+                  rad.estado_posesion === "EnProceso" ? "En Proceso" :
+                  rad.estado_posesion === "Libre" ? "Libre" : "Sin estado"
+                  }
                 </span>
               </div>
             </div>
@@ -1259,7 +1315,7 @@ export default function ProcesosLogistica() {
   const renderCatalogos = () => {
     const cfg = catalogoConfig[catalogoActivo];
 
-    const renderFormField = (field) => {
+        const renderFormField = (field) => {
       const value = catalogoForm[field] || "";
       if (field === "tipo_pago_id") {
         return (
@@ -1305,11 +1361,54 @@ export default function ProcesosLogistica() {
           </div>
         );
       }
+      if (field === "usuario_aprobador_id") {
+        return (
+          <div className="modal-field" key={field}>
+            <label>Usuario Aprobador <span className="required">*</span></label>
+            <select name={field} value={value} onChange={handleCatalogoFormChange}>
+              <option value="">Seleccione...</option>
+              {usuariosCatalogo.map(u => <option key={u.id} value={u.id}>{u.nombre}</option>)}
+            </select>
+          </div>
+        );
+      }
       if (field === "orden") {
         return (
           <div className="modal-field" key={field} style={{ maxWidth: 120 }}>
             <label>Orden <span className="required">*</span></label>
             <input type="number" name={field} value={value} onChange={handleCatalogoFormChange} min="1" />
+          </div>
+        );
+      }
+      if (field === "monto_minimo") {
+        return (
+          <div className="modal-field" key={field} style={{ maxWidth: 160 }}>
+            <label>Monto Mínimo <span className="required">*</span></label>
+            <input type="number" name={field} value={value} onChange={handleCatalogoFormChange} min="0" />
+          </div>
+        );
+      }
+      if (field === "moneda_id") {
+        return (
+          <div className="modal-field" key={field}>
+            <label>Moneda <span className="required">*</span></label>
+            <select name={field} value={value} onChange={handleCatalogoFormChange}>
+              <option value="">Seleccione...</option>
+              {monedasCatalogo.map(m => <option key={m.id} value={m.id}>{m.nombre} ({m.codigo})</option>)}
+            </select>
+          </div>
+        );
+      }
+      if (field === "posicion_insercion") {
+        return (
+          <div className="modal-field" key={field}>
+            <label>Posición Inserción <span className="required">*</span></label>
+            <select name={field} value={value} onChange={handleCatalogoFormChange}>
+              <option value="">Seleccione...</option>
+              <option value="PRIMERO">Al inicio</option>
+              <option value="ANTES_FINAL">Antes del final</option>
+              <option value="ULTIMO">Al final</option>
+            </select>
           </div>
         );
       }
@@ -1319,6 +1418,17 @@ export default function ProcesosLogistica() {
           <input type="text" name={field} value={value} onChange={handleCatalogoFormChange} placeholder={`Nombre del ${cfg.label.toLowerCase()}`} />
         </div>
       );
+            if (field === "moneda_id") {
+        return (
+          <div className="modal-field" key={field}>
+            <label>Moneda <span className="required">*</span></label>
+            <select name={field} value={value} onChange={handleCatalogoFormChange}>
+              <option value="">Seleccione...</option>
+              {monedasCatalogo.map(m => <option key={m.id} value={m.id}>{m.nombre} ({m.codigo})</option>)}
+            </select>
+          </div>
+        );
+      }
     };
 
     const getColumnLabel = (field) => {

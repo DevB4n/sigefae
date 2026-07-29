@@ -84,14 +84,16 @@ func (h *Handler) ListByRadicado(c *gin.Context) {
 
 	c.JSON(http.StatusOK, tareas)
 }
-
-// ── NUEVO: Completar tarea y avanzar flujo ──
 func (h *Handler) Completar(c *gin.Context) {
-	id, _ := strconv.Atoi(c.Param("id"))
+	id, err := strconv.Atoi(c.Param("id"))
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "id inválido"})
+		return
+	}
 	user := c.MustGet("user").(db.Usuario)
 
 	var tarea db.Tarea
-	if err := h.db.Preload("DocumentoRadicado").Preload("Estado").First(&tarea, id).Error; err != nil {
+	if err := h.db.Preload("DocumentoRadicado").First(&tarea, id).Error; err != nil {
 		c.JSON(http.StatusNotFound, gin.H{"error": "Tarea no encontrada"})
 		return
 	}
@@ -109,9 +111,14 @@ func (h *Handler) Completar(c *gin.Context) {
 		estadoCompletado.ID = 3
 	}
 
-	tarea.EstadoID = estadoCompletado.ID
-	tarea.FechaFinalizacion = &now
-	h.db.Save(&tarea)
+	// ── USAR Updates EXPLÍCITO para evitar que GORM sobrescriba estado_id ──
+	if err := h.db.Model(&tarea).Updates(map[string]interface{}{
+		"estado_id":          estadoCompletado.ID,
+		"fecha_finalizacion": now,
+	}).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Error actualizando tarea"})
+		return
+	}
 
 	var siguiente db.Tarea
 	if err := h.db.Where("documento_radicado_id = ? AND id > ? AND estado_id != ?",
@@ -124,9 +131,10 @@ func (h *Handler) Completar(c *gin.Context) {
 			estadoEnProceso.ID = 2
 		}
 
-		siguiente.EstadoID = estadoEnProceso.ID
-		siguiente.FechaInicio = &now
-		h.db.Save(&siguiente)
+		h.db.Model(&siguiente).Updates(map[string]interface{}{
+			"estado_id":   estadoEnProceso.ID,
+			"fecha_inicio": now,
+		})
 
 		h.db.Model(&db.DocumentoRadicado{}).Where("id = ?", tarea.DocumentoRadicadoID).Updates(map[string]interface{}{
 			"usuario_actual_id": siguiente.UsuarioAsignadoID,
@@ -138,5 +146,5 @@ func (h *Handler) Completar(c *gin.Context) {
 		})
 	}
 
-	c.JSON(http.StatusOK, gin.H{"message": "Tarea completada", "tarea": tarea})
+	c.JSON(http.StatusOK, gin.H{"message": "Tarea completada"})
 }

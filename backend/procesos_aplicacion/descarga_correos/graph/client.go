@@ -20,7 +20,7 @@ func NewClient(auth *Auth, userEmail string) *Client {
 		auth:      auth,
 		userEmail: userEmail,
 		httpClient: &http.Client{
-			Timeout: 30 * time.Second,
+			Timeout: 2 * time.Minute,
 		},
 	}
 }
