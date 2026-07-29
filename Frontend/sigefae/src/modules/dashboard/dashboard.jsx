@@ -3,6 +3,7 @@ import "./dashboard.css";
 import "@fortawesome/fontawesome-free/css/all.min.css";
 import logo from "../../assets/login/logo.png";
 import { obtenerToken } from "../auth/token.js";
+import PdfEditor from "../../components/PdfEditor";
 
 const API = "http://localhost:8080/api";
 
@@ -55,6 +56,9 @@ export default function ProcesosLogistica() {
 
   // Si es aprobador, arranca directo en "tareas"
   const [activeTab, setActiveTab] = useState(esAprobador ? "tareas" : "welcome");
+
+  //pdf
+  const [pdfEditor, setPdfEditor] = useState({ open: false, archivoId: null, radicadoId: null });
 
   // ── Catálogos Admin ──
   const [catalogoActivo, setCatalogoActivo] = useState("tipo-radicacion");
@@ -1043,7 +1047,7 @@ export default function ProcesosLogistica() {
 
                   <div style={{ display: "flex", gap: 6, flexWrap: "wrap", justifyContent: "center" }}>
                     {esPreview && (
-                      <button className="attachment-btn btn-pdf" onClick={() => handleVerAnexo(arch.id, arch.nombre)}>
+                      <button className="attachment-btn btn-pdf" onClick={() => setPdfEditor({ open: true, archivoId: arch.id, radicadoId: radicadoDetail.id })}>
                         <i className="fa-solid fa-eye"></i> Ver
                       </button>
                     )}
@@ -1195,7 +1199,7 @@ export default function ProcesosLogistica() {
 
                 <div style={{ display: "flex", gap: 6, flexWrap: "wrap", justifyContent: "center" }}>
                   {esPreview && (
-                    <button className="attachment-btn btn-pdf" onClick={() => handleVerAnexo(arch.id, arch.nombre)}>
+                    <button className="attachment-btn btn-pdf" onClick={() => setPdfEditor({ open: true, archivoId: arch.id, radicadoId: tareaDetail.id })}>
                       <i className="fa-solid fa-eye"></i> Ver
                     </button>
                   )}
@@ -1590,6 +1594,24 @@ export default function ProcesosLogistica() {
           {renderContent()}
         </main>
       </div>
+            {pdfEditor.open && (
+        <PdfEditor
+          archivoId={pdfEditor.archivoId}
+          radicadoId={pdfEditor.radicadoId}
+          onClose={() => setPdfEditor({ open: false, archivoId: null, radicadoId: null })}
+          onSaved={() => {
+            setPdfEditor({ open: false, archivoId: null, radicadoId: null });
+            // Refrescar anexos
+            if (activeTab === "tareas") {
+              setSelectedTareaId(null);
+              setTimeout(() => setSelectedTareaId(pdfEditor.radicadoId), 10);
+            } else {
+              setSelectedRadicadoId(null);
+              setTimeout(() => setSelectedRadicadoId(pdfEditor.radicadoId), 10);
+            }
+          }}
+        />
+      )}
     </>
   );
 }

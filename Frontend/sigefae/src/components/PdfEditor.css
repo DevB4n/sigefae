@@ -1,0 +1,262 @@
+/* ========== CONTENEDOR PRINCIPAL ========== */
+.pdf-editor-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  background: rgba(0, 0, 0, 0.6);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.pdf-editor-box {
+  background: #fff;
+  width: 92vw;
+  height: 92vh;
+  border-radius: 10px;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  box-shadow: 0 20px 50px rgba(0,0,0,0.3);
+}
+
+/* ========== TOOLBAR ========== */
+.pdf-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 16px;
+  border-bottom: 1px solid #334155;
+  background: #0f172a;
+  z-index: 10;
+  flex-shrink: 0;
+}
+
+.pdf-toolbar button {
+  padding: 6px 14px;
+  border-radius: 6px;
+  border: 1px solid #475569;
+  background: #1e293b;
+  color: #e2e8f0;
+  cursor: pointer;
+  font-size: 0.9rem;
+  transition: all .15s;
+}
+
+.pdf-toolbar button.active {
+  background: #3b82f6;
+  color: #fff;
+  border-color: #3b82f6;
+}
+
+.pdf-toolbar button:hover:not(.active) {
+  background: #334155;
+}
+
+.btn-save-pdf {
+  background: #16a34a !important;
+  color: #fff !important;
+  border-color: #16a34a !important;
+  font-weight: 600;
+}
+.btn-save-pdf:hover {
+  background: #15803d !important;
+  border-color: #15803d !important;
+}
+
+.btn-close-pdf {
+  background: #dc2626 !important;
+  color: #fff !important;
+  border-color: #dc2626 !important;
+}
+.btn-close-pdf:hover {
+  background: #b91c1c !important;
+  border-color: #b91c1c !important;
+}
+
+/* ========== VISOR SCROLLEABLE ========== */
+.pdf-viewer-wrap {
+  position: relative;
+  flex: 1;
+  overflow: auto;
+  background: #1e293b;
+}
+
+/* Wrapper relativo: aquí viven canvas, overlay y anotaciones.
+   Su ancho/alto ahora se fija en línea (inline style) desde JS,
+   igual al tamaño real del canvas renderizado por pdf.js. */
+.pdf-page-wrapper {
+  position: relative;
+  margin: 0 auto;
+}
+
+/* Antes: .pdf-iframe (visor nativo del navegador, con su propio
+   zoom/letterboxing que desalineaba las coordenadas).
+   Ahora: canvas renderizado por pdf.js, con tamaño exacto en píxeles. */
+.pdf-canvas {
+  display: block;
+  width: 100%;
+  height: 100%;
+  background: #fff;
+}
+
+/* ========== OVERLAY ========== */
+.pdf-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+}
+
+.pdf-overlay.editing {
+  pointer-events: auto;
+  cursor: crosshair;
+}
+
+/* ========== ANOTACIONES ========== */
+.pdf-annotation {
+  position: absolute;
+  z-index: 3;
+  border: 1px dashed #3b82f6;
+  background: rgba(255,255,255,0.08);
+  cursor: move;
+  user-select: none;
+  display: flex;
+  align-items: flex-start;
+  justify-content: flex-start;
+  overflow: visible;
+  box-sizing: border-box;
+  /* Mínimos para que el resize handle nunca desaparezca */
+  min-width: 60px;
+  min-height: 50px;
+}
+
+.pdf-annotation img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  pointer-events: none;
+  display: block;
+}
+
+.ann-text-content {
+  font-size: 16px;
+  font-weight: 600;
+  white-space: nowrap;
+  pointer-events: none;
+  text-shadow: 0 0 4px rgba(255,255,255,0.95), 0 0 2px rgba(255,255,255,0.95);
+  line-height: 1;
+  padding: 2px 4px;
+}
+
+/* Handle de redimensión: más grande y siempre clickable */
+.resize-handle {
+  position: absolute;
+  bottom: -8px;
+  right: -8px;
+  width: 18px;
+  height: 18px;
+  background: #2563eb;
+  border: 2px solid #fff;
+  border-radius: 50%;
+  cursor: se-resize;
+  z-index: 10;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.4);
+}
+
+/* Botón eliminar */
+.ann-delete {
+  position: absolute;
+  top: -10px;
+  right: -10px;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  border: none;
+  background: #ef4444;
+  color: #fff;
+  font-size: 12px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 10;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.3);
+}
+.ann-delete:hover {
+  background: #dc2626;
+}
+
+/* ========== MODALES ========== */
+.pdf-modal {
+  position: fixed;
+  inset: 0;
+  z-index: 2000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0,0,0,0.45);
+}
+
+.pdf-modal-content {
+  background: #fff;
+  padding: 24px;
+  border-radius: 10px;
+  min-width: 340px;
+  max-width: 90vw;
+  box-shadow: 0 15px 40px rgba(0,0,0,0.25);
+}
+
+.pdf-modal-content h4 {
+  margin: 0 0 12px 0;
+  font-size: 1.1rem;
+  color: #1e293b;
+}
+
+.pdf-modal-content input[type="text"] {
+  width: 100%;
+  padding: 8px 12px;
+  margin-bottom: 10px;
+  border: 1px solid #cbd5e1;
+  border-radius: 6px;
+  font-size: 0.95rem;
+}
+
+.color-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 6px;
+}
+
+.color-row input[type="color"] {
+  width: 40px;
+  height: 32px;
+  border: 1px solid #cbd5e1;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.pdf-modal-actions {
+  display: flex;
+  gap: 8px;
+  justify-content: flex-end;
+  margin-top: 14px;
+}
+
+.pdf-modal-actions button {
+  padding: 6px 14px;
+  border-radius: 6px;
+  border: 1px solid #cbd5e1;
+  background: #fff;
+  cursor: pointer;
+}
+
+.sig-canvas-wrap {
+  border: 1px solid #cbd5e1;
+  border-radius: 6px;
+  display: inline-block;
+  background: #fff;
+}
