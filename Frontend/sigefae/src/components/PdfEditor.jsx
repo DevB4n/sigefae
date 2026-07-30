@@ -21,6 +21,7 @@ const hexToRgb = (hex) => {
 };
 
 const STAMP_STORAGE_KEY = "pdfEditor:customStamp";
+const SIGNATURE_STORAGE_KEY = "pdfEditor:customSignature"; 
 
 const persistStamp = (stamp) => {
   try {
@@ -46,6 +47,30 @@ const loadStampFromStorage = () => {
   }
 };
 
+const persistSignature = (signature) => {
+  try {
+    localStorage.setItem(
+      SIGNATURE_STORAGE_KEY,
+      JSON.stringify({ dataUrl: signature.dataUrl, mimeType: signature.mimeType })
+    );
+  } catch (e) {
+    console.warn("No se pudo guardar la firma en localStorage:", e);
+  }
+};
+
+const loadSignatureFromStorage = () => {
+  try {
+    const raw = localStorage.getItem(SIGNATURE_STORAGE_KEY);
+    if (!raw) return null;
+    const { dataUrl, mimeType } = JSON.parse(raw);
+    const base64 = dataUrl.split(",")[1];
+    const bytes = Uint8Array.from(atob(base64), (c) => c.charCodeAt(0));
+    return { dataUrl, bytes, mimeType };
+  } catch {
+    return null;
+  }
+};
+
 export default function PdfEditor({ archivoId, radicadoId, onClose, onSaved }) {
   const [pdfBytes, setPdfBytes] = useState(null);
   const [tool, setTool] = useState(null);
@@ -57,6 +82,7 @@ export default function PdfEditor({ archivoId, radicadoId, onClose, onSaved }) {
   const [tempPos, setTempPos] = useState(null);
 
   const [customStamp, setCustomStamp] = useState(loadStampFromStorage); // { dataUrl, bytes, mimeType }
+  const [customSignature, setCustomSignature] = useState(loadSignatureFromStorage); // NUEVO
   const stampInputRef = useRef(null);
 
   const [dragging, setDragging] = useState(null);
@@ -84,7 +110,7 @@ export default function PdfEditor({ archivoId, radicadoId, onClose, onSaved }) {
       const buf = await res.arrayBuffer();
       if (cancelled) return;
 
-      setPdfBytes(buf);
+      setPdfBytes(new Uint8Array(buf)); // Uint8Array nunca se transfiere/consume
 
       // pdf.js necesita su propia copia del buffer (lo consume internamente)
       const pdf = await pdfjsLib.getDocument({ data: buf.slice(0) }).promise;
@@ -196,6 +222,39 @@ export default function PdfEditor({ archivoId, radicadoId, onClose, onSaved }) {
     return { dataUrl, bytes, mimeType: "image/png" };
   }, []);
 
+  const addSignatureWithDate = (signatureData, pos) => {
+  const sigId = Date.now();
+  const sigWidth = 200;
+  const sigHeight = 80;
+
+  const fecha = new Date().toLocaleDateString("es-CO"); // "30/07/2026"
+
+  setAnnotations((prev) => [
+    ...prev,
+    {
+      id: sigId,
+      type: "signature",
+      imageBytes: signatureData.bytes,
+      imageDataUrl: signatureData.dataUrl,
+      imageMime: signatureData.mimeType || "image/png",
+      x: pos.x,
+      y: pos.y,
+      width: sigWidth,
+      height: sigHeight,
+    },
+    {
+      id: sigId + 1,
+      type: "text",
+      text: fecha,
+      color: "#374151",
+      x: pos.x,
+      y: pos.y + sigHeight + 4, // justo debajo de la firma
+      width: sigWidth,
+      height: 20,
+    },
+  ]);
+  };
+
   // ── Click en overlay: coordenadas EXACTAS respecto al canvas ──
   const handleOverlayClick = (e) => {
     if (!tool || !overlayRef.current) return;
@@ -260,29 +319,22 @@ export default function PdfEditor({ archivoId, radicadoId, onClose, onSaved }) {
   };
 
   const confirmSignature = () => {
-    if (sigCanvas.current.isEmpty()) {
-      alert("Dibuja algo primero");
-      return;
-    }
-    const dataUrl = sigCanvas.current.toDataURL("image/png");
-    const base64 = dataUrl.split(",")[1];
-    const bytes = Uint8Array.from(atob(base64), (c) => c.charCodeAt(0));
+  if (!sigCanvas.current || sigCanvas.current.isEmpty()) {
+    alert("Dibuja algo primero");
+    return;
+  }
+  const dataUrl = sigCanvas.current.toDataURL("image/png");
+  const base64 = dataUrl.split(",")[1];
+  const bytes = Uint8Array.from(atob(base64), (c) => c.charCodeAt(0));
+  const signatureData = { dataUrl, bytes, mimeType: "image/png" };
 
-    setAnnotations((prev) => [
-      ...prev,
-      {
-        id: Date.now(),
-        type: "signature",
-        imageBytes: bytes,
-        imageDataUrl: dataUrl,
-        x: tempPos.x,
-        y: tempPos.y,
-        width: 200,
-        height: 80,
-      },
-    ]);
-    setShowSigModal(false);
-    setTool(null);
+  setCustomSignature(signatureData);
+  persistSignature(signatureData);
+
+  addSignatureWithDate(signatureData, tempPos);
+
+  setShowSigModal(false);
+  setTool(null);
   };
 
   const removeAnnotation = (id, e) => {
@@ -352,6 +404,12 @@ export default function PdfEditor({ archivoId, radicadoId, onClose, onSaved }) {
   }
 
       const newBytes = await doc.save();
+
+      // Actualizar pdfBytes con el PDF modificado, para que ediciones
+      // sucesivas no sobreescriban con el original.
+      setPdfBytes(new Uint8Array(newBytes));
+      setAnnotations([]);
+
       const blob = new Blob([newBytes], { type: "application/pdf" });
       const formData = new FormData();
       formData.append("file", blob, "documento_editado.pdf");
