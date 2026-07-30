@@ -227,6 +227,11 @@ func New(database *gorm.DB) *gin.Engine {
 		protected.PATCH("/tarea/:id/completar", tareaHandler.Completar)
 		// moneda list
 		protected.GET("/monedas", monedaHandler.List)
+		// =========================
+		// Comentario
+		// =========================
+		protected.POST("/comentario", comentarioHandler.Create)
+		protected.GET("/comentario", comentarioHandler.List)
 
 		protected.PATCH("/archivo/:id/reemplazar", archivoHandler.Reemplazar)
 
@@ -510,12 +515,6 @@ func New(database *gorm.DB) *gin.Engine {
 			// =========================
 			admin.POST("/trazabilidad", trazabilidadHandler.Create)
 			admin.GET("/trazabilidad", trazabilidadHandler.List)
-
-			// =========================
-			// Comentario
-			// =========================
-			admin.POST("/comentario", comentarioHandler.Create)
-			admin.GET("/comentario", comentarioHandler.List)
 
 			// =========================
 			// Archivo

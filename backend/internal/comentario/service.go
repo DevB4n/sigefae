@@ -46,6 +46,10 @@ func (s *Service) List() ([]Response, error) {
 		return nil, err
 	}
 
+	if err := s.db.Preload("Usuario").Order("fecha DESC").Find(&comentarios).Error; err != nil {
+	    return nil, err
+	}
+
 	response := make([]Response, 0, len(comentarios))
 
 	for _, comentario := range comentarios {

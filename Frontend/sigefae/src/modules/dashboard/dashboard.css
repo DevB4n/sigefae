@@ -380,8 +380,8 @@ body {
     color:white;
 }
 
-.btn-pdf { background: #fee2e2; color: #dc2626; }
-.btn-pdf:hover { background: #fecaca; }
+.btn-pdf { background: #cae9bc; color: #000000; }
+.btn-pdf:hover { background: #bfe4af; }
 
 .btn-xml { background: #e0e7ff; color: #4f46e5; }
 .btn-xml:hover { background: #c7d2fe; }

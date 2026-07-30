@@ -124,6 +124,11 @@ export default function ProcesosLogistica() {
     // ── Flujo de tareas del radicado ──
   const [tareasFlujo, setTareasFlujo] = useState([]);
 
+  // ── Comentarios ──
+  const [comentarios, setComentarios] = useState([]);
+  const [nuevoComentario, setNuevoComentario] = useState("");
+  const [enviandoComentario, setEnviandoComentario] = useState(false);
+
   // Cargar tareas cuando se selecciona un radicado o tarea
   useEffect(() => {
     const radicadoId = selectedRadicadoId || selectedTareaId;
@@ -136,6 +141,24 @@ export default function ProcesosLogistica() {
         .catch(err => console.error(err));
     } else {
       setTareasFlujo([]);
+    }
+  }, [selectedRadicadoId, selectedTareaId]);
+
+  // ── Cargar comentarios del radicado ──
+  useEffect(() => {
+    const radicadoId = selectedRadicadoId || selectedTareaId;
+    if (radicadoId) {
+      fetch(`${API}/comentario?documento_radicado_id=${radicadoId}`, {
+        headers: { Authorization: `Bearer ${obtenerToken()}` }
+      })
+        .then(r => r.json())
+        .then(data => setComentarios(Array.isArray(data) ? data : []))
+        .catch(err => {
+          console.error("Error cargando comentarios:", err);
+          setComentarios([]);
+        });
+    } else {
+      setComentarios([]);
     }
   }, [selectedRadicadoId, selectedTareaId]);
 
@@ -175,6 +198,60 @@ export default function ProcesosLogistica() {
           </tbody>
         </table>
       )}
+    </div>
+  );
+
+  // ── Render comentarios ──
+  const renderComentarios = (radicadoId) => (
+    <div className="doc-section">
+      <h4><i className="fa-solid fa-comments"></i> Comentarios ({comentarios.length})</h4>
+      <div style={{ maxHeight: 320, overflowY: "auto", marginBottom: 12, paddingRight: 4 }}>
+        {comentarios.length === 0 ? (
+          <p style={{ color: "#6b7280", fontSize: "0.9em" }}>No hay comentarios aún.</p>
+        ) : (
+          comentarios.map((c) => (
+            <div key={c.id} style={{ background: "#f3f4f6", borderRadius: 8, padding: "10px 12px", marginBottom: 8 }}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 4 }}>
+                <strong style={{ fontSize: "0.85em", color: "#1f2937" }}>
+                  {c.usuario_nombre || `Usuario #${c.usuario_id}`}
+                </strong>
+                <span style={{ fontSize: "0.75em", color: "#6b7280" }}>
+                  {new Date(c.fecha).toLocaleString()}
+                </span>
+              </div>
+              <p style={{ margin: 0, fontSize: "0.9em", color: "#374151", whiteSpace: "pre-wrap" }}>
+                {c.descripcion}
+              </p>
+            </div>
+          ))
+        )}
+      </div>
+      <div style={{ display: "flex", gap: 8, alignItems: "flex-start" }}>
+        <textarea
+          value={nuevoComentario}
+          onChange={(e) => setNuevoComentario(e.target.value)}
+          placeholder="Escribe un comentario..."
+          rows={2}
+          style={{
+            flex: 1,
+            padding: 8,
+            borderRadius: 6,
+            border: "1px solid #d1d5db",
+            resize: "vertical",
+            fontFamily: "inherit",
+            fontSize: "0.9em"
+          }}
+        />
+        <button
+          className="doc-btn doc-btn-primary"
+          onClick={() => handleEnviarComentario(radicadoId)}
+          disabled={enviandoComentario || !nuevoComentario.trim()}
+          style={{ marginTop: 2 }}
+        >
+          <i className="fa-solid fa-paper-plane"></i>{" "}
+          {enviandoComentario ? "Enviando..." : "Enviar"}
+        </button>
+      </div>
     </div>
   );
 
@@ -222,6 +299,40 @@ export default function ProcesosLogistica() {
 
     } catch (err) {
       alert("Error: " + err.message);
+    }
+  };
+
+  // ── Enviar comentario ──
+  const handleEnviarComentario = async (radicadoId) => {
+    if (!nuevoComentario.trim()) return;
+    setEnviandoComentario(true);
+    try {
+      const res = await fetch(`${API}/comentario`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${obtenerToken()}`
+        },
+        body: JSON.stringify({
+          documento_radicado_id: radicadoId,
+          usuario_id: userId,
+          descripcion: nuevoComentario.trim()
+        })
+      });
+      if (!res.ok) {
+        const errData = await res.json();
+        throw new Error(errData.error || "Error enviando comentario");
+      }
+      setNuevoComentario("");
+      const listRes = await fetch(`${API}/comentario?documento_radicado_id=${radicadoId}`, {
+        headers: { Authorization: `Bearer ${obtenerToken()}` }
+      });
+      const listData = await listRes.json();
+      setComentarios(Array.isArray(listData) ? listData : []);
+    } catch (err) {
+      alert("Error: " + err.message);
+    } finally {
+      setEnviandoComentario(false);
     }
   };
 
@@ -1087,7 +1198,12 @@ export default function ProcesosLogistica() {
                 <i className="fa-solid fa-upload"></i> Seleccionar archivo
               </button>
             </div>
+
             {renderFlujoAprobacion()}
+
+            {/* ── Comentarios ── */}
+            {renderComentarios(radicadoDetail.id)}
+
             <div className="doc-section">
               <h4><i className="fa-solid fa-circle-info"></i> Información del Radicado</h4>
               <div className="doc-grid">
@@ -1190,7 +1306,7 @@ export default function ProcesosLogistica() {
     <h4><i className="fa-solid fa-paperclip"></i> Anexos ({tareaDetail.archivos.length})</h4>
     <div className="attachments-grid">
       {tareaDetail.archivos.map((arch) => {
-        const ext = arch.extension?.toLowerCase() || "";
+               const ext = arch.extension?.toLowerCase() || "";
         const esPreview = ["pdf", "jpg", "jpeg", "png", "gif", "txt"].includes(ext);
         return (
           <div key={arch.id} className="attachment-card" style={{ position: "relative" }}>
@@ -1239,7 +1355,12 @@ export default function ProcesosLogistica() {
                   <i className="fa-solid fa-upload"></i> Seleccionar archivo
                 </button>
               </div>
+
               {renderFlujoAprobacion()}
+
+              {/* ── Comentarios ── */}
+              {renderComentarios(tareaDetail.id)}
+
               <div className="doc-section">
                 <h4><i className="fa-solid fa-circle-info"></i> Información del Radicado</h4>
                 <div className="doc-grid">
@@ -1285,7 +1406,7 @@ export default function ProcesosLogistica() {
               )}
             </div>
 
-                        <div className="doc-actions">
+            <div className="doc-actions">
               {(() => {
                 const tareaActiva = tareasFlujo.find(t => t.estado?.nombre === "En Proceso");
                 const esResponsable = tareaActiva && (tareaActiva.usuario_asignado_id === userId || tareaDetail.usuario_actual?.id === userId);
@@ -1319,7 +1440,7 @@ export default function ProcesosLogistica() {
   const renderCatalogos = () => {
     const cfg = catalogoConfig[catalogoActivo];
 
-        const renderFormField = (field) => {
+    const renderFormField = (field) => {
       const value = catalogoForm[field] || "";
       if (field === "tipo_pago_id") {
         return (
@@ -1422,17 +1543,6 @@ export default function ProcesosLogistica() {
           <input type="text" name={field} value={value} onChange={handleCatalogoFormChange} placeholder={`Nombre del ${cfg.label.toLowerCase()}`} />
         </div>
       );
-            if (field === "moneda_id") {
-        return (
-          <div className="modal-field" key={field}>
-            <label>Moneda <span className="required">*</span></label>
-            <select name={field} value={value} onChange={handleCatalogoFormChange}>
-              <option value="">Seleccione...</option>
-              {monedasCatalogo.map(m => <option key={m.id} value={m.id}>{m.nombre} ({m.codigo})</option>)}
-            </select>
-          </div>
-        );
-      }
     };
 
     const getColumnLabel = (field) => {
@@ -1594,7 +1704,7 @@ export default function ProcesosLogistica() {
           {renderContent()}
         </main>
       </div>
-            {pdfEditor.open && (
+      {pdfEditor.open && (
         <PdfEditor
           archivoId={pdfEditor.archivoId}
           radicadoId={pdfEditor.radicadoId}
