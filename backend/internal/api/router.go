@@ -25,7 +25,6 @@ import (
 	"sigefae/internal/estado_correo"
 	"sigefae/internal/estado_documento_radicado"
 	"sigefae/internal/estado_tarea"
-	"sigefae/internal/historial_asignacion"
 	"sigefae/internal/metodo_pago"
 	"sigefae/internal/moneda"
 	"sigefae/internal/municipio"
@@ -189,8 +188,6 @@ func New(database *gorm.DB) *gin.Engine {
 	trazabilidadService := trazabilidad.New(database)
 	trazabilidadHandler := trazabilidad.NewHandler(trazabilidadService)
 
-	historialAsignacionService := historial_asignacion.New(database)
-	historialAsignacionHandler := historial_asignacion.NewHandler(historialAsignacionService)
 
 	comentarioService := comentario.New(database)
 	comentarioHandler := comentario.NewHandler(comentarioService)
@@ -513,12 +510,6 @@ func New(database *gorm.DB) *gin.Engine {
 			// =========================
 			admin.POST("/trazabilidad", trazabilidadHandler.Create)
 			admin.GET("/trazabilidad", trazabilidadHandler.List)
-
-			// =========================
-			// Historial Asignacion
-			// =========================
-			admin.POST("/historialasignacion", historialAsignacionHandler.Create)
-			admin.GET("/historialasignacion", historialAsignacionHandler.List)
 
 			// =========================
 			// Comentario
