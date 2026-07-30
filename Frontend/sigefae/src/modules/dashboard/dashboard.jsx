@@ -15,7 +15,8 @@ export default function ProcesosLogistica() {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const userRol = obtenerRol();
   const userId = obtenerUserId();
-  const esAprobador = userRol === "Aprobador";
+   const esAdmin = userRol === "Superadministrador";
+  const esUsuario = !esAdmin;
  
   
   const handleSubirAnexo = async (e, radicadoId) => {
@@ -55,7 +56,7 @@ export default function ProcesosLogistica() {
   };
 
   // Si es aprobador, arranca directo en "tareas"
-  const [activeTab, setActiveTab] = useState(esAprobador ? "tareas" : "welcome");
+  const [activeTab, setActiveTab] = useState(esAdmin? "welcome" : "tareas");
 
   //pdf
   const [pdfEditor, setPdfEditor] = useState({ open: false, archivoId: null, radicadoId: null });
@@ -120,6 +121,8 @@ export default function ProcesosLogistica() {
   const [selectedTareaId, setSelectedTareaId] = useState(null);
   const [tareaDetail, setTareaDetail] = useState(null);
   const [loadingTareas, setLoadingTareas] = useState(false);
+  const [tareasSubTab, setTareasSubTab] = useState("activas"); // "activas" | "completadas"
+  const [misTareasCompletadas, setMisTareasCompletadas] = useState([]);
 
     // ── Flujo de tareas del radicado ──
   const [tareasFlujo, setTareasFlujo] = useState([]);
@@ -601,19 +604,17 @@ export default function ProcesosLogistica() {
   }, [selectedRadicadoId]);
 
   // ── Cargar MIS TAREAS (filtradas por usuario logueado) ──
-    useEffect(() => {
+      useEffect(() => {
     if (activeTab === "tareas") {
       setLoadingTareas(true);
       fetch(`${API}/documentoradicado`, { headers: { Authorization: `Bearer ${obtenerToken()}` } })
         .then((res) => res.json())
         .then((data) => {
-          console.log("userId desde localStorage:", userId, "tipo:", typeof userId);
-          console.log("Respuesta del backend:", data);
           if (Array.isArray(data)) {
-            data.forEach(r => console.log("radicado id:", r.id, "usuario_actual_id:", r.usuario_actual_id, "tipo:", typeof r.usuario_actual_id));
-            const asignados = data.filter(r => r.usuario_actual_id === userId && r.estado_posesion !== "Completado");
-            console.log("Filtrados:", asignados);
-            setMisTareas(asignados);
+            const activas = data.filter(r => r.usuario_actual_id === userId && r.estado_posesion !== "Completado");
+            const completadas = data.filter(r => r.estado_posesion === "Completado");
+            setMisTareas(activas);
+            setMisTareasCompletadas(completadas);
           }
         })
         .catch((err) => console.error(err))
@@ -1255,187 +1256,221 @@ export default function ProcesosLogistica() {
 );
 
   // ── NUEVO: Panel de Mis Tareas (solo para aprobadores) ──
-  const renderTareas = () => (
-    <div className="correos-container">
-      <div className="correos-list">
-        <h3>Mis Tareas ({misTareas.length})</h3>
-        {loadingTareas ? <p style={{ padding: "15px" }}>Cargando...</p> : misTareas.length === 0 ? (
-          <p style={{ padding: "15px", color: "#6b7280" }}>No tienes documentos asignados.</p>
-        ) : (
-          misTareas.map((rad) => (
-            <div key={rad.id} className={`correo-item ${selectedTareaId === rad.id ? "active" : ""}`} onClick={() => setSelectedTareaId(rad.id)}>
-              <div className="correo-item-header">
-                <strong>{rad.documento_comercial?.numero_documento || "—"}</strong>
-                <span className="correo-date">{new Date(rad.fecha_radicacion).toLocaleDateString()}</span>
-              </div>
-              <div className="correo-item-subject">{rad.documento_comercial?.tipo || "—"} — {rad.numero_radicado}</div>
-              <div className="correo-item-status">
-                <span className={`status-badge ${
-                  rad.estado_posesion === "Completado" ? "radicado" :
-                  rad.estado_posesion === "EnProceso" ? "doc-pendiente" : ""
-                    }`}>
-                  {
-                  rad.estado_posesion === "Completado" ? "Finalizado" :
-                  rad.estado_posesion === "EnProceso" ? "En Proceso" :
-                  rad.estado_posesion === "Libre" ? "Libre" : "Sin estado"
-                  }
-                </span>
-              </div>
-            </div>
-          ))
-        )}
-      </div>
+    const renderTareas = () => {
+    const tareasMostradas = tareasSubTab === "activas" ? misTareas : misTareasCompletadas;
 
-      <div className="correo-detail">
-        {!selectedTareaId ? (
-          <div className="correo-empty"><i className="fa-solid fa-clipboard-list"></i><p>Selecciona una tarea para ver su detalle</p></div>
-        ) : !tareaDetail ? <p style={{ padding: "20px" }}>Cargando detalle...</p> : (
-          <div className="doc-detail-content">
-            <div className="doc-header">
-              <div className="doc-header-top">
-                <h2>Radicado #{tareaDetail.numero_radicado}</h2>
-                <span className="doc-total">{tareaDetail.estado?.nombre || "—"}</span>
-              </div>
-              <p className="doc-cufe"><strong>Documento:</strong> {tareaDetail.documento_comercial?.tipo} {tareaDetail.documento_comercial?.numero_documento}</p>
-            </div>
+    return (
+      <div className="correos-container">
+        <div className="correos-list">
+          <h3>Mis Tareas</h3>
 
-            <div className="doc-body">
-                            {/* ── Anexos ── */}
-              {tareaDetail.archivos && tareaDetail.archivos.length > 0 && (
-  <div className="doc-section">
-    <h4><i className="fa-solid fa-paperclip"></i> Anexos ({tareaDetail.archivos.length})</h4>
-    <div className="attachments-grid">
-      {tareaDetail.archivos.map((arch) => {
-               const ext = arch.extension?.toLowerCase() || "";
-        const esPreview = ["pdf", "jpg", "jpeg", "png", "gif", "txt"].includes(ext);
-        return (
-          <div key={arch.id} className="attachment-card" style={{ position: "relative" }}>
-            <i className={`fa-solid fa-file${ext === 'pdf' ? '-pdf' : ext === 'xml' ? '-code' : ''}`}></i>
-            <span className="attachment-name" title={arch.nombre}>{arch.nombre}</span>
+          {/* ── Sub-pestañas ── */}
+          <div style={{ display: "flex", borderBottom: "2px solid var(--gray-200)" }}>
+            <button
+              onClick={() => { setTareasSubTab("activas"); setSelectedTareaId(null); }}
+              style={{
+                flex: 1,
+                padding: "12px",
+                border: "none",
+                background: tareasSubTab === "activas" ? "white" : "transparent",
+                borderBottom: tareasSubTab === "activas" ? "3px solid var(--pardo-yellow)" : "3px solid transparent",
+                fontWeight: 600,
+                color: tareasSubTab === "activas" ? "var(--pardo-navy)" : "var(--gray-600)",
+                cursor: "pointer",
+                fontSize: "0.9em"
+              }}
+            >
+              <i className="fa-solid fa-spinner" style={{ marginRight: 6 }}></i>
+              En Proceso ({misTareas.length})
+            </button>
+            <button
+              onClick={() => { setTareasSubTab("completadas"); setSelectedTareaId(null); }}
+              style={{
+                flex: 1,
+                padding: "12px",
+                border: "none",
+                background: tareasSubTab === "completadas" ? "white" : "transparent",
+                borderBottom: tareasSubTab === "completadas" ? "3px solid var(--pardo-yellow)" : "3px solid transparent",
+                fontWeight: 600,
+                color: tareasSubTab === "completadas" ? "var(--pardo-navy)" : "var(--gray-600)",
+                cursor: "pointer",
+                fontSize: "0.9em"
+              }}
+            >
+              <i className="fa-solid fa-check-circle" style={{ marginRight: 6 }}></i>
+              Completadas ({misTareasCompletadas.length})
+            </button>
+          </div>
 
-                <div style={{ display: "flex", gap: 6, flexWrap: "wrap", justifyContent: "center" }}>
-                  {esPreview && (
-                    <button className="attachment-btn btn-pdf" onClick={() => setPdfEditor({ open: true, archivoId: arch.id, radicadoId: tareaDetail.id })}>
-                      <i className="fa-solid fa-eye"></i> Ver
-                    </button>
-                  )}
-                  <button className="attachment-btn btn-default" onClick={() => handleDescargarAnexo(arch.id, arch.nombre)}>
-                    <i className="fa-solid fa-download"></i> Descargar
-                  </button>
-                  {userRol === "Superadministrador" && (
-                    <button
-                      className="attachment-btn btn-toggle"
-                      onClick={() => handleBorrarAnexo(arch.id, tareaDetail.id)}
-                      title="Eliminar"
-                    >
-                      <i className="fa-solid fa-xmark"></i>
-                    </button>
-                  )}
+          {loadingTareas ? (
+            <p style={{ padding: "15px" }}>Cargando...</p>
+          ) : tareasMostradas.length === 0 ? (
+            <p style={{ padding: "15px", color: "#6b7280" }}>
+              {tareasSubTab === "activas"
+                ? "No tienes documentos asignados."
+                : "No hay documentos finalizados."}
+            </p>
+          ) : (
+            tareasMostradas.map((rad) => (
+              <div key={rad.id} className={`correo-item ${selectedTareaId === rad.id ? "active" : ""}`} onClick={() => setSelectedTareaId(rad.id)}>
+                <div className="correo-item-header">
+                  <strong>{rad.documento_comercial?.numero_documento || "—"}</strong>
+                  <span className="correo-date">{new Date(rad.fecha_radicacion).toLocaleDateString()}</span>
+                </div>
+                <div className="correo-item-subject">{rad.documento_comercial?.tipo || "—"} — {rad.numero_radicado}</div>
+                <div className="correo-item-status">
+                  <span className={`status-badge ${
+                    rad.estado_posesion === "Completado" ? "radicado" :
+                    rad.estado_posesion === "EnProceso" ? "doc-pendiente" : ""
+                  }`}>
+                    {rad.estado_posesion === "Completado" ? "Finalizado" :
+                     rad.estado_posesion === "EnProceso" ? "En Proceso" :
+                     rad.estado_posesion === "Libre" ? "Libre" : "Sin estado"}
+                  </span>
                 </div>
               </div>
-            );
-          })}
+            ))
+          )}
+        </div>
+
+        <div className="correo-detail">
+          {!selectedTareaId ? (
+            <div className="correo-empty"><i className="fa-solid fa-clipboard-list"></i><p>Selecciona una tarea para ver su detalle</p></div>
+          ) : !tareaDetail ? (
+            <p style={{ padding: "20px" }}>Cargando detalle...</p>
+          ) : (
+            <div className="doc-detail-content">
+              <div className="doc-header">
+                <div className="doc-header-top">
+                  <h2>Radicado #{tareaDetail.numero_radicado}</h2>
+                  <span className="doc-total">{tareaDetail.estado?.nombre || "—"}</span>
+                </div>
+                <p className="doc-cufe"><strong>Documento:</strong> {tareaDetail.documento_comercial?.tipo} {tareaDetail.documento_comercial?.numero_documento}</p>
+              </div>
+
+              <div className="doc-body">
+                {/* ── Anexos ── */}
+                {tareaDetail.archivos && tareaDetail.archivos.length > 0 && (
+                  <div className="doc-section">
+                    <h4><i className="fa-solid fa-paperclip"></i> Anexos ({tareaDetail.archivos.length})</h4>
+                    <div className="attachments-grid">
+                      {tareaDetail.archivos.map((arch) => {
+                        const ext = arch.extension?.toLowerCase() || "";
+                        const esPreview = ["pdf", "jpg", "jpeg", "png", "gif", "txt"].includes(ext);
+                        return (
+                          <div key={arch.id} className="attachment-card" style={{ position: "relative" }}>
+                            <i className={`fa-solid fa-file${ext === 'pdf' ? '-pdf' : ext === 'xml' ? '-code' : ''}`}></i>
+                            <span className="attachment-name" title={arch.nombre}>{arch.nombre}</span>
+                            <div style={{ display: "flex", gap: 6, flexWrap: "wrap", justifyContent: "center" }}>
+                              {esPreview && (
+                                <button className="attachment-btn btn-pdf" onClick={() => setPdfEditor({ open: true, archivoId: arch.id, radicadoId: tareaDetail.id })}>
+                                  <i className="fa-solid fa-eye"></i> Ver
+                                </button>
+                              )}
+                              <button className="attachment-btn btn-default" onClick={() => handleDescargarAnexo(arch.id, arch.nombre)}>
+                                <i className="fa-solid fa-download"></i> Descargar
+                              </button>
+                              {userRol === "Superadministrador" && (
+                                <button className="attachment-btn btn-toggle" onClick={() => handleBorrarAnexo(arch.id, tareaDetail.id)} title="Eliminar">
+                                  <i className="fa-solid fa-xmark"></i>
+                                </button>
+                              )}
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
+
+                {/* ── Subir anexo (solo si está activo) ── */}
+                {tareaDetail.estado_posesion !== "Completado" && (
+                  <div className="doc-section">
+                    <h4><i className="fa-solid fa-cloud-arrow-up"></i> Adjuntar archivo</h4>
+                    <input type="file" id="anexo-input" onChange={(e) => handleSubirAnexo(e, tareaDetail.id)} style={{ display: 'none' }} />
+                    <button className="doc-btn doc-btn-secondary" onClick={() => document.getElementById('anexo-input').click()}>
+                      <i className="fa-solid fa-upload"></i> Seleccionar archivo
+                    </button>
+                  </div>
+                )}
+
+                {renderFlujoAprobacion()}
+
+                {renderComentarios(tareaDetail.id)}
+
+                <div className="doc-section">
+                  <h4><i className="fa-solid fa-circle-info"></i> Información del Radicado</h4>
+                  <div className="doc-grid">
+                    <div className="doc-field"><label>Número Radicado</label><span>{tareaDetail.numero_radicado}</span></div>
+                    <div className="doc-field"><label>Fecha Radicación</label><span>{new Date(tareaDetail.fecha_radicacion).toLocaleString()}</span></div>
+                    <div className="doc-field"><label>Tipo Radicación</label><span>{tareaDetail.tipo_radicacion?.nombre || "—"}</span></div>
+                    <div className="doc-field"><label>Ruta</label><span>{tareaDetail.ruta?.nombre || "—"}</span></div>
+                    <div className="doc-field"><label>Método de Pago</label><span>{tareaDetail.metodo_pago?.nombre || "—"}</span></div>
+                    <div className="doc-field"><label>Estado Posesión</label><span>{tareaDetail.estado_posesion || "—"}</span></div>
+                    <div className="doc-field"><label>Paso Actual</label><span>{tareaDetail.paso_actual?.nombre || "Inicio"}</span></div>
+                    <div className="doc-field"><label>Responsable</label><span>{tareaDetail.usuario_actual?.nombre || "—"}</span></div>
+                  </div>
+                </div>
+
+                {tareaDetail.documento_comercial && (
+                  <>
+                    <div className="doc-section">
+                      <h4><i className="fa-solid fa-file-invoice"></i> Documento Comercial</h4>
+                      <div className="doc-grid">
+                        <div className="doc-field"><label>Tipo</label><span>{tareaDetail.documento_comercial.tipo}</span></div>
+                        <div className="doc-field"><label>Número</label><span>{tareaDetail.documento_comercial.numero_documento}</span></div>
+                        <div className="doc-field"><label>Proveedor</label><span>{tareaDetail.documento_comercial.proveedor?.razon_social || "—"}</span></div>
+                        <div className="doc-field"><label>Receptor</label><span>{tareaDetail.documento_comercial.receptor?.nombre || "—"}</span></div>
+                      </div>
+                    </div>
+
+                    <div className="doc-section">
+                      <h4><i className="fa-solid fa-calculator"></i> Valores</h4>
+                      <div className="doc-totals">
+                        <div className="doc-total-row"><span>Subtotal</span><span>{formatCurrency(tareaDetail.documento_comercial.subtotal)}</span></div>
+                        <div className="doc-total-row"><span>IVA</span><span>{formatCurrency(tareaDetail.documento_comercial.iva)}</span></div>
+                        <div className="doc-total-row total-final"><span>Total</span><span>{formatCurrency(tareaDetail.documento_comercial.total)}</span></div>
+                      </div>
+                    </div>
+                  </>
+                )}
+
+                {tareaDetail.qr && (
+                  <div className="doc-section">
+                    <h4><i className="fa-solid fa-qrcode"></i> Código QR</h4>
+                    <p style={{ fontSize: "0.85em", color: "#6b7280", wordBreak: "break-all" }}>{tareaDetail.qr.url}</p>
+                  </div>
+                )}
+              </div>
+
+              <div className="doc-actions">
+                {(() => {
+                  const tareaActiva = tareasFlujo.find(t => t.estado?.nombre === "En Proceso");
+                  const esResponsable = tareaActiva && (tareaActiva.usuario_asignado_id === userId || tareaDetail.usuario_actual?.id === userId);
+
+                  if (esResponsable && tareaDetail.estado_posesion !== "Completado") {
+                    return (
+                      <button className="doc-btn doc-btn-primary" onClick={() => handleCompletarTarea(tareaActiva.id, tareaDetail.id)}>
+                        <i className="fa-solid fa-check"></i> Marcar como Completado
+                      </button>
+                    );
+                  }
+                  if (tareaDetail.estado_posesion === "Completado") {
+                    return (
+                      <span className="status-badge radicado" style={{ padding: "10px 16px" }}>
+                        <i className="fa-solid fa-check-circle"></i> Proceso Finalizado
+                      </span>
+                    );
+                  }
+                  return null;
+                })()}
+              </div>
+            </div>
+          )}
         </div>
       </div>
-    )}
-
-              {/* ── Subir nuevo anexo ── */}
-              <div className="doc-section">
-                <h4><i className="fa-solid fa-cloud-arrow-up"></i> Adjuntar archivo</h4>
-                <input 
-                  type="file" 
-                  id="anexo-input"
-                  onChange={(e) => handleSubirAnexo(e, tareaDetail.id)} 
-                  style={{ display: 'none' }}
-                />
-                <button 
-                  className="doc-btn doc-btn-secondary" 
-                  onClick={() => document.getElementById('anexo-input').click()}
-                >
-                  <i className="fa-solid fa-upload"></i> Seleccionar archivo
-                </button>
-              </div>
-
-              {renderFlujoAprobacion()}
-
-              {/* ── Comentarios ── */}
-              {renderComentarios(tareaDetail.id)}
-
-              <div className="doc-section">
-                <h4><i className="fa-solid fa-circle-info"></i> Información del Radicado</h4>
-                <div className="doc-grid">
-                  <div className="doc-field"><label>Número Radicado</label><span>{tareaDetail.numero_radicado}</span></div>
-                  <div className="doc-field"><label>Fecha Radicación</label><span>{new Date(tareaDetail.fecha_radicacion).toLocaleString()}</span></div>
-                  <div className="doc-field"><label>Tipo Radicación</label><span>{tareaDetail.tipo_radicacion?.nombre || "—"}</span></div>
-                  <div className="doc-field"><label>Ruta</label><span>{tareaDetail.ruta?.nombre || "—"}</span></div>
-                  <div className="doc-field"><label>Método de Pago</label><span>{tareaDetail.metodo_pago?.nombre || "—"}</span></div>
-                  <div className="doc-field"><label>Estado Posesión</label><span>{tareaDetail.estado_posesion || "—"}</span></div>
-                  <div className="doc-field"><label>Paso Actual</label><span>{tareaDetail.paso_actual?.nombre || "Inicio"}</span></div>
-                  <div className="doc-field"><label>Responsable</label><span>{tareaDetail.usuario_actual?.nombre || "—"}</span></div>
-                </div>
-              </div>
-
-              {tareaDetail.documento_comercial && (
-                <>
-                  <div className="doc-section">
-                    <h4><i className="fa-solid fa-file-invoice"></i> Documento Comercial</h4>
-                    <div className="doc-grid">
-                      <div className="doc-field"><label>Tipo</label><span>{tareaDetail.documento_comercial.tipo}</span></div>
-                      <div className="doc-field"><label>Número</label><span>{tareaDetail.documento_comercial.numero_documento}</span></div>
-                      <div className="doc-field"><label>Proveedor</label><span>{tareaDetail.documento_comercial.proveedor?.razon_social || "—"}</span></div>
-                      <div className="doc-field"><label>Receptor</label><span>{tareaDetail.documento_comercial.receptor?.nombre || "—"}</span></div>
-                    </div>
-                  </div>
-
-                  <div className="doc-section">
-                    <h4><i className="fa-solid fa-calculator"></i> Valores</h4>
-                    <div className="doc-totals">
-                      <div className="doc-total-row"><span>Subtotal</span><span>{formatCurrency(tareaDetail.documento_comercial.subtotal)}</span></div>
-                      <div className="doc-total-row"><span>IVA</span><span>{formatCurrency(tareaDetail.documento_comercial.iva)}</span></div>
-                      <div className="doc-total-row total-final"><span>Total</span><span>{formatCurrency(tareaDetail.documento_comercial.total)}</span></div>
-                    </div>
-                  </div>
-                </>
-              )}
-
-              {tareaDetail.qr && (
-                <div className="doc-section">
-                  <h4><i className="fa-solid fa-qrcode"></i> Código QR</h4>
-                  <p style={{ fontSize: "0.85em", color: "#6b7280", wordBreak: "break-all" }}>{tareaDetail.qr.url}</p>
-                </div>
-              )}
-            </div>
-
-            <div className="doc-actions">
-              {(() => {
-                const tareaActiva = tareasFlujo.find(t => t.estado?.nombre === "En Proceso");
-                const esResponsable = tareaActiva && (tareaActiva.usuario_asignado_id === userId || tareaDetail.usuario_actual?.id === userId);
-                
-                if (esResponsable && tareaDetail.estado_posesion !== "Completado") {
-                  return (
-                    <button 
-                      className="doc-btn doc-btn-primary" 
-                      onClick={() => handleCompletarTarea(tareaActiva.id, tareaDetail.id)}
-                    >
-                      <i className="fa-solid fa-check"></i> Marcar como Completado
-                    </button>
-                  );
-                }
-                if (tareaDetail.estado_posesion === "Completado") {
-                  return (
-                    <span className="status-badge radicado" style={{ padding: "10px 16px" }}>
-                      <i className="fa-solid fa-check-circle"></i> Proceso Finalizado
-                    </span>
-                  );
-                }
-                return null;
-              })()}
-            </div>  
-          </div>
-        )}
-      </div>
-    </div>
-  );
+    );
+  };
 
   const renderCatalogos = () => {
     const cfg = catalogoConfig[catalogoActivo];
@@ -1661,17 +1696,21 @@ export default function ProcesosLogistica() {
       </header>
 
       <div className="main-container">
-        <aside className={`sidebar ${isSidebarOpen ? "open" : ""}`}>
-          <div className="sidebar-header"><div className="sidebar-title"><i className="fa-solid fa-gear"></i></div></div>
+                <aside className={`sidebar ${isSidebarOpen ? "open" : ""}`}>
+          <div className="sidebar-header">
+            <div className="sidebar-title"><i className="fa-solid fa-gear"></i></div>
+          </div>
           <nav className="menu-nav">
-            {esAprobador ? (
-              // ── Menú reducido para Aprobador ──
+            {/* ── Mis Tareas: todos los usuarios (no admin) ── */}
+            {esUsuario && (
               <a href="#" className={`menu-item ${activeTab === "tareas" ? "active" : ""}`} onClick={(e) => { e.preventDefault(); setActiveTab("tareas"); setIsSidebarOpen(false); }}>
                 <div className="item-icon"><i className="fa-solid fa-clipboard-list"></i></div>
                 <div className="item-text"><span className="item-nombre">Mis Tareas</span></div>
               </a>
-            ) : (
-              // ── Menú completo para Admin ──
+            )}
+
+            {/* ── Admin: ve el flujo completo de recepción ── */}
+            {esAdmin && (
               <>
                 <a href="#" className={`menu-item ${activeTab === "correos" ? "active" : ""}`} onClick={(e) => { e.preventDefault(); setActiveTab("correos"); setIsSidebarOpen(false); }}>
                   <div className="item-icon"><i className="fa-solid fa-envelope"></i></div>
@@ -1681,19 +1720,24 @@ export default function ProcesosLogistica() {
                   <div className="item-icon"><i className="fa-solid fa-file-invoice"></i></div>
                   <div className="item-text"><span className="item-nombre">Documentos</span></div>
                 </a>
-                <a href="#" className={`menu-item ${activeTab === "radicados" ? "active" : ""}`} onClick={(e) => { e.preventDefault(); setActiveTab("radicados"); setIsSidebarOpen(false); }}>
-                  <div className="item-icon"><i className="fa-solid fa-stamp"></i></div>
-                  <div className="item-text"><span className="item-nombre">Radicados</span></div>
-                </a>
-                <a href="#" className={`menu-item ${activeTab === "catalogos" ? "active" : ""}`} onClick={(e) => { e.preventDefault(); setActiveTab("catalogos"); setIsSidebarOpen(false); }}>
-                  <div className="item-icon"><i className="fa-solid fa-sliders"></i></div>
-                  <div className="item-text"><span className="item-nombre">Catálogos</span></div>
-                </a>
               </>
+            )}
+
+            {/* ── Radicados: visible para todos ── */}
+            <a href="#" className={`menu-item ${activeTab === "radicados" ? "active" : ""}`} onClick={(e) => { e.preventDefault(); setActiveTab("radicados"); setIsSidebarOpen(false); }}>
+              <div className="item-icon"><i className="fa-solid fa-stamp"></i></div>
+              <div className="item-text"><span className="item-nombre">Radicados</span></div>
+            </a>
+
+            {/* ── Catálogos: solo admin ── */}
+            {esAdmin && (
+              <a href="#" className={`menu-item ${activeTab === "catalogos" ? "active" : ""}`} onClick={(e) => { e.preventDefault(); setActiveTab("catalogos"); setIsSidebarOpen(false); }}>
+                <div className="item-icon"><i className="fa-solid fa-sliders"></i></div>
+                <div className="item-text"><span className="item-nombre">Catálogos</span></div>
+              </a>
             )}
           </nav>
         </aside>
-
         <main className="content-area">
           <div className="content-header">
             <div className="content-title">
