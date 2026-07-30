@@ -20,6 +20,32 @@ const hexToRgb = (hex) => {
   return rgb(r, g, b);
 };
 
+const STAMP_STORAGE_KEY = "pdfEditor:customStamp";
+
+const persistStamp = (stamp) => {
+  try {
+    localStorage.setItem(
+      STAMP_STORAGE_KEY,
+      JSON.stringify({ dataUrl: stamp.dataUrl, mimeType: stamp.mimeType })
+    );
+  } catch (e) {
+    console.warn("No se pudo guardar el sello en localStorage:", e);
+  }
+};
+
+const loadStampFromStorage = () => {
+  try {
+    const raw = localStorage.getItem(STAMP_STORAGE_KEY);
+    if (!raw) return null;
+    const { dataUrl, mimeType } = JSON.parse(raw);
+    const base64 = dataUrl.split(",")[1];
+    const bytes = Uint8Array.from(atob(base64), (c) => c.charCodeAt(0));
+    return { dataUrl, bytes, mimeType };
+  } catch {
+    return null;
+  }
+};
+
 export default function PdfEditor({ archivoId, radicadoId, onClose, onSaved }) {
   const [pdfBytes, setPdfBytes] = useState(null);
   const [tool, setTool] = useState(null);
@@ -29,6 +55,9 @@ export default function PdfEditor({ archivoId, radicadoId, onClose, onSaved }) {
   const [textValue, setTextValue] = useState("");
   const [textColor, setTextColor] = useState("#000000");
   const [tempPos, setTempPos] = useState(null);
+
+  const [customStamp, setCustomStamp] = useState(loadStampFromStorage); // { dataUrl, bytes, mimeType }
+  const stampInputRef = useRef(null);
 
   const [dragging, setDragging] = useState(null);
   const [resizing, setResizing] = useState(null);
@@ -49,7 +78,7 @@ export default function PdfEditor({ archivoId, radicadoId, onClose, onSaved }) {
     let cancelled = false;
 
     const load = async () => {
-      const res = await fetch(`${API}/archivo/${archivoId}/download`, {
+      const res = await fetch(`${API}/archivo/${archivoId}/download?t=${Date.now()}`, {
         headers: { Authorization: `Bearer ${obtenerToken()}` },
       });
       const buf = await res.arrayBuffer();
@@ -164,7 +193,7 @@ export default function PdfEditor({ archivoId, radicadoId, onClose, onSaved }) {
     const dataUrl = canvas.toDataURL("image/png");
     const base64 = dataUrl.split(",")[1];
     const bytes = Uint8Array.from(atob(base64), (c) => c.charCodeAt(0));
-    return { dataUrl, bytes };
+    return { dataUrl, bytes, mimeType: "image/png" };
   }, []);
 
   // ── Click en overlay: coordenadas EXACTAS respecto al canvas ──
@@ -193,14 +222,21 @@ export default function PdfEditor({ archivoId, radicadoId, onClose, onSaved }) {
       setShowTextModal(true);
     } else if (tool === "signature") {
       setShowSigModal(true);
-    } else if (tool === "stamp") {
-      const { dataUrl, bytes } = generateStamp();
-      setAnnotations((prev) => [
-        ...prev,
-        { ...base, type: "stamp", imageBytes: bytes, imageDataUrl: dataUrl },
-      ]);
-      setTool(null);
-    }
+        } else if (tool === "stamp") {
+  let stampData = customStamp;
+  if (!stampData) stampData = generateStamp(); // { dataUrl, bytes, mimeType: "image/png" }
+  setAnnotations((prev) => [
+    ...prev,
+    {
+      ...base,
+      type: "stamp",
+      imageBytes: stampData.bytes,
+      imageDataUrl: stampData.dataUrl,
+      imageMime: stampData.mimeType || "image/png",
+    },
+  ]);
+  setTool(null);
+}
   };
 
   const confirmText = () => {
@@ -287,58 +323,79 @@ export default function PdfEditor({ archivoId, radicadoId, onClose, onSaved }) {
     const page = doc.getPages()[0];
     const { height: pdfH } = page.getSize();
     const font = await doc.embedFont(StandardFonts.Helvetica);
-
-    // El canvas se dibujó a pageSize * renderScale píxeles, así que para
-    // volver a "puntos PDF" basta con dividir por ese mismo factor.
     const scale = 1 / renderScale;
 
-    for (const ann of annotations) {
-      const pdfX = ann.x * scale;
-      const pdfY = pdfH - (ann.y + ann.height) * scale;
-
-      if (ann.type === "text") {
-        const fontSize = Math.round(ann.height * scale * 0.8);
-        page.drawText(ann.text, {
-          x: pdfX,
-          y: pdfY,
-          size: Math.max(8, fontSize),
-          font,
-          color: hexToRgb(ann.color),
-        });
-      } else if ((ann.type === "signature" || ann.type === "stamp") && ann.imageBytes) {
-        const img = await doc.embedPng(ann.imageBytes);
-        page.drawImage(img, {
-          x: pdfX,
-          y: pdfY,
-          width: ann.width * scale,
-          height: ann.height * scale,
-        });
-      }
-    }
-
-    const newBytes = await doc.save();
-    const blob = new Blob([newBytes], { type: "application/pdf" });
-
-        // ── REEMPLAZAR en vez de crear nuevo ──
-    const formData = new FormData();
-    formData.append("file", blob, "documento_editado.pdf");
-
     try {
-      const res = await fetch(`${API}/archivo/${archivoId}/reemplazar`, {
-        method: "PATCH",
-        headers: { Authorization: `Bearer ${obtenerToken()}` },
-        body: formData,
+      for (const ann of annotations) {
+        const pdfX = ann.x * scale;
+        const pdfY = pdfH - (ann.y + ann.height) * scale;
+
+    if (ann.type === "text") {
+      const fontSize = Math.round(ann.height * scale * 0.8);
+      page.drawText(ann.text, {
+        x: pdfX, y: pdfY,
+        size: Math.max(8, fontSize),
+        font, color: hexToRgb(ann.color),
       });
-      if (!res.ok) {
-        const errData = await res.json();
-        throw new Error(errData.error || "Error reemplazando archivo");
-      }
-      alert("PDF actualizado correctamente");
-      onSaved && onSaved();
-    } catch (err) {
-      alert("Error: " + err.message);
+    } else if ((ann.type === "signature" || ann.type === "stamp") && ann.imageBytes) {
+      const mime = ann.imageMime || "image/png";
+      const img = mime.includes("jpeg") || mime.includes("jpg")
+        ? await doc.embedJpg(ann.imageBytes)
+        : await doc.embedPng(ann.imageBytes);
+
+      page.drawImage(img, {
+        x: pdfX, y: pdfY,
+        width: ann.width * scale,
+        height: ann.height * scale,
+      });
     }
+  }
+
+      const newBytes = await doc.save();
+      const blob = new Blob([newBytes], { type: "application/pdf" });
+      const formData = new FormData();
+      formData.append("file", blob, "documento_editado.pdf");
+
+      const res = await fetch(`${API}/archivo/${archivoId}/reemplazar`, {
+      method: "PATCH",
+      headers: { Authorization: `Bearer ${obtenerToken()}` },
+      body: formData,
+  });
+    if (!res.ok) {
+      const errData = await res.json();
+      throw new Error(errData.error || "Error reemplazando archivo");
+  }
+    alert("PDF actualizado correctamente");
+    onSaved && onSaved();
+} catch (err) {
+  console.error(err);
+  alert("Error al generar el PDF: " + err.message);
+}
   };
+    const handleStampUpload = (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+      const dataUrl = ev.target.result;
+      const base64 = dataUrl.split(",")[1];
+      const bytes = Uint8Array.from(atob(base64), (c) => c.charCodeAt(0));
+      const mimeType = file.type; // "image/png" | "image/jpeg"
+      const stamp = { dataUrl, bytes, mimeType };
+      setCustomStamp(stamp);
+      persistStamp(stamp); // ver punto 2
+      setTool("stamp");
+    };
+    reader.readAsDataURL(file);
+    e.target.value = "";
+  };
+
+  const handleRemoveStamp = () => {
+  setCustomStamp(null);
+  localStorage.removeItem(STAMP_STORAGE_KEY);
+  if (tool === "stamp") setTool(null);
+};
 
   return (
     <div className="pdf-editor-overlay">
@@ -357,12 +414,33 @@ export default function PdfEditor({ archivoId, radicadoId, onClose, onSaved }) {
           >
             <i className="fa-solid fa-signature"></i> Firma
           </button>
+                    {/* Input oculto para subir sello personalizado */}
+          <input
+            type="file"
+            accept="image/png,image/jpeg,image/jpg"
+            style={{ display: "none" }}
+            ref={stampInputRef}
+            onChange={handleStampUpload}
+          />
+
           <button
             className={tool === "stamp" ? "active" : ""}
-            onClick={() => setTool(tool === "stamp" ? null : "stamp")}
+            onClick={() => {
+              if (!customStamp) {
+                stampInputRef.current?.click();
+              } else {
+                setTool(tool === "stamp" ? null : "stamp");
+              }
+            }}
           >
-            <i className="fa-solid fa-stamp"></i> Sello
+            <i className="fa-solid fa-stamp"></i>{" "}
+            {customStamp ? "Sello" : "Cargar Sello"}
           </button>
+          {customStamp && (
+          <button onClick={handleRemoveStamp} title="Quitar sello guardado">
+            <i className="fa-solid fa-trash"></i>
+          </button>
+            )}
 
           <div style={{ flex: 1 }} />
 
