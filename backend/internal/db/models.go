@@ -41,7 +41,6 @@ func AllModels() []interface{} {
 		&Comentario{},
 		&Trazabilidad{},
 		&RegistroAprobacion{},
-		&HistorialAsignacion{},
 		&Notificacion{},
 		&ReglaMontoRuta{},
 	}
