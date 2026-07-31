@@ -216,30 +216,82 @@ export default function ProcesosLogistica() {
   );
 
   // ── Render comentarios ──
-  const renderComentarios = (radicadoId) => (
-    <div className="doc-section">
-      <h4><i className="fa-solid fa-comments"></i> Comentarios ({comentarios.length})</h4>
-      <div style={{ maxHeight: 320, overflowY: "auto", marginBottom: 12, paddingRight: 4 }}>
-        {comentarios.length === 0 ? (
-          <p style={{ color: "#6b7280", fontSize: "0.9em" }}>No hay comentarios aún.</p>
-        ) : (
-          comentarios.map((c) => (
-            <div key={c.id} style={{ background: "#f3f4f6", borderRadius: 8, padding: "10px 12px", marginBottom: 8 }}>
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 4 }}>
-                <strong style={{ fontSize: "0.85em", color: "#1f2937" }}>
-                  {c.usuario_nombre || `Usuario #${c.usuario_id}`}
-                </strong>
-                <span style={{ fontSize: "0.75em", color: "#6b7280" }}>
-                  {new Date(c.fecha).toLocaleString()}
-                </span>
-              </div>
-              <p style={{ margin: 0, fontSize: "0.9em", color: "#374151", whiteSpace: "pre-wrap" }}>
-                {c.descripcion}
-              </p>
+  const renderComentarios = (radicadoId, readOnly = false) => (
+  <div className="doc-section">
+    <h4>
+      <i className="fa-solid fa-comments"></i>{" "}
+      Comentarios ({comentarios.length})
+    </h4>
+
+    <div
+      style={{
+        maxHeight: 320,
+        overflowY: "auto",
+        marginBottom: 12,
+        paddingRight: 4
+      }}
+    >
+      {comentarios.length === 0 ? (
+        <p style={{ color: "#6b7280", fontSize: "0.9em" }}>
+          No hay comentarios.
+        </p>
+      ) : (
+        comentarios.map((c) => (
+          <div
+            key={c.id}
+            style={{
+              background: "#f3f4f6",
+              borderRadius: 8,
+              padding: "10px 12px",
+              marginBottom: 8
+            }}
+          >
+            <div
+              style={{
+                display: "flex",
+                justifyContent: "space-between",
+                alignItems: "center",
+                marginBottom: 4
+              }}
+            >
+              <strong style={{ fontSize: "0.85em", color: "#1f2937" }}>
+                {c.usuario_nombre || `Usuario #${c.usuario_id}`}
+              </strong>
+
+              <span style={{ fontSize: "0.75em", color: "#6b7280" }}>
+                {new Date(c.fecha).toLocaleString()}
+              </span>
             </div>
-          ))
-        )}
+
+            <p
+              style={{
+                margin: 0,
+                fontSize: "0.9em",
+                color: "#374151",
+                whiteSpace: "pre-wrap"
+              }}
+            >
+              {c.descripcion}
+            </p>
+          </div>
+        ))
+      )}
+    </div>
+
+    {readOnly ? (
+      <div
+        style={{
+          padding: "10px 12px",
+          borderRadius: 6,
+          background: "#f3f4f6",
+          color: "#6b7280",
+          fontSize: "0.9em"
+        }}
+      >
+        <i className="fa-solid fa-lock"></i>{" "}
+        El documento está finalizado. No se pueden agregar más comentarios.
       </div>
+    ) : (
       <div style={{ display: "flex", gap: 8, alignItems: "flex-start" }}>
         <textarea
           value={nuevoComentario}
@@ -256,6 +308,7 @@ export default function ProcesosLogistica() {
             fontSize: "0.9em"
           }}
         />
+
         <button
           className="doc-btn doc-btn-primary"
           onClick={() => handleEnviarComentario(radicadoId)}
@@ -266,8 +319,9 @@ export default function ProcesosLogistica() {
           {enviandoComentario ? "Enviando..." : "Enviar"}
         </button>
       </div>
-    </div>
-  );
+    )}
+  </div>
+);
 
   // ── Completar tarea ──
     const handleCompletarTarea = async (tareaId, radicadoId) => {
@@ -1170,10 +1224,21 @@ export default function ProcesosLogistica() {
 
                   <div style={{ display: "flex", gap: 6, flexWrap: "wrap", justifyContent: "center" }}>
                     {esPreview && (
-                      <button className="attachment-btn btn-pdf" onClick={() => setPdfEditor({ open: true, archivoId: arch.id, radicadoId: radicadoDetail.id })}>
+                    radicadoDetail.estado_posesion === "Completado" ? (
+                      <button
+                        className="attachment-btn btn-pdf"
+                        onClick={() => handleVerAnexo(arch.id, arch.nombre)}
+                      >
                         <i className="fa-solid fa-eye"></i> Ver
                       </button>
-                    )}
+                    ) : (
+                      <button
+                        className="attachment-btn btn-pdf"
+                        onClick={() =>setPdfEditor({open: true,archivoId: arch.id,radicadoId: radicadoDetail.id})}>
+                        <i className="fa-solid fa-pen-to-square"></i> Abrir editor
+                      </button>
+                    )
+                  )}
                     <button className="attachment-btn btn-default" onClick={() => handleDescargarAnexo(arch.id, arch.nombre)}>
                       <i className="fa-solid fa-download"></i> Descargar
                     </button>
@@ -1214,7 +1279,7 @@ export default function ProcesosLogistica() {
             {renderFlujoAprobacion()}
 
             {/* ── Comentarios ── */}
-            {renderComentarios(radicadoDetail.id)}
+            {renderComentarios(radicadoDetail.id,radicadoDetail.estado_posesion === "Completado")}
 
             <div className="doc-section">
               <h4><i className="fa-solid fa-circle-info"></i> Información del Radicado</h4>
@@ -1354,7 +1419,7 @@ export default function ProcesosLogistica() {
               <div className="doc-header">
                 <div className="doc-header-top">
                   <h2>Radicado #{tareaDetail.numero_radicado}</h2>
-                  <span className="doc-total">{tareaDetail.estado?.nombre || "—"}</span>
+                  <span className="doc-total">{tareaDetail.estado_posesion === "Completado" ? "Finalizado" :tareaDetail.estado_posesion === "EnProceso" ? "En Proceso" :tareaDetail.estado_posesion === "Libre" ? "Libre" : "En espera"}</span>
                 </div>
                 <p className="doc-cufe"><strong>Documento:</strong> {tareaDetail.documento_comercial?.tipo} {tareaDetail.documento_comercial?.numero_documento}</p>
               </div>
@@ -1374,10 +1439,20 @@ export default function ProcesosLogistica() {
                             <span className="attachment-name" title={arch.nombre}>{arch.nombre}</span>
                             <div style={{ display: "flex", gap: 6, flexWrap: "wrap", justifyContent: "center" }}>
                               {esPreview && (
-                                <button className="attachment-btn btn-pdf" onClick={() => setPdfEditor({ open: true, archivoId: arch.id, radicadoId: tareaDetail.id })}>
+                              tareaDetail.estado_posesion === "Completado" ? (
+                                <button
+                                  className="attachment-btn btn-pdf"
+                                  onClick={() => handleVerAnexo(arch.id, arch.nombre)}
+                                >
                                   <i className="fa-solid fa-eye"></i> Ver
                                 </button>
-                              )}
+                              ) : (
+                                <button
+                                  className="attachment-btn btn-pdf"
+                                  onClick={() =>
+                                    setPdfEditor({open: true,archivoId: arch.id,radicadoId: tareaDetail.id})}>
+                                  <i className="fa-solid fa-pen-to-square"></i> Abrir editor
+                                  </button>))}
                               <button className="attachment-btn btn-default" onClick={() => handleDescargarAnexo(arch.id, arch.nombre)}>
                                 <i className="fa-solid fa-download"></i> Descargar
                               </button>
@@ -1407,7 +1482,7 @@ export default function ProcesosLogistica() {
 
                 {renderFlujoAprobacion()}
 
-                {renderComentarios(tareaDetail.id)}
+                {renderComentarios(tareaDetail.id,tareaDetail.estado_posesion === "Completado")}
 
                 <div className="doc-section">
                   <h4><i className="fa-solid fa-circle-info"></i> Información del Radicado</h4>
@@ -1695,6 +1770,11 @@ export default function ProcesosLogistica() {
       default: return renderWelcome();
     }
   };
+  const detalleRadicadoActual =
+  activeTab === "tareas" ? tareaDetail : radicadoDetail;
+
+const editorPermitido =
+  detalleRadicadoActual?.estado_posesion !== "Completado";
 
   return (
     <>
@@ -1759,24 +1839,36 @@ export default function ProcesosLogistica() {
           {renderContent()}
         </main>
       </div>
-      {pdfEditor.open && (
-        <PdfEditor
-          archivoId={pdfEditor.archivoId}
-          radicadoId={pdfEditor.radicadoId}
-          onClose={() => setPdfEditor({ open: false, archivoId: null, radicadoId: null })}
-          onSaved={() => {
-            setPdfEditor({ open: false, archivoId: null, radicadoId: null });
-            // Refrescar anexos
-            if (activeTab === "tareas") {
-              setSelectedTareaId(null);
-              setTimeout(() => setSelectedTareaId(pdfEditor.radicadoId), 10);
-            } else {
-              setSelectedRadicadoId(null);
-              setTimeout(() => setSelectedRadicadoId(pdfEditor.radicadoId), 10);
-            }
-          }}
-        />
-      )}
+      {pdfEditor.open && editorPermitido && (
+      <PdfEditor
+        archivoId={pdfEditor.archivoId}
+        radicadoId={pdfEditor.radicadoId}
+        onClose={() =>
+          setPdfEditor({
+            open: false,
+            archivoId: null,
+            radicadoId: null
+          })
+        }
+        onSaved={() => {
+          const radicadoId = pdfEditor.radicadoId;
+        
+          setPdfEditor({
+            open: false,
+            archivoId: null,
+            radicadoId: null
+          });
+        
+          if (activeTab === "tareas") {
+            setSelectedTareaId(null);
+            setTimeout(() => setSelectedTareaId(radicadoId), 10);
+          } else {
+            setSelectedRadicadoId(null);
+            setTimeout(() => setSelectedRadicadoId(radicadoId), 10);
+          }
+        }}
+      />
+      )}  
     </>
   );
 }
