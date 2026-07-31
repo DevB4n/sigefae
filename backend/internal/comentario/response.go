@@ -21,6 +21,7 @@ func toResponse(comentario db.Comentario) Response {
 		ID:                  comentario.ID,
 		DocumentoRadicadoID: comentario.DocumentoRadicadoID,
 		UsuarioID:           comentario.UsuarioID,
+		UsuarioNombre:       comentario.Usuario.Nombre,
 		Descripcion:         comentario.Descripcion,
 		Fecha:               comentario.Fecha,
 	}

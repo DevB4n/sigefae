@@ -147,23 +147,34 @@ export default function ProcesosLogistica() {
     }
   }, [selectedRadicadoId, selectedTareaId]);
 
-  // ── Cargar comentarios del radicado ──
+    // ── Cargar comentarios del radicado ──
   useEffect(() => {
-    const radicadoId = selectedRadicadoId || selectedTareaId;
-    if (radicadoId) {
-      fetch(`${API}/comentario?documento_radicado_id=${radicadoId}`, {
-        headers: { Authorization: `Bearer ${obtenerToken()}` }
+    const radicadoId = activeTab === "tareas" ? selectedTareaId :
+                       activeTab === "radicados" ? selectedRadicadoId : null;
+    if (!radicadoId) {
+      setComentarios([]);
+      return;
+    }
+
+    setComentarios([]);
+    let cancelled = false;
+
+    fetch(`${API}/comentario?documento_radicado_id=${radicadoId}`, {
+      headers: { Authorization: `Bearer ${obtenerToken()}` }
+    })
+      .then(r => r.json())
+      .then(data => {
+        if (!cancelled) setComentarios(Array.isArray(data) ? data : []);
       })
-        .then(r => r.json())
-        .then(data => setComentarios(Array.isArray(data) ? data : []))
-        .catch(err => {
+      .catch(err => {
+        if (!cancelled) {
           console.error("Error cargando comentarios:", err);
           setComentarios([]);
-        });
-    } else {
-      setComentarios([]);
-    }
-  }, [selectedRadicadoId, selectedTareaId]);
+        }
+      });
+
+    return () => { cancelled = true; };
+  }, [activeTab, selectedRadicadoId, selectedTareaId]);
 
   const renderFlujoAprobacion = () => (
     <div className="doc-section">

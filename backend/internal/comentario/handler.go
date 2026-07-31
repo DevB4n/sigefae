@@ -44,7 +44,9 @@ func (h *Handler) Create(c *gin.Context) {
 }
 func (h *Handler) List(c *gin.Context) {
 
-	response, err := h.service.List()
+	documentoRadicadoID := c.Query("documento_radicado_id")
+
+	response, err := h.service.List(documentoRadicadoID)
 
 	if err != nil {
 

@@ -35,29 +35,24 @@ func (s *Service) Create(req CreateDTO) (*Response, error) {
 
 	return &response, nil
 }
-func (s *Service) List() ([]Response, error) {
+func (s *Service) List(documentoRadicadoID string) ([]Response, error) {
 
 	var comentarios []db.Comentario
 
-	if err := s.db.
-		Order("fecha DESC").
-		Find(&comentarios).Error; err != nil {
+	query := s.db.Preload("Usuario").Order("fecha DESC")
 
-		return nil, err
+	if documentoRadicadoID != "" {
+		query = query.Where("documento_radicado_id = ?", documentoRadicadoID)
 	}
 
-	if err := s.db.Preload("Usuario").Order("fecha DESC").Find(&comentarios).Error; err != nil {
-	    return nil, err
+	if err := query.Find(&comentarios).Error; err != nil {
+		return nil, err
 	}
 
 	response := make([]Response, 0, len(comentarios))
 
 	for _, comentario := range comentarios {
-
-		response = append(
-			response,
-			toResponse(comentario),
-		)
+		response = append(response, toResponse(comentario))
 	}
 
 	return response, nil
