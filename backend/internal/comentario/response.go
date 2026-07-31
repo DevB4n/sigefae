@@ -17,12 +17,18 @@ type Response struct {
 
 func toResponse(comentario db.Comentario) Response {
 
+	nombreUsuario := ""
+
+	if comentario.Usuario.ID != 0 {
+		nombreUsuario = comentario.Usuario.Nombre
+	}
+
 	return Response{
 		ID:                  comentario.ID,
 		DocumentoRadicadoID: comentario.DocumentoRadicadoID,
-		UsuarioID:           comentario.UsuarioID,
-		UsuarioNombre:       comentario.Usuario.Nombre,
 		Descripcion:         comentario.Descripcion,
+		UsuarioID:           comentario.UsuarioID,
+		UsuarioNombre:       nombreUsuario,
 		Fecha:               comentario.Fecha,
 	}
 }

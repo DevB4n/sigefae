@@ -28,6 +28,12 @@ func (s *Service) Create(req CreateDTO) (*Response, error) {
 	}
 
 	if err := s.db.Create(&comentario).Error; err != nil {
+	return nil, err
+	}
+
+	if err := s.db.
+		Preload("Usuario").
+		First(&comentario, comentario.ID).Error; err != nil {
 		return nil, err
 	}
 
