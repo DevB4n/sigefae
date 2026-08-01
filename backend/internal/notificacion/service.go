@@ -2,6 +2,7 @@ package notificacion
 
 import (
 	"errors"
+	"time"
 
 	"gorm.io/gorm"
 
@@ -230,3 +231,65 @@ func (s *Service) Update(id uint, dto UpdateDTO) (*Response, error) {
 
 	return &response, nil
 }
+func (s *Service) ListByUsuario(usuarioID uint) ([]Response, error) {
+	var notificaciones []db.Notificacion
+	if err := s.db.
+		Preload("Usuario").
+		Preload("DocumentoRadicado").
+		Where("usuario_id = ?", usuarioID).
+		Order("fecha_creacion DESC").
+		Find(&notificaciones).Error; err != nil {
+		return nil, err
+	}
+	response := make([]Response, 0, len(notificaciones))
+	for _, n := range notificaciones {
+		response = append(response, toResponse(n))
+	}
+	return response, nil
+}
+
+func (s *Service) MarkAsRead(id uint) (*Response, error) {
+	var notificacion db.Notificacion
+	if err := s.db.First(&notificacion, id).Error; err != nil {
+		return nil, err
+	}
+	now := time.Now()
+	notificacion.Estado = "Leida"
+	notificacion.FechaLectura = &now
+	if err := s.db.Save(&notificacion).Error; err != nil {
+		return nil, err
+	}
+	s.db.Preload("Usuario").Preload("DocumentoRadicado").First(&notificacion, id)
+	resp := toResponse(notificacion)
+	return &resp, nil
+}
+func (s *Service) CreateFromEvent(dto CreateDTO) (*Response, error) {
+	// Normalizar estado
+	switch dto.Estado {
+	case "Pendiente", "Enviada", "Leida", "Expirada":
+	default:
+		dto.Estado = "Pendiente"
+	}
+	// Normalizar tipo
+	switch dto.Tipo {
+	case "Recordatorio", "Asignacion", "Sistema", "Rechazo", "Finalizado":
+	default:
+		dto.Tipo = "Sistema"
+	}
+
+	n := db.Notificacion{
+		UsuarioID:           dto.UsuarioID,
+		DocumentoRadicadoID: dto.DocumentoRadicadoID,
+		Mensaje:             dto.Mensaje,
+		Estado:              dto.Estado,
+		Tipo:                dto.Tipo,
+		FechaCreacion:       dto.FechaCreacion,
+	}
+	if err := s.db.Create(&n).Error; err != nil {
+		return nil, err
+	}
+	s.db.Preload("Usuario").Preload("DocumentoRadicado").First(&n, n.ID)
+	resp := toResponse(n)
+	return &resp, nil
+}
+

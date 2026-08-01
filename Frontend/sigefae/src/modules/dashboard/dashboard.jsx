@@ -4,6 +4,7 @@ import "@fortawesome/fontawesome-free/css/all.min.css";
 import logo from "../../assets/login/logo.png";
 import { obtenerToken } from "../auth/token.js";
 import PdfEditor from "../../components/PdfEditor";
+import NotificacionesDropdown from "../../components/NotificacionesDropdown";
 
 const API = "http://localhost:8080/api";
 
@@ -324,7 +325,7 @@ export default function ProcesosLogistica() {
 );
 
   // ── Completar tarea ──
-    const handleCompletarTarea = async (tareaId, radicadoId) => {
+      const handleCompletarTarea = async (tareaId, radicadoId) => {
     try {
       const res = await fetch(`${API}/tarea/${tareaId}/completar`, {
         method: "PATCH",
@@ -337,14 +338,12 @@ export default function ProcesosLogistica() {
 
       alert("Tarea completada correctamente");
 
-      // Recargar flujo directamente sin deseleccionar
       const flujoRes = await fetch(`${API}/documentoradicado/${radicadoId}/tareas`, {
         headers: { Authorization: `Bearer ${obtenerToken()}` }
       });
       const flujoData = await flujoRes.json();
       setTareasFlujo(Array.isArray(flujoData) ? flujoData : []);
 
-      // Recargar detalle según pestaña
       const detalleRes = await fetch(`${API}/documentoradicado/${radicadoId}`, {
         headers: { Authorization: `Bearer ${obtenerToken()}` }
       });
@@ -354,7 +353,6 @@ export default function ProcesosLogistica() {
         if (activeTab === "radicados") setRadicadoDetail(detalleData);
       }
 
-      // Si el documento ya no está asignado a este usuario, recargar la lista
       if (activeTab === "tareas") {
         const listaRes = await fetch(`${API}/documentoradicado`, {
           headers: { Authorization: `Bearer ${obtenerToken()}` }
@@ -365,13 +363,33 @@ export default function ProcesosLogistica() {
         }
       }
 
+      // ── NOTIFICAR al siguiente usuario en el flujo ──
+      const siguiente = flujoData.find(t => t.estado?.nombre === "En Proceso");
+      if (siguiente?.usuario_asignado?.id && siguiente.usuario_asignado.id !== userId) {
+        await fetch(`${API}/notificacion`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${obtenerToken()}`
+          },
+          body: JSON.stringify({
+            usuario_id: siguiente.usuario_asignado.id,
+            documento_radicado_id: radicadoId,
+            mensaje: `Te asignaron el radicado #${detalleData?.numero_radicado || radicadoId} — Paso: ${siguiente.descripcion || 'revisar'}`,
+            estado: "Pendiente",
+            tipo: "Asignacion",
+            fecha_creacion: new Date().toISOString(),
+          })
+        });
+      }
+
     } catch (err) {
       alert("Error: " + err.message);
     }
   };
 
   // ── Enviar comentario ──
-  const handleEnviarComentario = async (radicadoId) => {
+    const handleEnviarComentario = async (radicadoId) => {
     if (!nuevoComentario.trim()) return;
     setEnviandoComentario(true);
     try {
@@ -391,12 +409,37 @@ export default function ProcesosLogistica() {
         const errData = await res.json();
         throw new Error(errData.error || "Error enviando comentario");
       }
+
       setNuevoComentario("");
       const listRes = await fetch(`${API}/comentario?documento_radicado_id=${radicadoId}`, {
         headers: { Authorization: `Bearer ${obtenerToken()}` }
       });
       const listData = await listRes.json();
       setComentarios(Array.isArray(listData) ? listData : []);
+
+      // ── NOTIFICAR al responsable actual si NO soy yo ──
+      const radRes = await fetch(`${API}/documentoradicado/${radicadoId}`, {
+        headers: { Authorization: `Bearer ${obtenerToken()}` }
+      });
+      const radData = await radRes.json();
+      if (radData?.usuario_actual?.id && radData.usuario_actual.id !== userId) {
+        await fetch(`${API}/notificacion`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${obtenerToken()}`
+          },
+          body: JSON.stringify({
+            usuario_id: radData.usuario_actual.id,
+            documento_radicado_id: radicadoId,
+            mensaje: `Nuevo comentario en #${radData.numero_radicado || radicadoId}: "${nuevoComentario.trim().substring(0, 40)}${nuevoComentario.trim().length > 40 ? '...' : ''}"`,
+            estado: "Pendiente",
+            tipo: "Sistema",
+            fecha_creacion: new Date().toISOString(),
+          })
+        });
+      }
+
     } catch (err) {
       alert("Error: " + err.message);
     } finally {
@@ -772,7 +815,7 @@ export default function ProcesosLogistica() {
     setRadicarForm(prev => ({ ...prev, [name]: value }));
   };
 
-  const handleRadicarSubmit = async () => {
+    const handleRadicarSubmit = async () => {
     if (!radicarDocId) return;
 
     if (!radicarForm.tipo_radicacion_id || !radicarForm.ruta_id || !radicarForm.metodo_pago_id) {
@@ -798,6 +841,27 @@ export default function ProcesosLogistica() {
       if (!res.ok) {
         const errData = await res.json();
         throw new Error(errData.error || "Error al radicar");
+      }
+
+      const creado = await res.json();
+
+      // ── NOTIFICAR al primer responsable ──
+      if (creado?.usuario_actual?.id && creado.usuario_actual.id !== userId) {
+        await fetch(`${API}/notificacion`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${obtenerToken()}`
+          },
+          body: JSON.stringify({
+            usuario_id: creado.usuario_actual.id,
+            documento_radicado_id: creado.id,
+            mensaje: `Nuevo radicado #${creado.numero_radicado} requiere tu revisión`,
+            estado: "Pendiente",
+            tipo: "Asignacion",
+            fecha_creacion: new Date().toISOString(),
+          })
+        });
       }
 
       closeRadicarModal();
@@ -878,6 +942,28 @@ export default function ProcesosLogistica() {
       }
     } catch (err) {
       alert("Error: " + err.message);
+    }
+  };
+
+    const crearNotificacion = async ({ usuario_id, mensaje, tipo = "Sistema", documento_radicado_id = null }) => {
+    try {
+      await fetch(`${API}/notificacion`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${obtenerToken()}`,
+        },
+        body: JSON.stringify({
+          usuario_id,
+          documento_radicado_id,
+          mensaje,
+          estado: "Pendiente",
+          tipo,
+          fecha_creacion: new Date().toISOString(),
+        }),
+      });
+    } catch (err) {
+      console.error("Error creando notificación:", err);
     }
   };
 
@@ -1778,11 +1864,18 @@ const editorPermitido =
 
   return (
     <>
-      <header className="top-header">
+        <header className="top-header">
         <div className="header-left">
           <button className="menu-toggle" title="Menú" onClick={() => setIsSidebarOpen(!isSidebarOpen)}><i className="fas fa-bars" /></button>
           <img src={logo} alt="Logo" className="logo" />
           <div className="header-text"><h1>SIGEFAE</h1><p>Sistema de Gestion de Facturas Electronicas</p></div>
+        </div>
+        <div className="header-right">
+          <NotificacionesDropdown onNavigate={(id) => {
+            setActiveTab("tareas");
+            setSelectedTareaId(id);
+            setSelectedRadicadoId(null);
+          }} />
         </div>
       </header>
 

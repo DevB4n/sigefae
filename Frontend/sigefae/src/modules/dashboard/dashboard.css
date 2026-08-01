@@ -935,7 +935,18 @@ body {
 .pdf-modal-actions {
   display: flex; gap: 8px; justify-content: flex-end; margin-top: 12px;
 }
+.header-right {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding-right: 20px;
+}
 
+.top-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
 /* ── RESPONSIVE ───────────────────────────────────────── */
 @media (max-width:1024px) {
     .sidebar.open { width:260px; }

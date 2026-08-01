@@ -179,24 +179,36 @@ func New(database *gorm.DB) *gin.Engine {
 	codigoQrService := codigo_qr.New(database)
 	codigoQrHandler := codigo_qr.NewHandler(codigoQrService)
 
-	documentoRadicadoService := documento_radicado.New(database)
-	documentoRadicadoHandler := documento_radicado.NewHandler(documentoRadicadoService)
 
+	// ==========================
+	// NOTIFICACION PRIMERO (lo usan otros handlers)
+	// ==========================
 	notificacionService := notificacion.New(database)
 	notificacionHandler := notificacion.NewHandler(notificacionService)
+
+	// ==========================
+	// Documento Radicado (necesita notificacion)
+	// ==========================
+	documentoRadicadoService := documento_radicado.New(database)
+	documentoRadicadoHandler := documento_radicado.NewHandler(documentoRadicadoService, notificacionService, database)
+
+	// ==========================
+	// Comentario (necesita notificacion)
+	// ==========================
+	comentarioService := comentario.New(database)
+	comentarioHandler := comentario.NewHandler(comentarioService, notificacionService, database)
+
+	// ==========================
+	// Tarea (necesita notificacion)
+	// ==========================
+	tareaService := tarea.New(database)
+	tareaHandler := tarea.NewHandler(tareaService, notificacionService, database)
 
 	trazabilidadService := trazabilidad.New(database)
 	trazabilidadHandler := trazabilidad.NewHandler(trazabilidadService)
 
-
-	comentarioService := comentario.New(database)
-	comentarioHandler := comentario.NewHandler(comentarioService)
-
 	archivoService := archivo.New(database)
 	archivoHandler := archivo.NewHandler(archivoService)
-
-	tareaService := tarea.New(database)
-	tareaHandler := tarea.NewHandler(tareaService, database)
 
 	registroAprobacionService := registro_aprobacion.New(database)
 	registroAprobacionHandler := registro_aprobacion.NewHandler(registroAprobacionService)
@@ -234,6 +246,13 @@ func New(database *gorm.DB) *gin.Engine {
 		protected.GET("/comentario", comentarioHandler.List)
 
 		protected.PATCH("/archivo/:id/reemplazar", archivoHandler.Reemplazar)
+
+		// =========================
+		// Notificacion (usuario logueado)
+		// =========================
+		protected.POST("/notificacion", notificacionHandler.Create)
+		protected.GET("/notificacion/mias", notificacionHandler.ListByUsuario)
+		protected.PATCH("/notificacion/:id/leida", notificacionHandler.MarkAsRead)
 
 		protected.GET("/me", func(c *gin.Context) {
 			user := c.MustGet("user").(db.Usuario)
@@ -504,9 +523,8 @@ func New(database *gorm.DB) *gin.Engine {
 			admin.PUT("/documentoradicado/:id", documentoRadicadoHandler.Update)
 
 			// =========================
-			// Notificacion
+			// Notificacion (admin - listar todas)
 			// =========================
-			admin.POST("/notificacion", notificacionHandler.Create)
 			admin.GET("/notificacion", notificacionHandler.List)
 			admin.PUT("/notificacion/:id", notificacionHandler.Update)
 

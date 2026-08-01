@@ -1,0 +1,129 @@
+.notif-dropdown {
+  position: relative;
+  display: inline-block;
+}
+
+.notif-bell {
+  background: none;
+  border: none;
+  font-size: 1.3em;
+  color: #1e3a5f;
+  cursor: pointer;
+  position: relative;
+  padding: 6px 10px;
+}
+
+.notif-badge {
+  position: absolute;
+  top: 0;
+  right: 2px;
+  background: #dc2626;
+  color: white;
+  font-size: 0.65em;
+  font-weight: bold;
+  padding: 2px 5px;
+  border-radius: 10px;
+  min-width: 16px;
+  text-align: center;
+}
+
+.notif-menu {
+  position: absolute;
+  right: 0;
+  top: 45px;
+  width: 360px;
+  max-height: 420px;
+  background: white;
+  border-radius: 10px;
+  box-shadow: 0 10px 40px rgba(0,0,0,0.15);
+  z-index: 1000;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+.notif-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 16px;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.notif-refresh {
+  background: none;
+  border: none;
+  color: #6b7280;
+  cursor: pointer;
+  font-size: 0.9em;
+}
+
+.notif-list {
+  overflow-y: auto;
+  max-height: 360px;
+}
+
+.notif-empty {
+  padding: 20px;
+  text-align: center;
+  color: #9ca3af;
+  font-size: 0.9em;
+}
+
+.notif-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 12px 16px;
+  border-bottom: 1px solid #f3f4f6;
+  cursor: pointer;
+  transition: background 0.15s;
+  position: relative;
+}
+
+.notif-item:hover {
+  background: #f9fafb;
+}
+
+.notif-item.no-leida {
+  background: #eff6ff;
+}
+
+.notif-icon {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: #e0e7ff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #4338ca;
+  font-size: 0.85em;
+  flex-shrink: 0;
+}
+
+.notif-content {
+  flex: 1;
+  min-width: 0;
+}
+
+.notif-msg {
+  margin: 0;
+  font-size: 0.85em;
+  color: #1f2937;
+  line-height: 1.4;
+}
+
+.notif-time {
+  font-size: 0.75em;
+  color: #9ca3af;
+}
+
+.notif-dot {
+  width: 8px;
+  height: 8px;
+  background: #3b82f6;
+  border-radius: 50%;
+  flex-shrink: 0;
+  margin-top: 4px;
+}
