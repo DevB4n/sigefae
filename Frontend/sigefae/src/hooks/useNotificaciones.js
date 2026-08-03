@@ -1,9 +1,11 @@
+// useNotificaciones.js
 import { useState, useEffect, useCallback, useRef } from "react";
 import { obtenerToken } from "../modules/auth/token.js";
 import {
   playNotificacionSound,
   mostrarNotificacionNativa,
   pedirPermisoNotificaciones,
+  inicializarAudio,
 } from "../utils/notificacion.js";
 
 const API = "http://localhost:8080/api";
@@ -12,7 +14,8 @@ export function useNotificaciones() {
   const [notificaciones, setNotificaciones] = useState([]);
   const [noLeidas, setNoLeidas] = useState(0);
   const [loading, setLoading] = useState(false);
-  const prevCountRef = useRef(0);
+  const idsVistosRef = useRef(new Set());
+  const primeraCargaRef = useRef(true);
 
   const cargar = useCallback(async () => {
     setLoading(true);
@@ -24,12 +27,11 @@ export function useNotificaciones() {
       if (Array.isArray(data)) {
         const pendientes = data.filter((n) => n.estado === "Pendiente");
 
-        // ── SONIDO: si llegaron nuevas pendientes (no en la carga inicial) ──
-        if (pendientes.length > prevCountRef.current && prevCountRef.current > 0) {
-          playNotificacionSound();
-
-          const ultima = data[0];
-          if (ultima) {
+        if (!primeraCargaRef.current) {
+          const nuevas = pendientes.filter((n) => !idsVistosRef.current.has(n.id));
+          if (nuevas.length > 0) {
+            playNotificacionSound();
+            const ultima = nuevas[0];
             mostrarNotificacionNativa("SIGEFAE", ultima.mensaje, () => {
               window.dispatchEvent(
                 new CustomEvent("navegar-a-radicado", {
@@ -40,7 +42,8 @@ export function useNotificaciones() {
           }
         }
 
-        prevCountRef.current = pendientes.length;
+        idsVistosRef.current = new Set(pendientes.map((n) => n.id));
+        primeraCargaRef.current = false;
         setNotificaciones(data);
         setNoLeidas(pendientes.length);
       }
@@ -65,6 +68,7 @@ export function useNotificaciones() {
 
   useEffect(() => {
     pedirPermisoNotificaciones();
+    inicializarAudio();
   }, []);
 
   useEffect(() => {

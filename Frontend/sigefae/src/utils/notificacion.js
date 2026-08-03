@@ -1,34 +1,45 @@
+
+let audioCtx = null;
 // ============================================
-// SONIDO de notificación (Web Audio API)
+// SONIDO de notificación (archivo personalizado)
 // ============================================
+let notifAudio = null;
+
+export function inicializarAudio() {
+  // Pre-cargamos el audio para que esté listo al primer uso
+  if (!notifAudio) {
+    notifAudio = new Audio("/notification.mp3");
+    notifAudio.volume = 0.6; // ajusta el volumen 0.0 - 1.0
+  }
+
+  // Desbloqueamos autoplay con la primera interacción del usuario
+  const desbloquear = () => {
+    notifAudio.play().then(() => {
+      notifAudio.pause();
+      notifAudio.currentTime = 0;
+    }).catch(() => {});
+    window.removeEventListener("click", desbloquear);
+    window.removeEventListener("keydown", desbloquear);
+  };
+  window.addEventListener("click", desbloquear);
+  window.addEventListener("keydown", desbloquear);
+}
+
 export function playNotificacionSound() {
   try {
-    const AudioContext = window.AudioContext || window.webkitAudioContext;
-    if (!AudioContext) return;
-
-    const ctx = new AudioContext();
-    const osc = ctx.createOscillator();
-    const gain = ctx.createGain();
-
-    osc.connect(gain);
-    gain.connect(ctx.destination);
-
-    osc.type = "sine";
-    osc.frequency.setValueAtTime(880, ctx.currentTime);
-    osc.frequency.exponentialRampToValueAtTime(440, ctx.currentTime + 0.15);
-
-    gain.gain.setValueAtTime(0.25, ctx.currentTime);
-    gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.2);
-
-    osc.start();
-    osc.stop(ctx.currentTime + 0.2);
+    if (!notifAudio) {
+      notifAudio = new Audio("/notification.mp3");
+      notifAudio.volume = 0.6;
+    }
+    notifAudio.currentTime = 0; // reinicia si ya estaba sonando
+    notifAudio.play().catch((e) => console.log("No se pudo reproducir:", e));
   } catch (e) {
     console.log("Audio no disponible", e);
   }
 }
 
 // ============================================
-// NOTIFICACIÓN NATIVA del navegador
+// PERMISO de notificaciones nativas
 // ============================================
 export async function pedirPermisoNotificaciones() {
   if (!("Notification" in window)) return false;
@@ -36,6 +47,9 @@ export async function pedirPermisoNotificaciones() {
   return permiso === "granted";
 }
 
+// ============================================
+// NOTIFICACIÓN NATIVA del navegador
+// ============================================
 export function mostrarNotificacionNativa(titulo, cuerpo, onClick) {
   if (!("Notification" in window)) return;
   if (Notification.permission !== "granted") return;
