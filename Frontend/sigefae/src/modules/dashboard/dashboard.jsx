@@ -5,6 +5,7 @@ import logo from "../../assets/login/logo.png";
 import { obtenerToken } from "../auth/token.js";
 import PdfEditor from "../../components/PdfEditor";
 import NotificacionesDropdown from "../../components/NotificacionesDropdown";
+import { generarExpedientePDF } from "../../utils/expedientePdf";
 
 const API = "http://localhost:8080/api";
 
@@ -135,6 +136,9 @@ export default function ProcesosLogistica() {
   // ── Trazabilidad ──
   const [historialTrazabilidad, setHistorialTrazabilidad] = useState([]);
 
+  // ── Expediente PDF ──
+  const [generandoPdf, setGenerandoPdf] = useState(false);
+
   // Cargar tareas e historial de trazabilidad cuando se selecciona un radicado o tarea
   useEffect(() => {
     const radicadoId = selectedRadicadoId || selectedTareaId;
@@ -159,6 +163,24 @@ export default function ProcesosLogistica() {
       setHistorialTrazabilidad([]);
     }
   }, [selectedRadicadoId, selectedTareaId]);
+
+  const handleDescargarExpediente = async (radicado) => {
+    if (!radicado) return;
+    try {
+      setGenerandoPdf(true);
+      // Collect PDF urls from archivos
+      const anexosUrls = (radicado.archivos || [])
+        .filter(a => a.extension?.toLowerCase() === 'pdf' || a.nombre?.toLowerCase().endsWith('.pdf'))
+        .map(a => `${API}/archivo/${a.id}/download?download=1`);
+      
+      await generarExpedientePDF(radicado, tareasFlujo, historialTrazabilidad, anexosUrls);
+    } catch (err) {
+      console.error("Error al generar expediente", err);
+      alert("Hubo un error al generar el expediente PDF.");
+    } finally {
+      setGenerandoPdf(false);
+    }
+  };
 
     // ── Cargar comentarios del radicado ──
   useEffect(() => {
@@ -1327,11 +1349,21 @@ export default function ProcesosLogistica() {
           <div className="doc-header">
             <div className="doc-header-top">
               <h2>Radicado #{radicadoDetail.numero_radicado}</h2>
-              <span className="doc-total">{
-              radicadoDetail.estado_posesion === "Completado" ? "Finalizado" :
-              radicadoDetail.estado_posesion === "EnProceso" ? "En Proceso" :
-              radicadoDetail.estado_posesion === "Libre" ? "Libre" : "En espera"}
-            </span>
+              <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
+                <span className="doc-total">{
+                radicadoDetail.estado_posesion === "Completado" ? "Finalizado" :
+                radicadoDetail.estado_posesion === "EnProceso" ? "En Proceso" :
+                radicadoDetail.estado_posesion === "Libre" ? "Libre" : "En espera"}
+                </span>
+                <button 
+                  className="btn btn-outline" 
+                  onClick={() => handleDescargarExpediente(radicadoDetail)}
+                  disabled={generandoPdf}
+                >
+                  <i className={`fa-solid ${generandoPdf ? 'fa-spinner fa-spin' : 'fa-file-pdf'}`}></i> 
+                  {generandoPdf ? " Generando..." : " Expediente"}
+                </button>
+              </div>
             </div>
             <p className="doc-cufe"><strong>Documento:</strong> {radicadoDetail.documento_comercial?.tipo} {radicadoDetail.documento_comercial?.numero_documento}</p>
           </div>
@@ -1549,7 +1581,21 @@ export default function ProcesosLogistica() {
               <div className="doc-header">
                 <div className="doc-header-top">
                   <h2>Radicado #{tareaDetail.numero_radicado}</h2>
-                  <span className="doc-total">{tareaDetail.estado_posesion === "Completado" ? "Finalizado" :tareaDetail.estado_posesion === "EnProceso" ? "En Proceso" :tareaDetail.estado_posesion === "Libre" ? "Libre" : "En espera"}</span>
+                  <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
+                    <span className="doc-total">{
+                    tareaDetail.estado_posesion === "Completado" ? "Finalizado" :
+                    tareaDetail.estado_posesion === "EnProceso" ? "En Proceso" :
+                    tareaDetail.estado_posesion === "Libre" ? "Libre" : "En espera"}
+                    </span>
+                    <button 
+                      className="btn btn-outline" 
+                      onClick={() => handleDescargarExpediente(tareaDetail)}
+                      disabled={generandoPdf}
+                    >
+                      <i className={`fa-solid ${generandoPdf ? 'fa-spinner fa-spin' : 'fa-file-pdf'}`}></i> 
+                      {generandoPdf ? " Generando..." : " Expediente"}
+                    </button>
+                  </div>
                 </div>
                 <p className="doc-cufe"><strong>Documento:</strong> {tareaDetail.documento_comercial?.tipo} {tareaDetail.documento_comercial?.numero_documento}</p>
               </div>

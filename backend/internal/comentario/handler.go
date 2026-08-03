@@ -71,7 +71,7 @@ func (h *Handler) Create(c *gin.Context) {
 		DocumentoRadicadoID: dto.DocumentoRadicadoID,
 		UsuarioID:           dto.UsuarioID,
 		Accion:              "Comentario Agregado",
-		Descripcion:         "El usuario agregó un nuevo comentario.",
+		Descripcion:         "El usuario agregó un nuevo comentario: \"" + dto.Descripcion + "\"",
 		Fecha:               time.Now(),
 	})
 
