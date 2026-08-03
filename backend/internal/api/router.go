@@ -208,7 +208,7 @@ func New(database *gorm.DB) *gin.Engine {
 	trazabilidadHandler := trazabilidad.NewHandler(trazabilidadService)
 
 	archivoService := archivo.New(database)
-	archivoHandler := archivo.NewHandler(archivoService)
+	archivoHandler := archivo.NewHandler(archivoService, database)
 
 	registroAprobacionService := registro_aprobacion.New(database)
 	registroAprobacionHandler := registro_aprobacion.NewHandler(registroAprobacionService)
@@ -246,6 +246,11 @@ func New(database *gorm.DB) *gin.Engine {
 		protected.GET("/comentario", comentarioHandler.List)
 
 		protected.PATCH("/archivo/:id/reemplazar", archivoHandler.Reemplazar)
+
+		// =========================
+		// Trazabilidad
+		// =========================
+		protected.GET("/trazabilidad", trazabilidadHandler.List)
 
 		// =========================
 		// Notificacion (usuario logueado)
@@ -532,7 +537,6 @@ func New(database *gorm.DB) *gin.Engine {
 			// Trazabilidad
 			// =========================
 			admin.POST("/trazabilidad", trazabilidadHandler.Create)
-			admin.GET("/trazabilidad", trazabilidadHandler.List)
 
 			// =========================
 			// Archivo

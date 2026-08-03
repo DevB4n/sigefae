@@ -36,13 +36,16 @@ func (s *Service) Create(req CreateDTO) (*Response, error) {
 
 	return &response, nil
 }
-func (s *Service) List() ([]Response, error) {
+func (s *Service) List(documentoRadicadoID uint) ([]Response, error) {
 
 	var trazabilidades []db.Trazabilidad
 
-	if err := s.db.
-		Order("fecha DESC").
-		Find(&trazabilidades).Error; err != nil {
+	query := s.db.Preload("Usuario").Order("fecha DESC")
+	if documentoRadicadoID > 0 {
+		query = query.Where("documento_radicado_id = ?", documentoRadicadoID)
+	}
+
+	if err := query.Find(&trazabilidades).Error; err != nil {
 
 		return nil, err
 	}

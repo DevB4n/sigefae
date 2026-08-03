@@ -4,18 +4,23 @@ import (
 	"net/http"
 	"strconv"
 	"fmt"
+	"time"
 
 	"github.com/gin-gonic/gin"
+	"gorm.io/gorm"
+	"sigefae/internal/db"
 )
 
 type Handler struct {
 	service *Service
+	db      *gorm.DB
 }
 
-func NewHandler(service *Service) *Handler {
+func NewHandler(service *Service, database *gorm.DB) *Handler {
 
 	return &Handler{
 		service: service,
+		db:      database,
 	}
 }
 
@@ -124,6 +129,18 @@ func (h *Handler) Delete(c *gin.Context) {
 		return
 	}
 
+	user, hasUser := c.Get("user")
+	var userID uint
+	if hasUser {
+		userID = user.(db.Usuario).ID
+	}
+
+	// Obtener info del archivo antes de borrarlo para trazabilidad
+	var archivo db.Archivo
+	if h.db != nil {
+		h.db.First(&archivo, uint(id))
+	}
+
 	if err := h.service.Delete(uint(id)); err != nil {
 
 		c.JSON(http.StatusBadRequest, gin.H{
@@ -136,6 +153,16 @@ func (h *Handler) Delete(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{
 		"message": "archivo eliminado correctamente",
 	})
+
+	if h.db != nil && archivo.DocumentoRadicadoID != 0 && userID != 0 {
+		h.db.Create(&db.Trazabilidad{
+			DocumentoRadicadoID: archivo.DocumentoRadicadoID,
+			UsuarioID:           userID,
+			Accion:              "Archivo Eliminado",
+			Descripcion:         "Se eliminó el archivo: " + archivo.Nombre,
+			Fecha:               time.Now(),
+		})
+	}
 }
 func (h *Handler) UploadAnexo(c *gin.Context) {
     docID, err := strconv.ParseUint(c.Param("documento_radicado_id"), 10, 64)
@@ -157,6 +184,17 @@ func (h *Handler) UploadAnexo(c *gin.Context) {
     if err != nil {
         c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
         return
+    }
+
+    user, hasUser := c.Get("user")
+    if hasUser {
+        h.db.Create(&db.Trazabilidad{
+            DocumentoRadicadoID: uint(docID),
+            UsuarioID:           user.(db.Usuario).ID,
+            Accion:              "Archivo Subido",
+            Descripcion:         "Se adjuntó el archivo: " + fileHeader.Filename,
+            Fecha:               time.Now(),
+        })
     }
 
     c.JSON(http.StatusCreated, response)
@@ -201,6 +239,17 @@ func (h *Handler) Reemplazar(c *gin.Context) {
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
+	}
+
+	user, hasUser := c.Get("user")
+	if hasUser && response != nil && response.DocumentoRadicadoID != 0 {
+		h.db.Create(&db.Trazabilidad{
+			DocumentoRadicadoID: response.DocumentoRadicadoID,
+			UsuarioID:           user.(db.Usuario).ID,
+			Accion:              "Archivo Editado",
+			Descripcion:         "Se editó/reemplazó el archivo: " + response.Nombre,
+			Fecha:               time.Now(),
+		})
 	}
 
 	c.JSON(http.StatusOK, response)

@@ -1,6 +1,7 @@
 package tarea
 
 import (
+	"fmt"
 	"net/http"
 	"strconv"
 	"time"
@@ -75,6 +76,11 @@ func (h *Handler) Completar(c *gin.Context) {
 		estadoCompletado.ID = 3
 	}
 
+	if tarea.EstadoID == estadoCompletado.ID {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "La tarea ya está completada"})
+		return
+	}
+
 	if err := h.db.Model(&tarea).Updates(map[string]interface{}{
 		"estado_id":          estadoCompletado.ID,
 		"fecha_finalizacion": now,
@@ -130,6 +136,32 @@ func (h *Handler) Completar(c *gin.Context) {
 			FechaCreacion:       time.Now(),
 		})
 	}
+
+	// ── REGISTRAR Trazabilidad ──
+	var accionTrazabilidad string
+	var descTrazabilidad string
+	if notificarA != 0 {
+		var usuarioSiguiente db.Usuario
+		h.db.First(&usuarioSiguiente, notificarA)
+		nombreSiguiente := usuarioSiguiente.Nombre
+		if nombreSiguiente == "" {
+			nombreSiguiente = "Usuario Desconocido"
+		}
+		
+		accionTrazabilidad = "Paso Completado y Asignado"
+		descTrazabilidad = fmt.Sprintf("El usuario completó su tarea. El documento fue asignado a: %s", nombreSiguiente)
+	} else {
+		accionTrazabilidad = "Proceso Finalizado"
+		descTrazabilidad = "El usuario completó la última tarea. El proceso ha finalizado."
+	}
+	
+	h.db.Create(&db.Trazabilidad{
+		DocumentoRadicadoID: tarea.DocumentoRadicadoID,
+		UsuarioID:           user.ID,
+		Accion:              accionTrazabilidad,
+		Descripcion:         descTrazabilidad,
+		Fecha:               time.Now(),
+	})
 
 	c.JSON(http.StatusOK, gin.H{"message": "Tarea completada"})
 }

@@ -27,12 +27,9 @@ export function inicializarAudio() {
 
 export function playNotificacionSound() {
   try {
-    if (!notifAudio) {
-      notifAudio = new Audio("/notification.mp3");
-      notifAudio.volume = 0.6;
-    }
-    notifAudio.currentTime = 0; // reinicia si ya estaba sonando
-    notifAudio.play().catch((e) => console.log("No se pudo reproducir:", e));
+    const audio = new Audio("/notification.mp3");
+    audio.volume = 0.6;
+    audio.play().catch((e) => console.log("No se pudo reproducir el sonido (posible bloqueo de autoplay):", e));
   } catch (e) {
     console.log("Audio no disponible", e);
   }

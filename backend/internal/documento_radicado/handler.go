@@ -4,6 +4,7 @@ import (
 	"net/http"
 	"strconv"
 	"time"
+	"fmt"
 
 	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
@@ -53,6 +54,26 @@ func (h *Handler) Create(c *gin.Context) {
 			FechaCreacion:       time.Now(),
 		})
 	}
+
+	// ── REGISTRAR Trazabilidad ──
+	descTrazabilidad := "Documento radicado e iniciado en el flujo."
+	if response.UsuarioActualID != 0 {
+		var usuarioSiguiente db.Usuario
+		h.db.First(&usuarioSiguiente, response.UsuarioActualID)
+		nombreSiguiente := usuarioSiguiente.Nombre
+		if nombreSiguiente == "" {
+			nombreSiguiente = "Usuario Desconocido"
+		}
+		descTrazabilidad = fmt.Sprintf("Documento radicado. Asignado inicialmente a: %s", nombreSiguiente)
+	}
+
+	h.db.Create(&db.Trazabilidad{
+		DocumentoRadicadoID: response.ID,
+		UsuarioID:           user.ID,
+		Accion:              "Radicación",
+		Descripcion:         descTrazabilidad,
+		Fecha:               time.Now(),
+	})
 
 	c.JSON(http.StatusCreated, response)
 }

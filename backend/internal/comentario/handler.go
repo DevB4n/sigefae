@@ -44,10 +44,20 @@ func (h *Handler) Create(c *gin.Context) {
 		if err := h.db.First(&rad, dto.DocumentoRadicadoID).Error; err == nil {
 			if rad.UsuarioActualID != 0 && rad.UsuarioActualID != dto.UsuarioID {
 				docID := dto.DocumentoRadicadoID
+				
+				mensajeNotif := "Nuevo comentario en " + rad.NumeroRadicado
+				if len(dto.Descripcion) > 0 {
+					trunc := dto.Descripcion
+					if len(trunc) > 40 {
+						trunc = trunc[:40] + "..."
+					}
+					mensajeNotif = "Nuevo comentario en #" + rad.NumeroRadicado + ": \"" + trunc + "\""
+				}
+				
 				h.notifSvc.CreateFromEvent(notificacion.CreateDTO{
 					UsuarioID:           rad.UsuarioActualID,
 					DocumentoRadicadoID: &docID,
-					Mensaje:             "Nuevo comentario en " + rad.NumeroRadicado,
+					Mensaje:             mensajeNotif,
 					Estado:              "Pendiente",
 					Tipo:                "Sistema",
 					FechaCreacion:       time.Now(),
@@ -55,6 +65,15 @@ func (h *Handler) Create(c *gin.Context) {
 			}
 		}
 	}
+
+	// ── REGISTRAR Trazabilidad ──
+	h.db.Create(&db.Trazabilidad{
+		DocumentoRadicadoID: dto.DocumentoRadicadoID,
+		UsuarioID:           dto.UsuarioID,
+		Accion:              "Comentario Agregado",
+		Descripcion:         "El usuario agregó un nuevo comentario.",
+		Fecha:               time.Now(),
+	})
 
 	c.JSON(http.StatusCreated, response)
 }
