@@ -119,3 +119,44 @@ func (h *Handler) Update(c *gin.Context) {
 	}
 	c.JSON(http.StatusOK, response)
 }
+
+func (h *Handler) VerificarPublico(c *gin.Context) {
+    numero := c.Param("numero_radicado")
+
+    radicado, err := h.service.GetByNumeroRadicado(numero)
+    if err != nil {
+        c.JSON(http.StatusNotFound, gin.H{
+            "valido": false,
+            "error":  "El documento no existe en nuestros registros",
+        })
+        return
+    }
+
+    // Preparar respuesta pública (no exponemos todo el modelo)
+    response := gin.H{
+        "valido":           true,
+        "numero_radicado":  radicado.NumeroRadicado,
+        "fecha_radicacion": radicado.FechaRadicacion,
+        "tipo_radicacion":  radicado.TipoRadicacion.Nombre,
+        "estado_posesion":  radicado.EstadoPosesion,
+        "documento": gin.H{
+            "tipo":          radicado.DocumentoComercial.Tipo,
+            "numero":        radicado.DocumentoComercial.NumeroDocumento,
+            "fecha_emision": radicado.DocumentoComercial.FechaDocumento,
+            "total":         radicado.DocumentoComercial.Total,
+            "moneda":        radicado.DocumentoComercial.Moneda.Nombre,
+            "cufe":          radicado.DocumentoComercial.Cufe, // ← verifica que este campo exista en tu modelo
+        },
+        "proveedor": gin.H{
+            "razon_social": radicado.DocumentoComercial.Proveedor.RazonSocial,
+            "nit":          radicado.DocumentoComercial.Proveedor.NumeroDocumento,
+        },
+        "receptor": gin.H{
+            "nombre": radicado.DocumentoComercial.Receptor.Nombre,
+            "nit":    radicado.DocumentoComercial.Receptor.NumeroDocumento,
+        },
+        "qr_url": radicado.Qr.Url,
+    }
+
+    c.JSON(http.StatusOK, response)
+}

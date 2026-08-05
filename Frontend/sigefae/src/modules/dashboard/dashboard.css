@@ -21,7 +21,6 @@ body {
     font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
     height: 100vh;
     height: 100dvh;
-    overflow: hidden;
     display: flex;
     flex-direction: column;
     background: linear-gradient(135deg, var(--pardo-navy) 0%, var(--pardo-blue) 100%);

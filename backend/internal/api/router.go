@@ -219,6 +219,7 @@ func New(database *gorm.DB) *gin.Engine {
 	api := router.Group("/api")
 	{
 		api.POST("/auth/login", authHandler.Login)
+		api.GET("/documentoradicado/verificar/:numero_radicado", documentoRadicadoHandler.VerificarPublico)
 	}
 	// =========================
 	// Rutas protegidas

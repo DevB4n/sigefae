@@ -1,6 +1,7 @@
 import { jsPDF } from "jspdf";
 import autoTable from "jspdf-autotable";
 import { PDFDocument } from "pdf-lib";
+import QRCode from "qrcode";
 
 /**
  * Genera y descarga un Expediente PDF completo para un documento radicado.
@@ -46,20 +47,56 @@ export async function generarExpedientePDF(radicado, flujo, trazabilidad, anexos
     headStyles: { fillColor: [41, 128, 185] } // Azul
   });
 
+  // ═══════════════════════════════════════════════════════════════
+  // ═══ QR DE VERIFICACIÓN — SE AGREGA DESPUÉS DE LA TABLA ======
+  // ═══════════════════════════════════════════════════════════════
+  if (radicado.qr?.url) {
+    try {
+      // Generar QR como imagen base64 localmente (sin depender de internet)
+      const qrDataUrl = await QRCode.toDataURL(radicado.qr.url, {
+        width: 200,
+        margin: 2,
+        color: { dark: '#1e3a5f', light: '#ffffff' }
+      });
+
+      let qrY = docPortada.lastAutoTable.finalY + 12;
+
+      // Si no cabe en la página actual, saltar a nueva
+      if (qrY > 220) {
+        docPortada.addPage();
+        qrY = 20;
+      }
+
+      // Título del QR
+      docPortada.setFontSize(12);
+      docPortada.setTextColor(30, 58, 95);
+      docPortada.text("Código QR de Verificación del Expediente", 14, qrY);
+
+      // Imagen del QR (50x50 mm)
+      docPortada.addImage(qrDataUrl, 'PNG', 14, qrY + 6, 50, 50);
+
+      // URL debajo del QR
+      docPortada.setFontSize(8);
+      docPortada.setTextColor(100);
+      docPortada.text(radicado.qr.url, 14, qrY + 60, { maxWidth: 180 });
+
+    } catch (err) {
+      console.error("Error generando QR para expediente:", err);
+    }
+  }
+
   const portadaBytes = docPortada.output('arraybuffer');
 
   // 2. Inicializar pdf-lib
   const mergedPdf = await PDFDocument.create();
   
-  // Añadir portada
+  // Añadir portada (ahora incluye el QR)
   const portadaDoc = await PDFDocument.load(portadaBytes);
   const portadaPages = await mergedPdf.copyPages(portadaDoc, portadaDoc.getPageIndices());
   portadaPages.forEach((page) => mergedPdf.addPage(page));
 
   // 3. Añadir anexos (solo PDFs)
   for (const url of anexosUrls) {
-    // Si la URL no termina explícitamente en .pdf, asumimos que puede serlo si viene del servidor
-    // Para mayor seguridad en la UI filtraremos antes.
     try {
       const fetchRes = await fetch(url, {
         headers: {
@@ -105,7 +142,6 @@ export async function generarExpedientePDF(radicado, flujo, trazabilidad, anexos
 
   // Trazabilidad
   if (trazabilidad && trazabilidad.length > 0) {
-    // Si no cabe en la página, forzar salto
     if (finalY > 230) {
       docFlujoTraza.addPage();
       finalY = 15;
@@ -120,7 +156,7 @@ export async function generarExpedientePDF(radicado, flujo, trazabilidad, anexos
       new Date(t.fecha).toLocaleString(),
       t.usuario_nombre || "Sistema",
       t.accion,
-      t.descripcion
+      t.descipcion || t.descripcion
     ]);
 
     autoTable(docFlujoTraza, {

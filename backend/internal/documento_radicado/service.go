@@ -95,7 +95,7 @@ func (s *Service) Create(dto CreateDTO, usuarioID uint) (*db.DocumentoRadicado, 
 
 		// ── 7. Crear QR ──
 		qr := db.CodigoQr{
-			Url:    fmt.Sprintf("https://sigefae.com/radicado/%s", numeroRadicado),
+			Url: fmt.Sprintf("http://localhost:5173/radicado/%s", numeroRadicado),
 			Activo: true,
 		}
 		if err := tx.Create(&qr).Error; err != nil {
@@ -523,4 +523,28 @@ func copyFile(src, dst string) error {
 
 	_, err = io.Copy(destination, source)
 	return err
+}
+
+func (s *Service) GetByNumeroRadicado(numero string) (*db.DocumentoRadicado, error) {
+    var radicado db.DocumentoRadicado
+    if err := s.db.
+        Preload("DocumentoComercial").
+        Preload("DocumentoComercial.Proveedor").
+        Preload("DocumentoComercial.Receptor").
+        Preload("DocumentoComercial.Moneda").
+        Preload("TipoRadicacion").
+        Preload("Ruta").
+        Preload("MetodoPago").
+        Preload("Estado").
+        Preload("PasoActual").
+        Preload("UsuarioActual").
+        Preload("Qr").
+        Where("numero_radicado = ?", numero).
+        First(&radicado).Error; err != nil {
+        if errors.Is(err, gorm.ErrRecordNotFound) {
+            return nil, errors.New("documento no encontrado")
+        }
+        return nil, err
+    }
+    return &radicado, nil
 }

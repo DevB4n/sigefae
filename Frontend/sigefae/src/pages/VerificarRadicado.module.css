@@ -1,0 +1,336 @@
+.page {
+  min-height: 100vh;
+  background: linear-gradient(160deg, #f8fafc 0%, #e2e8f0 50%, #cbd5e1 100%);
+  font-family: 'Inter', 'Segoe UI', system-ui, -apple-system, sans-serif;
+  display: flex;
+  justify-content: center;
+  padding: 48px 20px;
+  color: #1e293b;
+}
+
+.container {
+  width: 100%;
+  max-width: 720px;
+  animation: enter 0.5s ease-out;
+}
+
+@keyframes enter {
+  from { opacity: 0; transform: translateY(24px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* ── HEADER ─────────────────────────────── */
+.header {
+  text-align: center;
+  padding: 36px 28px;
+  background: linear-gradient(135deg, #1e3a5f 0%, #2c5282 60%, #1e3a5f 100%);
+  border-radius: 20px;
+  color: #fff;
+  margin-bottom: 28px;
+  box-shadow: 0 10px 40px rgba(30, 58, 95, 0.25);
+  position: relative;
+  overflow: hidden;
+}
+
+.header::after {
+  content: '';
+  position: absolute;
+  top: -40%;
+  right: -10%;
+  width: 260px;
+  height: 260px;
+  background: radial-gradient(circle, rgba(255, 194, 14, 0.12) 0%, transparent 70%);
+  pointer-events: none;
+}
+
+.brand {
+  font-size: 2.2rem;
+  font-weight: 800;
+  letter-spacing: -0.5px;
+  margin-bottom: 6px;
+  position: relative;
+}
+
+.brandAccent {
+  color: #ffc20e;
+}
+
+.subtitle {
+  font-size: 0.92rem;
+  opacity: 0.85;
+  font-weight: 400;
+  position: relative;
+}
+
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 20px;
+  padding: 10px 22px;
+  background: rgba(255, 255, 255, 0.12);
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  border-radius: 50px;
+  font-size: 0.88rem;
+  font-weight: 600;
+  backdrop-filter: blur(8px);
+}
+
+.badgeIcon {
+  width: 24px;
+  height: 24px;
+  background: #22c55e;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.75rem;
+  color: #fff;
+  box-shadow: 0 0 0 3px rgba(34, 197, 94, 0.25);
+}
+
+.badgeInvalid {
+  background: rgba(220, 38, 38, 0.15);
+  border-color: rgba(220, 38, 38, 0.3);
+}
+
+.badgeInvalid .badgeIcon {
+  background: #dc2626;
+  box-shadow: 0 0 0 3px rgba(220, 38, 38, 0.25);
+}
+
+/* ── CARDS ──────────────────────────────── */
+.card {
+  background: #fff;
+  border-radius: 16px;
+  padding: 28px;
+  margin-bottom: 20px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04), 0 4px 16px rgba(0, 0, 0, 0.03);
+  border: 1px solid #e2e8f0;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.06), 0 8px 24px rgba(30, 58, 95, 0.06);
+}
+
+.cardHeader {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 20px;
+  padding-bottom: 14px;
+  border-bottom: 2px solid #f1f5f9;
+}
+
+.cardIcon {
+  width: 40px;
+  height: 40px;
+  border-radius: 12px;
+  background: linear-gradient(135deg, #1e3a5f, #2c5282);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+  font-size: 1.1rem;
+  flex-shrink: 0;
+}
+
+.cardTitle {
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: #1e3a5f;
+  margin: 0;
+}
+
+/* ── GRID ───────────────────────────────── */
+.grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 20px;
+}
+
+@media (max-width: 640px) {
+  .grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+}
+
+.fieldLabel {
+  font-size: 0.7rem;
+  font-weight: 700;
+  color: #94a3b8;
+  text-transform: uppercase;
+  letter-spacing: 0.6px;
+}
+
+.fieldValue {
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: #1e293b;
+  line-height: 1.45;
+  word-break: break-word;
+  overflow-wrap: break-word;
+  hyphens: auto;
+}
+
+.fieldValueHighlight {
+  font-size: 1.1rem;
+  color: #1e3a5f;
+  font-weight: 700;
+}
+
+.fieldValueCurrency {
+  color: #059669;
+  font-weight: 700;
+  font-size: 1.05rem;
+}
+
+/* ── CUFE ───────────────────────────────── */
+.cufeBox {
+  background: linear-gradient(135deg, #fffbeb 0%, #fef3c7 100%);
+  border: 1px solid #fde68a;
+  border-radius: 12px;
+  padding: 20px;
+  margin-top: 8px;
+}
+
+.cufeHeader {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 12px;
+  color: #92400e;
+  font-weight: 700;
+  font-size: 0.95rem;
+}
+
+.cufeHeader i {
+  color: #f59e0b;
+  font-size: 1.2rem;
+}
+
+.cufeCode {
+  display: block;
+  padding: 14px;
+  background: #fff;
+  border-radius: 8px;
+  font-family: 'SF Mono', 'Courier New', monospace;
+  font-size: 0.78rem;
+  color: #78350f;
+  word-break: break-all;
+  line-height: 1.5;
+  border: 1px solid #fde68a;
+}
+
+.cufeNote {
+  margin-top: 12px;
+  font-size: 0.82rem;
+  color: #b45309;
+  line-height: 1.5;
+}
+
+/* ── ERROR ──────────────────────────────── */
+.errorBox {
+  text-align: center;
+  padding: 60px 40px;
+  background: #fff;
+  border-radius: 20px;
+  box-shadow: 0 8px 40px rgba(0, 0, 0, 0.08);
+  max-width: 480px;
+  margin: 0 auto;
+  border: 1px solid #fecaca;
+}
+
+.errorIcon {
+  width: 80px;
+  height: 80px;
+  margin: 0 auto 24px;
+  background: linear-gradient(135deg, #fee2e2, #fecaca);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 2.2rem;
+  color: #dc2626;
+}
+
+.errorTitle {
+  color: #991b1b;
+  font-size: 1.5rem;
+  margin-bottom: 8px;
+  font-weight: 700;
+}
+
+.errorText {
+  color: #7f1d1d;
+  font-size: 0.95rem;
+  margin-bottom: 4px;
+}
+
+.errorNumero {
+  display: inline-block;
+  margin-top: 16px;
+  padding: 8px 18px;
+  background: #fef2f2;
+  border-radius: 8px;
+  font-family: monospace;
+  font-size: 0.9rem;
+  color: #991b1b;
+  border: 1px dashed #fca5a5;
+  font-weight: 600;
+}
+
+/* ── LOADING ────────────────────────────── */
+.loading {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 100vh;
+  gap: 20px;
+  color: #1e3a5f;
+}
+
+.spinner {
+  width: 48px;
+  height: 48px;
+  border: 4px solid #e2e8f0;
+  border-top-color: #ffc20e;
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+/* ── FOOTER ─────────────────────────────── */
+.footer {
+  text-align: center;
+  padding: 24px;
+  color: #94a3b8;
+  font-size: 0.82rem;
+  font-weight: 500;
+}
+
+.footer strong {
+  color: #1e3a5f;
+}
+
+/* ── RESPONSIVE ─────────────────────────── */
+@media (max-width: 640px) {
+  .page { padding: 20px 16px; }
+  .header { padding: 28px 20px; }
+  .brand { font-size: 1.8rem; }
+  .card { padding: 22px; }
+  .grid { gap: 16px; }
+}

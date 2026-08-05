@@ -802,7 +802,6 @@ const handleDevolverTarea = async (tareaId, radicadoId) => {
               orden_compra: data.orden_compra || "",
               id_area: data.id_area || data.area?.id || "",
               asunto: data.asunto || "",
-              fecha_vencimiento: data.fecha_vencimiento ? data.fecha_vencimiento.split("T")[0] : "",
               orientacion_sello_recibido: data.orientacion_sello_recibido || "",
               numero_folios: data.numero_folios || 0,
             });
@@ -910,7 +909,6 @@ const handleDevolverTarea = async (tareaId, radicadoId) => {
       orden_compra: editForm.orden_compra || "",
       id_area: parseInt(editForm.id_area) || 0,
       asunto: editForm.asunto || "",
-      fecha_vencimiento: editForm.fecha_vencimiento ? new Date(editForm.fecha_vencimiento).toISOString() : null,
       orientacion_sello_recibido: editForm.orientacion_sello_recibido || "",
       numero_folios: parseInt(editForm.numero_folios) || 0,
     };
@@ -1256,10 +1254,6 @@ const handleDevolverTarea = async (tareaId, radicadoId) => {
                   <div className="doc-field"><label>Número Documento</label><span>{docDetail.numero_documento}</span></div>
                   <div className="doc-field"><label>Fecha Emisión</label><span>{new Date(docDetail.fecha_documento).toLocaleDateString()}</span></div>
                   <div className="doc-field">
-                    <label>Fecha Vencimiento</label>
-                    {isEditing ? <input type="date" name="fecha_vencimiento" value={editForm.fecha_vencimiento || ""} onChange={handleInputChange} className="doc-input" /> : <span>{docDetail.fecha_vencimiento ? new Date(docDetail.fecha_vencimiento).toLocaleDateString() : "—"}</span>}
-                  </div>
-                  <div className="doc-field">
                     <label>Área</label>
                     {isEditing ? <select name="id_area" value={editForm.id_area || ""} onChange={handleInputChange} className="doc-input"><option value="">Seleccione...</option>{areas.map(a => <option key={a.id} value={a.id}>{a.nombre}</option>)}</select> : <span>{docDetail.area?.nombre || "—"}</span>}
                   </div>
@@ -1574,10 +1568,17 @@ const handleDevolverTarea = async (tareaId, radicadoId) => {
               </>
             )}
 
-            {radicadoDetail.qr && (
-              <div className="doc-section">
-                <h4><i className="fa-solid fa-qrcode"></i> Código QR</h4>
-                <p style={{ fontSize: "0.85em", color: "#6b7280", wordBreak: "break-all" }}>{radicadoDetail.qr.url}</p>
+            {radicadoDetail.qr?.url && (
+              <div className="doc-section" style={{ textAlign: "center" }}>
+                <h4><i className="fa-solid fa-qrcode"></i> Código QR del Expediente</h4>
+                <img
+                  src={`https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=${encodeURIComponent(radicadoDetail.qr.url)}`}
+                  alt="Código QR"
+                  style={{ margin: "12px auto", display: "block", borderRadius: 8, border: "1px solid #e5e7eb" }}
+                />
+                <p style={{ fontSize: "0.75em", color: "#6b7280", wordBreak: "break-all", marginTop: 8 }}>
+                  {radicadoDetail.qr.url}
+                </p>
               </div>
             )}
           </div>
@@ -1805,10 +1806,17 @@ const handleDevolverTarea = async (tareaId, radicadoId) => {
                   </>
                 )}
 
-                {tareaDetail.qr && (
-                  <div className="doc-section">
-                    <h4><i className="fa-solid fa-qrcode"></i> Código QR</h4>
-                    <p style={{ fontSize: "0.85em", color: "#6b7280", wordBreak: "break-all" }}>{tareaDetail.qr.url}</p>
+                {tareaDetail.qr?.url && (
+                  <div className="doc-section" style={{ textAlign: "center" }}>
+                    <h4><i className="fa-solid fa-qrcode"></i> Código QR del Expediente</h4>
+                    <img
+                      src={`https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=${encodeURIComponent(tareaDetail.qr.url)}`}
+                      alt="Código QR"
+                      style={{ margin: "12px auto", display: "block", borderRadius: 8, border: "1px solid #e5e7eb" }}
+                    />
+                    <p style={{ fontSize: "0.75em", color: "#6b7280", wordBreak: "break-all", marginTop: 8 }}>
+                      {tareaDetail.qr.url}
+                    </p>
                   </div>
                 )}
               </div>
