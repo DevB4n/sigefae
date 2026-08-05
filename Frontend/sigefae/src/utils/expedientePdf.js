@@ -47,6 +47,31 @@ export async function generarExpedientePDF(radicado, flujo, trazabilidad, anexos
     headStyles: { fillColor: [41, 128, 185] } // Azul
   });
 
+    // ── NORMAS DE REPARTO ──
+  if (radicado.normas_reparto && radicado.normas_reparto.length > 0) {
+    const normasData = radicado.normas_reparto.map(n => [
+      n.norma_reparto?.codigo || n.codigo || "",
+      n.norma_reparto?.nombre || n.nombre || "",
+      n.norma_reparto?.sucursal || n.sucursal || "",
+      n.norma_reparto?.departamento || n.departamento || "",
+      `${parseFloat(n.porcentaje).toFixed(2)}%`
+    ]);
+
+    docPortada.addPage();
+    docPortada.setFontSize(14);
+    docPortada.text("Normas de Reparto", 14, 20);
+    
+    autoTable(docPortada, {
+      startY: 30,
+      head: [["Código", "Nombre", "Sede", "Área", "%"]],
+      body: normasData,
+      theme: 'grid',
+      headStyles: { fillColor: [200, 160, 30] },
+      styles: { fontSize: 9 },
+      columnStyles: { 4: { halign: 'right', fontStyle: 'bold' } }
+    });
+  }
+
   // ═══════════════════════════════════════════════════════════════
   // ═══ QR DE VERIFICACIÓN — SE AGREGA DESPUÉS DE LA TABLA ======
   // ═══════════════════════════════════════════════════════════════

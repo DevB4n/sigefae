@@ -63,6 +63,15 @@ export default function ProcesosLogistica() {
   //pdf
   const [pdfEditor, setPdfEditor] = useState({ open: false, archivoId: null, radicadoId: null });
 
+  //normas de reparto
+    // ── Filtros jerárquicos para normas en el modal de radicación ──
+  const [normaFiltroSede, setNormaFiltroSede] = useState("");
+  const [normaFiltroArea, setNormaFiltroArea] = useState("");
+  const [normaSeleccionadaId, setNormaSeleccionadaId] = useState("");
+  const [normaPorcentajeInput, setNormaPorcentajeInput] = useState("");
+  const [normasRepartoCatalogo, setNormasRepartoCatalogo] = useState([]);
+  const [normasRepartoRadicado, setNormasRepartoRadicado] = useState([]);
+
   // ── Catálogos Admin ──
   const [catalogoActivo, setCatalogoActivo] = useState("tipo-radicacion");
   const [catalogoItems, setCatalogoItems] = useState([]);
@@ -109,6 +118,7 @@ export default function ProcesosLogistica() {
     ruta_id: "",
     metodo_pago_id: "",
     numero_radicado: "",
+    normas_reparto: [],
   });
   const [radicando, setRadicando] = useState(false);
 
@@ -147,6 +157,12 @@ export default function ProcesosLogistica() {
 
   // ── Expediente PDF ──
   const [generandoPdf, setGenerandoPdf] = useState(false);
+  
+  
+  const totalPorcentajeNormas = (radicarForm.normas_reparto || []).reduce(
+    (sum, n) => sum + (parseFloat(n.porcentaje) || 0), 0
+  );
+
 
   // Cargar tareas e historial de trazabilidad cuando se selecciona un radicado o tarea
   useEffect(() => {
@@ -167,9 +183,18 @@ export default function ProcesosLogistica() {
         .then(r => r.json())
         .then(data => setHistorialTrazabilidad(Array.isArray(data) ? data : []))
         .catch(err => console.error(err));
-    } else {
+            // ── CARGAR NORMAS DE REPARTO ──
+      fetch(`${API}/documentoradicado/${radicadoId}/normas-reparto`, {
+        headers: { Authorization: `Bearer ${obtenerToken()}` }
+      })
+        .then(r => r.json())
+        .then(data => setNormasRepartoRadicado(Array.isArray(data) ? data : []))
+        .catch(() => setNormasRepartoRadicado([]));
+      }
+     else {
       setTareasFlujo([]);
       setHistorialTrazabilidad([]);
+      setNormasRepartoRadicado([]); 
     }
   }, [selectedRadicadoId, selectedTareaId]);
 
@@ -260,6 +285,55 @@ export default function ProcesosLogistica() {
     </div>
   );
 
+  //normas para modal normas de reparto
+    const sedesDisponibles = ["BUCARAMANGA", "MALAMBO", "CUCUTA", "CB", "CIENAGA DE ORO", "GENERAL"];
+  const areasDisponibles = ["ADMON", "VENTAS", "PRODUCCION"];
+
+  const normasFiltradas = normasRepartoCatalogo.filter(n => {
+    if (normaFiltroSede && n.sucursal !== normaFiltroSede) return false;
+    if (normaFiltroArea && n.departamento !== normaFiltroArea) return false;
+    return true;
+  });
+
+  const handleAgregarNormaModal = () => {
+    if (!normaSeleccionadaId || !normaPorcentajeInput) {
+      alert("Selecciona una norma y escribe el porcentaje");
+      return;
+    }
+    const pct = parseFloat(normaPorcentajeInput);
+    if (isNaN(pct) || pct <= 0) {
+      alert("Porcentaje inválido");
+      return;
+    }
+    const yaExiste = radicarForm.normas_reparto.find(n => n.norma_reparto_id === normaSeleccionadaId);
+    if (yaExiste) {
+      alert("Esta norma ya fue agregada");
+      return;
+    }
+    setRadicarForm(prev => ({
+      ...prev,
+      normas_reparto: [...prev.normas_reparto, {
+        norma_reparto_id: normaSeleccionadaId,
+        porcentaje: normaPorcentajeInput
+      }]
+    }));
+    setNormaSeleccionadaId("");
+    setNormaPorcentajeInput("");
+  };
+    const handleNormaRepartoChange = (index, field, value) => {
+    setRadicarForm(prev => {
+      const updated = [...prev.normas_reparto];
+      updated[index] = { ...updated[index], [field]: value };
+      return { ...prev, normas_reparto: updated };
+    });
+  };
+
+  const handleRemoveNormaReparto = (index) => {
+    setRadicarForm(prev => ({
+      ...prev,
+      normas_reparto: prev.normas_reparto.filter((_, i) => i !== index)
+    }));
+  };
   // ── Render Trazabilidad ──
   const renderTrazabilidad = () => (
     <div className="doc-section">
@@ -599,6 +673,7 @@ const handleDevolverTarea = async (tareaId, radicadoId) => {
     "rutas":           { endpoint: "rutas",           label: "Ruta",              method: "PUT",   fields: ["nombre", "area_id"] },
     "pasos-ruta":      { endpoint: "pasos-ruta",      label: "Paso de Ruta",      method: "PUT",   fields: ["ruta_id", "orden", "nombre", "usuario_id"] },
     "reglas-monto":    { endpoint: "regla-monto-ruta",label: "Regla de Monto", method: "PUT", fields: ["monto_minimo", "moneda_id", "posicion_insercion", "usuario_aprobador_id"] },
+    "normas-reparto":  {endpoint: "normas-reparto",label: "Norma de Reparto",method: "PUT",fields: ["codigo", "nombre", "sucursal", "departamento", "tipo", "tarifa_iva"]},
   };
 
   const loadCatalogo = async (tipo) => {
@@ -820,6 +895,7 @@ const handleDevolverTarea = async (tareaId, radicadoId) => {
         fetch(`${API}/tipo-radicacion`, { headers }).then(r => r.json()),
         fetch(`${API}/rutas`, { headers }).then(r => r.json()),
         fetch(`${API}/metodos-pago`, { headers }).then(r => r.json()),
+        fetch(`${API}/normas-reparto?activo=true`, { headers }).then(r => r.json()),
       ])
         .then(([a, tr, r, mp]) => {
           setAreas(Array.isArray(a) ? a : []);
@@ -966,12 +1042,18 @@ const handleDevolverTarea = async (tareaId, radicadoId) => {
     }
 
     setRadicando(true);
-    const payload = {
+        const payload = {
       documento_comercial_id: radicarDocId,
       tipo_radicacion_id: parseInt(radicarForm.tipo_radicacion_id),
       ruta_id: parseInt(radicarForm.ruta_id),
       metodo_pago_id: parseInt(radicarForm.metodo_pago_id),
       numero_radicado: radicarForm.numero_radicado?.trim() || "",
+      normas_reparto: (radicarForm.normas_reparto || [])
+        .filter(n => n.norma_reparto_id && n.porcentaje)
+        .map(n => ({
+          norma_reparto_id: parseInt(n.norma_reparto_id),
+          porcentaje: parseFloat(n.porcentaje)
+        })),
     };
 
     try {
@@ -1018,6 +1100,29 @@ const handleDevolverTarea = async (tareaId, radicadoId) => {
     }
   };
 
+
+    const renderNormasReparto = () => {
+    if (normasRepartoRadicado.length === 0) return null;
+    return (
+      <div className="doc-section">
+        <h4><i className="fa-solid fa-chart-pie"></i> Normas de Reparto ({normasRepartoRadicado.length})</h4>
+        <table className="doc-items-table">
+          <thead><tr><th>Código</th><th>Nombre</th><th>Sede</th><th>Área</th><th style={{ textAlign: "right" }}>%</th></tr></thead>
+          <tbody>
+            {normasRepartoRadicado.map((n) => (
+              <tr key={n.id}>
+                <td><strong>{n.norma_reparto?.codigo || n.codigo}</strong></td>
+                <td>{n.norma_reparto?.nombre || n.nombre}</td>
+                <td>{n.norma_reparto?.sucursal || n.sucursal}</td>
+                <td>{n.norma_reparto?.departamento || n.departamento}</td>
+                <td style={{ textAlign: "right", fontWeight: 700 }}>{parseFloat(n.porcentaje).toFixed(2)}%</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    );
+  };
 
     // ── Ver anexo en nueva pestaña (preview) ──
   const handleVerAnexo = async (archivoId, nombre) => {
@@ -1373,10 +1478,137 @@ const handleDevolverTarea = async (tareaId, radicadoId) => {
                 <label>Número de Radicado <small>(opcional, se autogenera si está vacío)</small></label>
                 <input type="text" name="numero_radicado" value={radicarForm.numero_radicado} onChange={handleRadicarChange} className="doc-input" placeholder="Ej: RAD-2026-00001" />
               </div>
+                            {/* ── NORMAS DE REPARTO JERÁRQUICAS ── */}
+              <div className="modal-field">
+                <label style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                  <span><i className="fa-solid fa-chart-pie"></i> Normas de Reparto</span>
+                  <span style={{ 
+                    fontSize: "0.8em", 
+                    color: totalPorcentajeNormas === 100 ? "#059669" : totalPorcentajeNormas > 0 ? "#dc2626" : "#6b7280",
+                    fontWeight: 700 
+                  }}>
+                    Total: {totalPorcentajeNormas.toFixed(2)}%
+                  </span>
+                </label>
+
+                {/* Filtros */}
+                <div style={{ display: "flex", gap: 8, marginBottom: 10 }}>
+                  <select
+                    className="doc-input"
+                    style={{ flex: 1 }}
+                    value={normaFiltroSede}
+                    onChange={(e) => { setNormaFiltroSede(e.target.value); setNormaFiltroArea(""); setNormaSeleccionadaId(""); }}
+                  >
+                    <option value="">Todas las sedes</option>
+                    {sedesDisponibles.map(s => <option key={s} value={s}>{s}</option>)}
+                  </select>
+                  <select
+                    className="doc-input"
+                    style={{ flex: 1 }}
+                    value={normaFiltroArea}
+                    onChange={(e) => { setNormaFiltroArea(e.target.value); setNormaSeleccionadaId(""); }}
+                    disabled={!normaFiltroSede}
+                  >
+                    <option value="">Todas las áreas</option>
+                    {areasDisponibles.map(a => <option key={a} value={a}>{a}</option>)}
+                  </select>
+                </div>
+
+                {/* Agregar norma */}
+                <div style={{ display: "flex", gap: 8, marginBottom: 10, alignItems: "center" }}>
+                  <select
+                    className="doc-input"
+                    style={{ flex: 2 }}
+                    value={normaSeleccionadaId}
+                    onChange={(e) => setNormaSeleccionadaId(e.target.value)}
+                    disabled={!normaFiltroSede || !normaFiltroArea}
+                  >
+                    <option value="">Seleccione norma...</option>
+                    {normasFiltradas.map(n => (
+                      <option key={n.id} value={String(n.id)}>
+                        {n.codigo} — {n.nombre}
+                      </option>
+                    ))}
+                  </select>
+                  <input
+                    type="number"
+                    min="0"
+                    max="100"
+                    step="0.01"
+                    placeholder="%"
+                    className="doc-input"
+                    style={{ flex: 0.6, textAlign: "right" }}
+                    value={normaPorcentajeInput}
+                    onChange={(e) => setNormaPorcentajeInput(e.target.value)}
+                  />
+                  <button
+                    className="doc-btn doc-btn-secondary"
+                    onClick={handleAgregarNormaModal}
+                    disabled={!normaSeleccionadaId || !normaPorcentajeInput}
+                    style={{ padding: "6px 12px", fontSize: "0.85em" }}
+                  >
+                    <i className="fa-solid fa-plus"></i> Agregar
+                  </button>
+                </div>
+
+                {/* Lista de normas agregadas */}
+                {radicarForm.normas_reparto.length === 0 ? (
+                  <p style={{ fontSize: "0.85em", color: "#6b7280" }}>No se han asignado normas de reparto.</p>
+                ) : (
+                  <div style={{ display: "flex", flexDirection: "column", gap: 6, marginBottom: 10 }}>
+                    {radicarForm.normas_reparto.map((norma, idx) => {
+                      const info = normasRepartoCatalogo.find(n => String(n.id) === norma.norma_reparto_id);
+                      return (
+                        <div key={idx} style={{ 
+                          display: "flex", 
+                          gap: 8, 
+                          alignItems: "center", 
+                          padding: "8px 10px", 
+                          background: "#f9fafb", 
+                          borderRadius: 6,
+                          border: "1px solid #e5e7eb"
+                        }}>
+                          <span style={{ flex: 2, fontSize: "0.85em", fontWeight: 600, color: "#1f2937" }}>
+                            {info ? `${info.codigo} — ${info.nombre}` : "Norma desconocida"}
+                          </span>
+                          <span style={{ flex: 1, fontSize: "0.8em", color: "#6b7280" }}>
+                            {info ? `${info.sucursal} / ${info.departamento}` : ""}
+                          </span>
+                          <input
+                            type="number"
+                            min="0"
+                            max="100"
+                            step="0.01"
+                            value={norma.porcentaje}
+                            onChange={(e) => handleNormaRepartoChange(idx, "porcentaje", e.target.value)}
+                            className="doc-input"
+                            style={{ width: 70, textAlign: "right", fontSize: "0.85em" }}
+                          />
+                          <span style={{ fontSize: "0.85em", fontWeight: 700 }}>%</span>
+                          <button
+                            className="btn-icon btn-toggle"
+                            onClick={() => handleRemoveNormaReparto(idx)}
+                            title="Quitar"
+                            style={{ width: 28, height: 28, flexShrink: 0 }}
+                          >
+                            <i className="fa-solid fa-xmark"></i>
+                          </button>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+
+                {totalPorcentajeNormas > 0 && totalPorcentajeNormas !== 100 && (
+                  <p style={{ fontSize: "0.8em", color: "#dc2626", marginTop: 4 }}>
+                    <i className="fa-solid fa-triangle-exclamation"></i> La suma de porcentajes debe ser exactamente 100%
+                  </p>
+                )}
+              </div>
             </div>
             <div className="modal-footer">
               <button className="doc-btn doc-btn-secondary" onClick={closeRadicarModal} disabled={radicando}>Cancelar</button>
-              <button className="doc-btn doc-btn-primary" onClick={handleRadicarSubmit} disabled={radicando}>
+              <button className="doc-btn doc-btn-primary" onClick={handleRadicarSubmit} disabled={radicando || (radicarForm.normas_reparto.length > 0 && totalPorcentajeNormas !== 100)}>
                 <i className="fa-solid fa-stamp"></i> {radicando ? "Radicando..." : "Confirmar Radicación"}
               </button>
             </div>
@@ -1527,7 +1759,9 @@ const handleDevolverTarea = async (tareaId, radicadoId) => {
             {renderFlujoAprobacion()}
 
             {renderTrazabilidad()}
-
+            
+            {renderNormasReparto()}
+            
             {/* ── Comentarios ── */}
             {renderComentarios(radicadoDetail.id,radicadoDetail.estado_posesion === "Completado")}
 
@@ -1766,7 +2000,7 @@ const handleDevolverTarea = async (tareaId, radicadoId) => {
                 {renderFlujoAprobacion()}
 
                 {renderTrazabilidad()}
-
+                {renderNormasReparto()}
                 {renderComentarios(tareaDetail.id,tareaDetail.estado_posesion === "Completado")}
 
                 <div className="doc-section">
@@ -1962,6 +2196,63 @@ const handleDevolverTarea = async (tareaId, radicadoId) => {
           </div>
         );
       }
+            if (field === "codigo") {
+        return (
+          <div className="modal-field" key={field} style={{ flex: 1 }}>
+            <label>Código <span className="required">*</span></label>
+            <input type="text" name={field} value={value} onChange={handleCatalogoFormChange} placeholder="Ej: BU101" />
+          </div>
+        );
+      }
+            if (field === "sucursal") {
+        const sucursales = ["BUCARAMANGA", "MALAMBO", "CUCUTA", "CB", "CIENAGA DE ORO", "GENERAL"];
+        return (
+          <div className="modal-field" key={field}>
+            <label>Sucursal <span className="required">*</span></label>
+            <select name={field} value={value} onChange={handleCatalogoFormChange}>
+              <option value="">Seleccione...</option>
+              {sucursales.map(s => <option key={s} value={s}>{s}</option>)}
+            </select>
+          </div>
+        );
+      }
+      if (field === "departamento") {
+        const depts = ["ADMON", "VENTAS", "PRODUCCION"];
+        return (
+          <div className="modal-field" key={field}>
+            <label>Departamento <span className="required">*</span></label>
+            <select name={field} value={value} onChange={handleCatalogoFormChange}>
+              <option value="">Seleccione...</option>
+              {depts.map(d => <option key={d} value={d}>{d}</option>)}
+            </select>
+          </div>
+        );
+      }
+      if (field === "tipo") {
+        return (
+          <div className="modal-field" key={field}>
+            <label>Tipo</label>
+            <select name={field} value={value} onChange={handleCatalogoFormChange}>
+              <option value="">Ninguno</option>
+              <option value="Servicio">Servicio</option>
+              <option value="Compra">Compra</option>
+            </select>
+          </div>
+        );
+      }
+      if (field === "tarifa_iva") {
+        return (
+          <div className="modal-field" key={field} style={{ maxWidth: 120 }}>
+            <label>Tarifa IVA</label>
+            <select name={field} value={value} onChange={handleCatalogoFormChange}>
+              <option value="">Ninguna</option>
+              <option value="19%">19%</option>
+              <option value="5%">5%</option>
+              <option value="0%">0%</option>
+            </select>
+          </div>
+        );
+      }
       return (
         <div className="modal-field" key={field} style={{ flex: 1 }}>
           <label>Nombre <span className="required">*</span></label>
@@ -1970,8 +2261,20 @@ const handleDevolverTarea = async (tareaId, radicadoId) => {
       );
     };
 
-    const getColumnLabel = (field) => {
-      const map = { nombre: "Nombre", tipo_pago: "Tipo de Pago", area: "Área", ruta: "Ruta", orden: "Orden", usuario: "Usuario" };
+        const getColumnLabel = (field) => {
+      const map = { 
+        nombre: "Nombre", 
+        codigo: "Código",
+        sucursal: "Sucursal",
+        departamento: "Depto",
+        tipo: "Tipo",
+        tarifa_iva: "Tarifa IVA",
+        tipo_pago: "Tipo de Pago", 
+        area: "Área", 
+        ruta: "Ruta", 
+        orden: "Orden", 
+        usuario: "Usuario" 
+      };
       return map[field] || field;
     };
 
@@ -1980,6 +2283,7 @@ const handleDevolverTarea = async (tareaId, radicadoId) => {
       if (field === "area_id") return item.area || "—";
       if (field === "ruta_id") return item.ruta || "—";
       if (field === "usuario_id") return item.usuario || "—";
+      if ((field === "tipo" || field === "tarifa_iva") && !item[field]) return "—";
       return item[field] !== undefined ? item[field] : "—";
     };
 
