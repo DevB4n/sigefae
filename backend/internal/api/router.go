@@ -237,6 +237,7 @@ func New(database *gorm.DB) *gin.Engine {
 		// tarea
 		protected.GET("/documentoradicado/:id/tareas", tareaHandler.ListByRadicado)
 		protected.PATCH("/tarea/:id/completar", tareaHandler.Completar)
+		protected.POST("/tarea/:id/devolver", tareaHandler.Devolver)
 		// moneda list
 		protected.GET("/monedas", monedaHandler.List)
 		// =========================

@@ -5,6 +5,7 @@
     --pardo-yellow-dark: #e6af0d;
     --log-orange:        #c05621;
     --log-orange-light:  #dd6b20;
+    --pardo-red:         #c53030;
     --sidebar-bg:        #2d3e50;
     --gray-50:           #f9fafb;
     --gray-100:          #f3f4f6;
@@ -727,6 +728,16 @@ body {
 .status-badge.radicado {
     background: #d1fae5;
     color: #065f46;
+}
+
+.status-badge.doc-rechazado {
+    background: #fee2e2;
+    color: #991b1b;
+}
+
+.status-badge.doc-devuelto {
+    background: #fef3c7;
+    color: #92400e;
 }
 
 /* ── CATÁLOGOS ───────────────────────────────────────── */

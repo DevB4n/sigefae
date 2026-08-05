@@ -18,3 +18,9 @@ type UpdateDTO struct {
 	FechaLimite       *time.Time `json:"fecha_limite"`
 	FechaFinalizacion *time.Time `json:"fecha_finalizacion"`
 }
+
+type DevolverDTO struct {
+	TareaDestinoID uint   `json:"tarea_destino_id" binding:"required"`
+	Observacion    string `json:"observacion" binding:"required"`
+	RetornoDirecto bool   `json:"retorno_directo"`
+}

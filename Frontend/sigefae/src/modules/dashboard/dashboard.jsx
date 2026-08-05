@@ -129,6 +129,15 @@ export default function ProcesosLogistica() {
     // ── Flujo de tareas del radicado ──
   const [tareasFlujo, setTareasFlujo] = useState([]);
 
+  // ── Devolución de Tareas ──
+  const [showDevolverModal, setShowDevolverModal] = useState(false);
+  const [devolverForm, setDevolverForm] = useState({
+    tarea_destino_id: "",
+    observacion: "",
+    retorno_directo: true
+  });
+  const [devolviendo, setDevolviendo] = useState(false);
+
   const [comentarios, setComentarios] = useState([]);
   const [nuevoComentario, setNuevoComentario] = useState("");
   const [enviandoComentario, setEnviandoComentario] = useState(false);
@@ -236,7 +245,8 @@ export default function ProcesosLogistica() {
                 <td>
                   <span className={`status-badge ${
                     t.estado?.nombre === "Completada" ? "radicado" :
-                    t.estado?.nombre === "En Proceso" ? "doc-pendiente" : ""
+                    t.estado?.nombre === "En Proceso" ? "doc-pendiente" :
+                    t.estado?.nombre === "Devuelta" ? "doc-rechazado" : ""
                   }`}>
                     {t.estado?.nombre || "Pendiente"}
                   </span>
@@ -411,7 +421,9 @@ export default function ProcesosLogistica() {
 );
 
   // ── Completar tarea ──
-      const handleCompletarTarea = async (tareaId, radicadoId) => {
+
+    // ── Completar tarea ──
+  const handleCompletarTarea = async (tareaId, radicadoId) => {
     try {
       const res = await fetch(`${API}/tarea/${tareaId}/completar`, {
         method: "PATCH",
@@ -473,6 +485,74 @@ export default function ProcesosLogistica() {
       alert("Error: " + err.message);
     }
   };
+  
+      // ── Devolver Tarea ──
+const handleDevolverTarea = async (tareaId, radicadoId) => {
+  if (!devolverForm.tarea_destino_id || !devolverForm.observacion.trim()) {
+    alert("Debe seleccionar un paso de destino y escribir un motivo de devolución.");
+    return;
+  }
+  setDevolviendo(true);
+  try {
+    const res = await fetch(`${API}/tarea/${tareaId}/devolver`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${obtenerToken()}`
+      },
+      body: JSON.stringify({
+        tarea_destino_id: parseInt(devolverForm.tarea_destino_id),
+        observacion: devolverForm.observacion.trim(),
+        retorno_directo: devolverForm.retorno_directo
+      })
+    });
+
+    if (!res.ok) {
+      const errData = await res.json();
+      throw new Error(errData.error || "Error al devolver la tarea");
+    }
+
+    // 1. Cerrar modal y limpiar formulario
+    setShowDevolverModal(false);
+    setDevolverForm({ tarea_destino_id: "", observacion: "", retorno_directo: true });
+
+    // 2. Limpiar selección para que el usuario ya no vea el detalle del documento devuelto
+    if (activeTab === "tareas") {
+      setSelectedTareaId(null);
+      setTareaDetail(null);
+    } else {
+      setSelectedRadicadoId(null);
+      setRadicadoDetail(null);
+    }
+    setTareasFlujo([]);
+    setHistorialTrazabilidad([]);
+    setComentarios([]);
+
+    // 3. Recargar la lista según la pestaña activa
+    const listaRes = await fetch(`${API}/documentoradicado`, {
+      headers: { Authorization: `Bearer ${obtenerToken()}` }
+    });
+    const listaData = await listaRes.json();
+
+    if (Array.isArray(listaData)) {
+      if (activeTab === "tareas") {
+        const activas = listaData.filter(r => r.usuario_actual_id === userId && r.estado_posesion !== "Completado");
+        const completadas = listaData.filter(r => r.estado_posesion === "Completado");
+        setMisTareas(activas);
+        setMisTareasCompletadas(completadas);
+      } else if (activeTab === "radicados") {
+        setRadicados(listaData);
+      }
+    }
+
+    alert("Tarea devuelta correctamente");
+
+  } catch (err) {
+    alert("Error: " + err.message);
+  } finally {
+    setDevolviendo(false);
+  }
+};
 
   // ── Enviar comentario ──
     const handleEnviarComentario = async (radicadoId) => {
@@ -1309,6 +1389,7 @@ export default function ProcesosLogistica() {
           </div>
         </div>
       )}
+
     </div>
   );
 
@@ -1329,10 +1410,12 @@ export default function ProcesosLogistica() {
             <div className="correo-item-status">
               <span className={`status-badge ${
                 rad.estado_posesion === "Completado" ? "radicado" :
-                rad.estado_posesion === "EnProceso" ? "doc-pendiente" : ""
+                rad.estado_posesion === "EnProceso" ? "doc-pendiente" :
+                rad.estado_posesion === "Devuelto" ? "doc-rechazado" : ""
               }`}>
                 {rad.estado_posesion === "Completado" ? "Finalizado" :
                  rad.estado_posesion === "EnProceso" ? "En Proceso" :
+                 rad.estado_posesion === "Devuelto" ? "Devuelto" :
                  rad.estado_posesion === "Libre" ? "Libre" : "En espera"}
               </span>
             </div>
@@ -1348,7 +1431,18 @@ export default function ProcesosLogistica() {
         <div className="doc-detail-content">
           <div className="doc-header">
             <div className="doc-header-top">
-              <h2>Radicado #{radicadoDetail.numero_radicado}</h2>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                <h2>Radicado #{radicadoDetail.numero_radicado}</h2>
+                <span className={`status-badge ${
+                  radicadoDetail.estado_posesion === "Completado" ? "radicado" :
+                  radicadoDetail.estado_posesion === "EnProceso" ? "doc-pendiente" :
+                  radicadoDetail.estado_posesion === "Devuelto" ? "doc-rechazado" : ""
+                }`}>
+                  {radicadoDetail.estado_posesion === "Completado" ? "Finalizado" :
+                   radicadoDetail.estado_posesion === "EnProceso" ? "En Proceso" :
+                   radicadoDetail.estado_posesion === "Devuelto" ? "Devuelto" : "Pendiente"}
+                </span>
+              </div>
               <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
                 <span className="doc-total">{
                 radicadoDetail.estado_posesion === "Completado" ? "Finalizado" :
@@ -1559,11 +1653,12 @@ export default function ProcesosLogistica() {
                 <div className="correo-item-status">
                   <span className={`status-badge ${
                     rad.estado_posesion === "Completado" ? "radicado" :
-                    rad.estado_posesion === "EnProceso" ? "doc-pendiente" : ""
+                    rad.estado_posesion === "EnProceso" ? "doc-pendiente" :
+                    rad.estado_posesion === "Devuelto" ? "doc-rechazado" : ""
                   }`}>
                     {rad.estado_posesion === "Completado" ? "Finalizado" :
                      rad.estado_posesion === "EnProceso" ? "En Proceso" :
-                     rad.estado_posesion === "Libre" ? "Libre" : "Sin estado"}
+                     rad.estado_posesion === "Devuelto" ? "Devuelto" : "Sin estado"}
                   </span>
                 </div>
               </div>
@@ -1580,7 +1675,18 @@ export default function ProcesosLogistica() {
             <div className="doc-detail-content">
               <div className="doc-header">
                 <div className="doc-header-top">
-                  <h2>Radicado #{tareaDetail.numero_radicado}</h2>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                    <h2>Radicado #{tareaDetail.numero_radicado}</h2>
+                    <span className={`status-badge ${
+                      tareaDetail.estado_posesion === "Completado" ? "radicado" :
+                      tareaDetail.estado_posesion === "EnProceso" ? "doc-pendiente" :
+                      tareaDetail.estado_posesion === "Devuelto" ? "doc-rechazado" : ""
+                    }`}>
+                      {tareaDetail.estado_posesion === "Completado" ? "Finalizado" :
+                       tareaDetail.estado_posesion === "EnProceso" ? "En Proceso" :
+                       tareaDetail.estado_posesion === "Devuelto" ? "Devuelto" : "Pendiente"}
+                    </span>
+                  </div>
                   <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
                     <span className="doc-total">{
                     tareaDetail.estado_posesion === "Completado" ? "Finalizado" :
@@ -1714,9 +1820,21 @@ export default function ProcesosLogistica() {
 
                   if (esResponsable && tareaDetail.estado_posesion !== "Completado") {
                     return (
-                      <button className="doc-btn doc-btn-primary" onClick={() => handleCompletarTarea(tareaActiva.id, tareaDetail.id)}>
-                        <i className="fa-solid fa-check"></i> Marcar como Completado
-                      </button>
+                      <>
+                        <button className="doc-btn doc-btn-primary" onClick={() => handleCompletarTarea(tareaActiva.id, tareaDetail.id)}>
+                          <i className="fa-solid fa-check"></i> Marcar como Completado
+                        </button>
+                        <button 
+                          className="doc-btn doc-btn-secondary" 
+                          onClick={() => {
+                            setDevolverForm({ tarea_destino_id: "", observacion: "", retorno_directo: true });
+                            setShowDevolverModal(true);
+                          }}
+                          style={{ borderColor: "var(--pardo-red)", color: "var(--pardo-red)" }}
+                        >
+                          <i className="fa-solid fa-reply"></i> Devolver
+                        </button>
+                      </>
                     );
                   }
                   if (tareaDetail.estado_posesion === "Completado") {
@@ -2053,7 +2171,81 @@ const editorPermitido =
           }
         }}
       />
-      )}  
+      )}
+
+      {/* ── Modal de Devolución (global, accesible desde cualquier tab) ── */}
+      {showDevolverModal && (
+        <div className="modal-overlay" onClick={() => setShowDevolverModal(false)}>
+          <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+            <div className="modal-header">
+              <h3><i className="fa-solid fa-reply"></i> Devolver Tarea</h3>
+              <button className="modal-close" onClick={() => setShowDevolverModal(false)}><i className="fa-solid fa-xmark"></i></button>
+            </div>
+            <div className="modal-body">
+              <div className="modal-field">
+                <label>Devolver a Paso / Usuario <span className="required">*</span></label>
+                <select
+                  value={devolverForm.tarea_destino_id}
+                  onChange={(e) => setDevolverForm(prev => ({ ...prev, tarea_destino_id: e.target.value }))}
+                  className="doc-input"
+                >
+                  <option value="">Seleccione paso de destino...</option>
+                  {tareasFlujo
+                    .filter(t => {
+                      const tareaEnProceso = tareasFlujo.find(x => x.estado?.nombre === "En Proceso");
+                      return t.estado?.nombre === "Completada" && t.id < (tareaEnProceso?.id || 999999);
+                    })
+                    .map(t => (
+                      <option key={t.id} value={t.id}>
+                        {t.descripcion} — {t.usuario_asignado?.nombre || "Sin usuario"} ({t.usuario_asignado?.email || ""})
+                        {" "} [Completada]
+                      </option>
+                    ))}
+                </select>
+              </div>
+
+              <div className="modal-field">
+                <label>Motivo de la Devolución <span className="required">*</span></label>
+                <textarea
+                  value={devolverForm.observacion}
+                  onChange={(e) => setDevolverForm(prev => ({ ...prev, observacion: e.target.value }))}
+                  className="doc-input"
+                  rows={3}
+                  placeholder="Describa claramente por qué devuelve esta tarea y qué debe ser corregido..."
+                  style={{ width: "100%", fontFamily: "inherit", resize: "vertical" }}
+                />
+              </div>
+
+              <div className="modal-field" style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 12 }}>
+                <input
+                  type="checkbox"
+                  id="retorno_directo"
+                  checked={devolverForm.retorno_directo}
+                  onChange={(e) => setDevolverForm(prev => ({ ...prev, retorno_directo: e.target.checked }))}
+                />
+                <label htmlFor="retorno_directo" style={{ fontSize: "0.9em", color: "#374151", cursor: "pointer", margin: 0 }}>
+                  Regresar directamente a mi paso una vez corregido (Smart Return)
+                </label>
+              </div>
+            </div>
+            <div className="modal-footer">
+              <button className="doc-btn doc-btn-secondary" onClick={() => setShowDevolverModal(false)} disabled={devolviendo}>Cancelar</button>
+              <button
+                className="doc-btn doc-btn-primary"
+                onClick={() => {
+                  const tareaActiva = tareasFlujo.find(t => t.estado?.nombre === "En Proceso");
+                  const radId = selectedRadicadoId || selectedTareaId;
+                  if (tareaActiva && radId) handleDevolverTarea(tareaActiva.id, radId);
+                }}
+                disabled={devolviendo}
+                style={{ background: "var(--pardo-red)", borderColor: "var(--pardo-red)" }}
+              >
+                <i className="fa-solid fa-reply"></i> {devolviendo ? "Devolviendo..." : "Confirmar Devolución"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </>
   );
 }

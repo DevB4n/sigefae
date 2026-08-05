@@ -29,12 +29,13 @@ func Connect(cfg *env.Env) (*gorm.DB, error) {
 	)
 
 	conn, err := gorm.Open(mysql.Open(dsn), &gorm.Config{
-		Logger: logger.New(
-			log.New(os.Stdout, "\r\n", log.LstdFlags),
-			logger.Config{
-				LogLevel: logger.Info,
-			},
-		),
+    DisableForeignKeyConstraintWhenMigrating: true, // <-- AÑADIR ESTA LÍNEA
+    Logger: logger.New(
+        log.New(os.Stdout, "\r\n", log.LstdFlags),
+        logger.Config{
+            LogLevel: logger.Info,
+        },
+    ),
 	})
 
 	if err != nil {

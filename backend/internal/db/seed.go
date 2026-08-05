@@ -40,6 +40,7 @@ func Seed(db *gorm.DB) error {
 		{ID: 1, Nombre: "Pendiente", Activo: true},
 		{ID: 2, Nombre: "En Proceso", Activo: true},
 		{ID: 3, Nombre: "Completada", Activo: true},
+		{ID: 4, Nombre: "Devuelta", Activo: true},
 	}
 	for _, estado := range estadosTarea {
 		if err := db.Where("id = ?", estado.ID).FirstOrCreate(&estado).Error; err != nil {

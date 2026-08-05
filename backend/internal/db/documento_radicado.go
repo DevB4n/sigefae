@@ -23,6 +23,8 @@ type DocumentoRadicado struct {
 	PasoActual             *PasoRuta                `gorm:"foreignKey:PasoActualID;references:ID" json:"paso_actual,omitempty"`
 	PasoPendienteRetornoID *uint                    `gorm:"column:paso_pendiente_retorno_id;index:idx_radicado_paso_retorno" json:"paso_pendiente_retorno_id,omitempty"`
 	PasoPendienteRetorno   *PasoRuta                `gorm:"foreignKey:PasoPendienteRetornoID;references:ID" json:"paso_pendiente_retorno,omitempty"`
+	TareaPendienteRetornoID *uint                   `gorm:"column:tarea_pendiente_retorno_id;index:idx_radicado_tarea_retorno" json:"tarea_pendiente_retorno_id,omitempty"`
+	TareaPendienteRetorno   *Tarea                  `gorm:"foreignKey:TareaPendienteRetornoID;references:ID" json:"tarea_pendiente_retorno,omitempty"`
 	EstadoID               uint                     `gorm:"column:estado_id;index:idx_radicado_estado" json:"estado_id"`
 	Estado                 *EstadoDocumentoRadicado `gorm:"foreignKey:EstadoID;references:ID" json:"estado,omitempty"`
 	UltimaActividad        *time.Time               `gorm:"column:ultima_actividad" json:"ultima_actividad"` // Puntero para evitar problemas de fecha cero
