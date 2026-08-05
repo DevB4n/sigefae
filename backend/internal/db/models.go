@@ -13,6 +13,7 @@ func BaseModels() []interface{} {
 		&DetalleDocumentoComercial{}, &TipoFactura{}, &TipoPago{},
 		&MetodoPago{}, &TipoRadicacion{}, &CodigoQr{},
 		&EstadoDocumentoRadicado{}, &EstadoTarea{},
+		&NormaReparto{}, 
 	}
 }
 
@@ -23,5 +24,6 @@ func CircularModels() []interface{} {
 		&Tarea{},
 		&Comentario{}, &Trazabilidad{}, &RegistroAprobacion{},
 		&Notificacion{}, &ReglaMontoRuta{},
+		&RadicadoNormaReparto{},
 	}
 }

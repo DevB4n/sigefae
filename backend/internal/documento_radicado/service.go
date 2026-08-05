@@ -25,6 +25,17 @@ func New(database *gorm.DB) *Service {
 func (s *Service) Create(dto CreateDTO, usuarioID uint) (*db.DocumentoRadicado, error) {
 	var radicado db.DocumentoRadicado
 
+	// Validar normas de reparto
+	if len(dto.NormasReparto) > 0 {
+		var total float64
+		for _, n := range dto.NormasReparto {
+			total += n.Porcentaje
+		}
+		if total != 100 {
+			return nil, errors.New("la suma de porcentajes de normas de reparto debe ser exactamente 100%")
+		}
+	}
+
 	err := s.db.Transaction(func(tx *gorm.DB) error {
 		// ── 1. Validar que el documento comercial existe ──
 		var docCom db.DocumentoComercial
@@ -34,7 +45,7 @@ func (s *Service) Create(dto CreateDTO, usuarioID uint) (*db.DocumentoRadicado, 
 			}
 			return err
 		}
-
+		
 		// ── 2. Validar que NO esté ya radicado ──
 		var existing db.DocumentoRadicado
 		if err := tx.Where("documento_comercial_id = ?", dto.DocumentoComercialID).First(&existing).Error; err == nil {
@@ -142,6 +153,18 @@ func (s *Service) Create(dto CreateDTO, usuarioID uint) (*db.DocumentoRadicado, 
 			fmt.Printf("[RADICADO %s] info: documento comercial %d no tiene correo_id\n", radicado.NumeroRadicado, dto.DocumentoComercialID)
 		}
 
+		// Crear normas de reparto
+		for _, n := range dto.NormasReparto {
+			nr := db.RadicadoNormaReparto{
+				DocumentoRadicadoID: radicado.ID,
+				NormaRepartoID:      n.NormaRepartoID,
+				Porcentaje:          n.Porcentaje,
+			}
+			if err := tx.Create(&nr).Error; err != nil {
+				return err
+			}
+		}
+
 		return nil
 	})
 
@@ -167,6 +190,8 @@ func (s *Service) Create(dto CreateDTO, usuarioID uint) (*db.DocumentoRadicado, 
 		Preload("Qr").
 		Preload("Archivos").
 		Preload("Archivos.Origen").
+		Preload("NormasReparto").
+		Preload("NormasReparto.NormaReparto").
 		First(&radicado, radicado.ID).Error; err != nil {
 		return nil, err
 	}
@@ -188,6 +213,8 @@ func (s *Service) List() ([]db.DocumentoRadicado, error) {
 		Preload("UsuarioActual").
 		Preload("Archivos").
 		Preload("Qr").
+		Preload("NormasReparto").
+		Preload("NormasReparto.NormaReparto").
 		Order("fecha_radicacion DESC").
 		Find(&radicados).Error; err != nil {
 		return nil, err
@@ -209,6 +236,8 @@ func (s *Service) GetByID(id uint) (*db.DocumentoRadicado, error) {
 		Preload("UsuarioActual").
 		Preload("Archivos").
 		Preload("Qr").
+		Preload("NormasReparto").
+		Preload("NormasReparto.NormaReparto").
 		First(&radicado, id).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, errors.New("documento radicado no encontrado")
@@ -271,6 +300,8 @@ func (s *Service) Update(id uint, dto UpdateDTO) (*db.DocumentoRadicado, error) 
 		Preload("UsuarioActual").
 		Preload("Archivos").
 		Preload("Qr").
+		Preload("NormasReparto").
+		Preload("NormasReparto.NormaReparto").
 		First(&radicado, id).Error; err != nil {
 		return nil, err
 	}
@@ -539,6 +570,8 @@ func (s *Service) GetByNumeroRadicado(numero string) (*db.DocumentoRadicado, err
         Preload("PasoActual").
         Preload("UsuarioActual").
         Preload("Qr").
+        Preload("NormasReparto").
+        Preload("NormasReparto.NormaReparto").
         Where("numero_radicado = ?", numero).
         First(&radicado).Error; err != nil {
         if errors.Is(err, gorm.ErrRecordNotFound) {
@@ -547,4 +580,42 @@ func (s *Service) GetByNumeroRadicado(numero string) (*db.DocumentoRadicado, err
         return nil, err
     }
     return &radicado, nil
+}
+
+func (s *Service) GetNormasReparto(radicadoID uint) ([]db.RadicadoNormaReparto, error) {
+	var normas []db.RadicadoNormaReparto
+	if err := s.db.Where("documento_radicado_id = ?", radicadoID).
+		Preload("NormaReparto").
+		Find(&normas).Error; err != nil {
+		return nil, err
+	}
+	return normas, nil
+}
+
+func (s *Service) AsignarNormasReparto(radicadoID uint, dtos []NormaRepartoInputDTO) error {
+	return s.db.Transaction(func(tx *gorm.DB) error {
+		var total float64
+		for _, d := range dtos {
+			total += d.Porcentaje
+		}
+		if total != 100 {
+			return errors.New("la suma de porcentajes debe ser exactamente 100%")
+		}
+
+		if err := tx.Where("documento_radicado_id = ?", radicadoID).Delete(&db.RadicadoNormaReparto{}).Error; err != nil {
+			return err
+		}
+
+		for _, d := range dtos {
+			nr := db.RadicadoNormaReparto{
+				DocumentoRadicadoID: radicadoID,
+				NormaRepartoID:      d.NormaRepartoID,
+				Porcentaje:          d.Porcentaje,
+			}
+			if err := tx.Create(&nr).Error; err != nil {
+				return err
+			}
+		}
+		return nil
+	})
 }

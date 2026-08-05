@@ -160,3 +160,36 @@ func (h *Handler) VerificarPublico(c *gin.Context) {
 
     c.JSON(http.StatusOK, response)
 }
+func (h *Handler) GetNormasReparto(c *gin.Context) {
+	id, err := strconv.ParseUint(c.Param("id"), 10, 64)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "id inválido"})
+		return
+	}
+	normas, err := h.service.GetNormasReparto(uint(id))
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+	c.JSON(http.StatusOK, normas)
+}
+
+func (h *Handler) AsignarNormasReparto(c *gin.Context) {
+	id, err := strconv.ParseUint(c.Param("id"), 10, 64)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "id inválido"})
+		return
+	}
+	var dto struct {
+		Normas []NormaRepartoInputDTO `json:"normas" binding:"required,dive"`
+	}
+	if err := c.ShouldBindJSON(&dto); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+	if err := h.service.AsignarNormasReparto(uint(id), dto.Normas); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"message": "normas asignadas correctamente"})
+}

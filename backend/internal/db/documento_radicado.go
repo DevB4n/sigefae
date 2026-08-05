@@ -30,6 +30,7 @@ type DocumentoRadicado struct {
 	UltimaActividad        *time.Time               `gorm:"column:ultima_actividad" json:"ultima_actividad"` // Puntero para evitar problemas de fecha cero
 	QrID                   uint                     `gorm:"column:qr_id;index:idx_radicado_qr" json:"qr_id"`
 	Qr                     *CodigoQr                `gorm:"foreignKey:QrID;references:ID" json:"qr,omitempty"`
+	NormasReparto 			[]RadicadoNormaReparto `gorm:"foreignKey:DocumentoRadicadoID" json:"normas_reparto,omitempty"`
 	MetodoPagoID           uint                     `gorm:"column:metodo_pago_id;index:idx_radicado_metodo_pago" json:"metodo_pago_id"`
 	MetodoPago             *MetodoPago              `gorm:"foreignKey:MetodoPagoID;references:ID" json:"metodo_pago,omitempty"`
 	Archivos               []Archivo                `gorm:"foreignKey:DocumentoRadicadoID" json:"archivos,omitempty"` // Los archivos pertenecen al Expediente!

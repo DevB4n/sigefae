@@ -142,6 +142,12 @@ func Seed(db *gorm.DB) error {
 	if err := db.Where("id = ?", origenSistema.ID).FirstOrCreate(&origenSistema).Error; err != nil {
 		return err
 	}
+	// ==========================
+	// Normas de Reparto
+	// ==========================
+	if err := SeedNormasReparto(db); err != nil {
+		return err
+	}
 
 	return nil
 }

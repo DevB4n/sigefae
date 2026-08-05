@@ -46,6 +46,7 @@ import (
 	"sigefae/internal/trazabilidad"
 	"sigefae/internal/user"
 	"sigefae/internal/regla_monto_ruta"
+	"sigefae/internal/norma_reparto"
 )
 
 func New(database *gorm.DB) *gin.Engine {
@@ -216,6 +217,9 @@ func New(database *gorm.DB) *gin.Engine {
 	reglaMontoRutaService := regla_monto_ruta.New(database)
 	reglaMontoRutaHandler := regla_monto_ruta.NewHandler(reglaMontoRutaService)
 
+	normaRepartoService := norma_reparto.New(database)
+	normaRepartoHandler := norma_reparto.NewHandler(normaRepartoService)
+
 	api := router.Group("/api")
 	{
 		api.POST("/auth/login", authHandler.Login)
@@ -232,7 +236,7 @@ func New(database *gorm.DB) *gin.Engine {
 		protected.GET("/documentoradicado", documentoRadicadoHandler.List)
 		protected.GET("/documentoradicado/:id", documentoRadicadoHandler.GetByID)
 		// ── Cualquier usuario logueado puede subir/leer anexos ──
-		protected.POST("/documentoradicado/:documento_radicado_id/anexos", archivoHandler.UploadAnexo)
+		protected.POST("/documentoradicado/:id/anexos", archivoHandler.UploadAnexo)
 		protected.GET("/archivo", archivoHandler.List)
 		protected.GET("/archivo/:id/download", archivoHandler.Download)
 		// tarea
@@ -260,6 +264,9 @@ func New(database *gorm.DB) *gin.Engine {
 		protected.POST("/notificacion", notificacionHandler.Create)
 		protected.GET("/notificacion/mias", notificacionHandler.ListByUsuario)
 		protected.PATCH("/notificacion/:id/leida", notificacionHandler.MarkAsRead)
+
+		protected.GET("/documentoradicado/:id/normas-reparto", documentoRadicadoHandler.GetNormasReparto)
+	protected.POST("/documentoradicado/:id/normas-reparto", documentoRadicadoHandler.AsignarNormasReparto)
 
 		protected.GET("/me", func(c *gin.Context) {
 			user := c.MustGet("user").(db.Usuario)
@@ -568,6 +575,14 @@ func New(database *gorm.DB) *gin.Engine {
 			admin.PUT("/regla-monto-ruta/:id", reglaMontoRutaHandler.Update)
 			admin.PATCH("/regla-monto-ruta/:id/activo", reglaMontoRutaHandler.UpdateStatus)
 			admin.DELETE("/regla-monto-ruta/:id", reglaMontoRutaHandler.Delete)
+
+			// Normas de Reparto
+			admin.POST("/normas-reparto", normaRepartoHandler.Create)
+			admin.GET("/normas-reparto", normaRepartoHandler.List)
+			admin.GET("/normas-reparto/:id", normaRepartoHandler.GetByID)
+			admin.PUT("/normas-reparto/:id", normaRepartoHandler.Update)
+			admin.PATCH("/normas-reparto/:id/activo", normaRepartoHandler.UpdateStatus)
+
 			
 		}
 	}

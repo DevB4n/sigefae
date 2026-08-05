@@ -165,7 +165,7 @@ func (h *Handler) Delete(c *gin.Context) {
 	}
 }
 func (h *Handler) UploadAnexo(c *gin.Context) {
-    docID, err := strconv.ParseUint(c.Param("documento_radicado_id"), 10, 64)
+    radicadoID, err := strconv.ParseUint(c.Param("id"), 10, 64)
     if err != nil {
         c.JSON(http.StatusBadRequest, gin.H{"error": "id de documento radicado inválido"})
         return
@@ -177,10 +177,9 @@ func (h *Handler) UploadAnexo(c *gin.Context) {
         return
     }
 
-    // Ruta base donde guardar (ajústala a tu proyecto)
     rutaBase := "storage"
 
-    response, err := h.service.UploadAnexo(uint(docID), fileHeader, rutaBase)
+    response, err := h.service.UploadAnexo(uint(radicadoID), fileHeader, rutaBase)
     if err != nil {
         c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
         return
@@ -189,7 +188,7 @@ func (h *Handler) UploadAnexo(c *gin.Context) {
     user, hasUser := c.Get("user")
     if hasUser {
         h.db.Create(&db.Trazabilidad{
-            DocumentoRadicadoID: uint(docID),
+            DocumentoRadicadoID: uint(radicadoID),
             UsuarioID:           user.(db.Usuario).ID,
             Accion:              "Archivo Subido",
             Descripcion:         "Se adjuntó el archivo: " + fileHeader.Filename,
