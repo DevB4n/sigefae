@@ -18,7 +18,6 @@ func New(database *gorm.DB) *Service {
 		db: database,
 	}
 }
-
 func (s *Service) Create(dto CreateDTO) (*Response, error) {
 
 	// ==========================
@@ -124,7 +123,7 @@ func (s *Service) Create(dto CreateDTO) (*Response, error) {
 	}
 
 	// ==========================
-	// Validar proveedor + documento
+	// Validar proveedor + documento (duplicado)
 	// ==========================
 
 	var existing db.DocumentoComercial
@@ -188,8 +187,10 @@ func (s *Service) Create(dto CreateDTO) (*Response, error) {
 	}
 
 	// ==========================
-	// Crear documento
+	// Crear documento + detalles en transacción
 	// ==========================
+
+	tx := s.db.Begin()
 
 	documento := db.DocumentoComercial{
 		Tipo:                     dto.Tipo,
@@ -213,10 +214,25 @@ func (s *Service) Create(dto CreateDTO) (*Response, error) {
 		Activo:                   dto.Activo,
 	}
 
-	if err := s.db.Create(&documento).Error; err != nil {
+	if err := tx.Create(&documento).Error; err != nil {
+		tx.Rollback()
 		return nil, err
 	}
 
+	// ── Crear detalles ──
+	for i := range dto.Detalles {
+		det := dto.Detalles[i]
+		det.DocumentoComercialID = documento.ID
+		det.Activo = true
+		if err := tx.Create(&det).Error; err != nil {
+			tx.Rollback()
+			return nil, err
+		}
+	}
+
+	tx.Commit()
+
+	// Recargar con relaciones
 	if err := s.db.
 		Preload("Proveedor").
 		Preload("Receptor").
@@ -224,6 +240,7 @@ func (s *Service) Create(dto CreateDTO) (*Response, error) {
 		Preload("TipoFactura").
 		Preload("Moneda").
 		Preload("Correo").
+		Preload("Detalles").
 		First(&documento, documento.ID).Error; err != nil {
 
 		return nil, err

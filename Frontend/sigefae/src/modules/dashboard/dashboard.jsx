@@ -63,6 +63,27 @@ export default function ProcesosLogistica() {
   //pdf
   const [pdfEditor, setPdfEditor] = useState({ open: false, archivoId: null, radicadoId: null });
 
+    // ── Crear Documento Manual ──
+  const [showCrearDocModal, setShowCrearDocModal] = useState(false);
+  const [docForm, setDocForm] = useState({
+    tipo: "FACTURA_FISICA",
+    numero_documento: "",
+    id_proveedor: "",
+    id_receptor: "",
+    id_area: "",
+    tipo_factura_id: "",
+    asunto: "",
+    fecha_documento: new Date().toISOString().split("T")[0],
+    moneda_id: "",
+    subtotal: 0,
+    iva: 0,
+    total: 0,
+    detalles: []
+  });
+  const [proveedoresCatalogo, setProveedoresCatalogo] = useState([]);
+  const [receptoresCatalogo, setReceptoresCatalogo] = useState([]);
+  const [creandoDoc, setCreandoDoc] = useState(false);
+
   //normas de reparto
     // ── Filtros jerárquicos para normas en el modal de radicación ──
   const [normaFiltroSede, setNormaFiltroSede] = useState("");
@@ -98,13 +119,7 @@ export default function ProcesosLogistica() {
   const [docDetail, setDocDetail] = useState(null);
   const [loadingDocs, setLoadingDocs] = useState(false);
 
-  // ── Edición de Documento ──
-  const [isEditing, setIsEditing] = useState(false);
-  const [editForm, setEditForm] = useState({});
-  const [saving, setSaving] = useState(false);
-
   // ── Catálogos ──
-  const [areas, setAreas] = useState([]);
   const [tiposRadicacion, setTiposRadicacion] = useState([]);
   const [rutas, setRutas] = useState([]);
   const [metodosPago, setMetodosPago] = useState([]);
@@ -216,6 +231,35 @@ export default function ProcesosLogistica() {
     }
   };
 
+    // Cargar catálogos necesarios para crear documento manual
+  useEffect(() => {
+    if (activeTab !== "documentos") return;
+    const headers = { Authorization: `Bearer ${obtenerToken()}` };
+
+    fetch(`${API}/proveedor`, { headers })
+      .then(r => r.json())
+      .then(d => setProveedoresCatalogo(Array.isArray(d) ? d : []))
+      .catch(() => setProveedoresCatalogo([]));
+
+    fetch(`${API}/receptor`, { headers })
+      .then(r => r.json())
+      .then(d => setReceptoresCatalogo(Array.isArray(d) ? d : []))
+      .catch(() => setReceptoresCatalogo([]));
+
+    if (areasCatalogo.length === 0) {
+      fetch(`${API}/areas`, { headers })
+        .then(r => r.json())
+        .then(d => setAreasCatalogo(Array.isArray(d) ? d : []))
+        .catch(() => {});
+    }
+    if (monedasCatalogo.length === 0) {
+      fetch(`${API}/monedas`, { headers })
+        .then(r => r.json())
+        .then(d => setMonedasCatalogo(Array.isArray(d) ? d : []))
+        .catch(() => {});
+    }
+  }, [activeTab]);
+
     // ── Cargar comentarios del radicado ──
   useEffect(() => {
     const radicadoId = activeTab === "tareas" ? selectedTareaId :
@@ -244,6 +288,137 @@ export default function ProcesosLogistica() {
 
     return () => { cancelled = true; };
   }, [activeTab, selectedRadicadoId, selectedTareaId]);
+
+
+    const openCrearDocModal = () => {
+    setSelectedDocId(null);
+    setDocDetail(null);
+    setDocForm({
+      tipo: "FACTURA_FISICA",
+      numero_documento: "",
+      orden_compra: "",
+      id_proveedor: "",
+      id_receptor: "",
+      id_area: "",
+      tipo_factura_id: "",
+      asunto: "",
+      fecha_documento: new Date().toISOString().split("T")[0],
+      fecha_vencimiento: "",
+      moneda_id: "",
+      subtotal: 0,
+      iva: 0,
+      total: 0,
+      numero_folios: 1,
+      detalles: []
+    });
+    setShowCrearDocModal(true);
+  };
+
+  const recalcularTotales = (detalles) => {
+    const subtotal = detalles.reduce((s, d) => s + (parseFloat(d.valor_unitario) || 0) * (parseFloat(d.cantidad) || 0), 0);
+    const iva = detalles.reduce((s, d) => s + (parseFloat(d.iva_unitario) || 0) * (parseFloat(d.cantidad) || 0), 0);
+    return { subtotal, iva, total: subtotal + iva };
+  };
+
+  const handleDocFormChange = (e) => {
+    const { name, value } = e.target;
+    setDocForm(prev => ({ ...prev, [name]: value }));
+  };
+
+  const handleAddDetalle = () => {
+    setDocForm(prev => {
+      const detalles = [...prev.detalles, { descripcion: "", cantidad: 1, valor_unitario: 0, iva_unitario: 0, total: 0 }];
+      const t = recalcularTotales(detalles);
+      return { ...prev, detalles, ...t };
+    });
+  };
+
+  const handleDetalleChange = (idx, field, value) => {
+    setDocForm(prev => {
+      const detalles = prev.detalles.map((d, i) => {
+        if (i !== idx) return d;
+        const upd = { ...d, [field]: field === "descripcion" ? value : parseFloat(value) || 0 };
+        upd.total = ((upd.valor_unitario || 0) + (upd.iva_unitario || 0)) * (upd.cantidad || 0);
+        return upd;
+      });
+      const t = recalcularTotales(detalles);
+      return { ...prev, detalles, ...t };
+    });
+  };
+
+  const handleRemoveDetalle = (idx) => {
+    setDocForm(prev => {
+      const detalles = prev.detalles.filter((_, i) => i !== idx);
+      const t = recalcularTotales(detalles);
+      return { ...prev, detalles, ...t };
+    });
+  };
+
+  const handleCrearDocumentoSubmit = async () => {
+    if (!docForm.numero_documento || !docForm.id_proveedor || !docForm.id_receptor || !docForm.id_area || !docForm.moneda_id || !docForm.fecha_documento) {
+      alert("Complete todos los campos obligatorios (*)");
+      return;
+    }
+    if (docForm.detalles.length === 0) {
+      alert("Agregue al menos un ítem al documento");
+      return;
+    }
+
+    setCreandoDoc(true);
+    const payload = {
+      tipo: docForm.tipo,
+      numero_documento: docForm.numero_documento.trim(),
+      orden_compra: "",
+      id_proveedor: parseInt(docForm.id_proveedor),
+      id_receptor: parseInt(docForm.id_receptor),
+      id_area: parseInt(docForm.id_area),
+      tipo_factura_id: docForm.tipo_factura_id ? parseInt(docForm.tipo_factura_id) : null,
+      asunto: docForm.asunto.trim(),
+      fecha_documento: docForm.fecha_documento + "T00:00:00Z",
+      fecha_vencimiento: null,
+      moneda_id: parseInt(docForm.moneda_id),
+      subtotal: parseFloat(docForm.subtotal) || 0,
+      iva: parseFloat(docForm.iva) || 0,
+      total: parseFloat(docForm.total) || 0,
+      numero_folios: 1,
+      orientacion_sello_recibido: "",
+      activo: true,
+      detalles: docForm.detalles.map(d => ({
+        descripcion: d.descripcion,
+        cantidad: parseFloat(d.cantidad) || 0,
+        valor_unitario: parseFloat(d.valor_unitario) || 0,
+        iva_unitario: parseFloat(d.iva_unitario) || 0,
+        total: parseFloat(d.total) || 0
+      }))
+    };
+
+    try {
+      const res = await fetch(`${API}/documentocomercial`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${obtenerToken()}`
+        },
+        body: JSON.stringify(payload)
+      });
+      if (!res.ok) {
+        const err = await res.json();
+        throw new Error(err.error || "Error creando documento");
+      }
+      alert("Documento creado correctamente");
+      setShowCrearDocModal(false);
+      // Refrescar lista de pendientes
+      setLoadingDocs(true);
+      fetch(`${API}/documentocomercial/pendientes`, { headers: { Authorization: `Bearer ${obtenerToken()}` } })
+        .then(r => r.json())
+        .then(data => { if (Array.isArray(data)) setDocumentos(data); })
+        .finally(() => setLoadingDocs(false));
+    } catch (err) {
+      alert("Error: " + err.message);
+    } finally {
+      setCreandoDoc(false);
+    }
+  };
 
   const renderFlujoAprobacion = () => (
     <div className="doc-section">
@@ -559,6 +734,8 @@ export default function ProcesosLogistica() {
       alert("Error: " + err.message);
     }
   };
+
+  
   
       // ── Devolver Tarea ──
 const handleDevolverTarea = async (tareaId, radicadoId) => {
@@ -863,50 +1040,41 @@ const handleDevolverTarea = async (tareaId, radicadoId) => {
     }
   }, [activeTab]);
 
-  // Cargar detalle del documento
+    // Cargar detalle del documento
   useEffect(() => {
     if (selectedDocId) {
       setDocDetail(null);
-      setIsEditing(false);
       fetch(`${API}/documentocomercial/${selectedDocId}`, { headers: { Authorization: `Bearer ${obtenerToken()}` } })
         .then((res) => res.json())
         .then((data) => {
           if (data && data.id) {
             setDocDetail(data);
-            setEditForm({
-              orden_compra: data.orden_compra || "",
-              id_area: data.id_area || data.area?.id || "",
-              asunto: data.asunto || "",
-              orientacion_sello_recibido: data.orientacion_sello_recibido || "",
-              numero_folios: data.numero_folios || 0,
-            });
           }
         })
         .catch((err) => console.error(err));
     }
   }, [selectedDocId]);
 
+
   // Cargar catálogos cuando entra en modo edición o radicación
   useEffect(() => {
-    if (isEditing || showRadicarModal) {
+    if (showRadicarModal) {
       const headers = { Authorization: `Bearer ${obtenerToken()}` };
       Promise.all([
-        fetch(`${API}/areas`, { headers }).then(r => r.json()),
         fetch(`${API}/tipo-radicacion`, { headers }).then(r => r.json()),
         fetch(`${API}/rutas`, { headers }).then(r => r.json()),
         fetch(`${API}/metodos-pago`, { headers }).then(r => r.json()),
         fetch(`${API}/normas-reparto?activo=true`, { headers }).then(r => r.json()),
       ])
-        .then(([a, tr, r, mp, nr]) => {
-          setAreas(Array.isArray(a) ? a : []);
+        .then(([tr, r, mp, nr]) => {
           setTiposRadicacion(Array.isArray(tr) ? tr : []);
           setRutas(Array.isArray(r) ? r : []);
           setMetodosPago(Array.isArray(mp) ? mp : []);
-          setNormasRepartoCatalogo(Array.isArray(nr) ? nr : []);   // ← AGREGAR
+          setNormasRepartoCatalogo(Array.isArray(nr) ? nr : []);
         })
         .catch(err => console.error("Error cargando catálogos:", err));
     }
-  }, [isEditing, showRadicarModal]);
+  }, [showRadicarModal]);
 
   // Cargar radicados
   useEffect(() => {
@@ -920,13 +1088,27 @@ const handleDevolverTarea = async (tareaId, radicadoId) => {
     }
   }, [activeTab]);
 
-  // Cargar detalle de radicado
+    // Cargar detalle de radicado (con área completa de la ruta)
   useEffect(() => {
     if (selectedRadicadoId) {
       setRadicadoDetail(null);
       fetch(`${API}/documentoradicado/${selectedRadicadoId}`, { headers: { Authorization: `Bearer ${obtenerToken()}` } })
         .then((res) => res.json())
-        .then((data) => { if (data && data.id) setRadicadoDetail(data); })
+        .then(async (data) => {
+          if (data && data.id) {
+            if (data.ruta?.id && !data.ruta?.area) {
+              try {
+                const rutasRes = await fetch(`${API}/rutas`, { headers: { Authorization: `Bearer ${obtenerToken()}` } });
+                const rutasList = await rutasRes.json();
+                const rutaCompleta = (Array.isArray(rutasList) ? rutasList : []).find(r => r.id === data.ruta.id);
+                if (rutaCompleta) {
+                  data.ruta.area = rutaCompleta.area;
+                }
+              } catch (e) {}
+            }
+            setRadicadoDetail(data);
+          }
+        })
         .catch((err) => console.error(err));
     }
   }, [selectedRadicadoId]);
@@ -950,17 +1132,31 @@ const handleDevolverTarea = async (tareaId, radicadoId) => {
     }
   }, [activeTab, userId]);
 
-  // Cargar detalle de una tarea
+ 
+    // Cargar detalle de una tarea (con área completa de la ruta)
   useEffect(() => {
     if (selectedTareaId) {
       setTareaDetail(null);
       fetch(`${API}/documentoradicado/${selectedTareaId}`, { headers: { Authorization: `Bearer ${obtenerToken()}` } })
         .then((res) => res.json())
-        .then((data) => { if (data && data.id) setTareaDetail(data); })
+        .then(async (data) => {
+          if (data && data.id) {
+            if (data.ruta?.id && !data.ruta?.area) {
+              try {
+                const rutasRes = await fetch(`${API}/rutas`, { headers: { Authorization: `Bearer ${obtenerToken()}` } });
+                const rutasList = await rutasRes.json();
+                const rutaCompleta = (Array.isArray(rutasList) ? rutasList : []).find(r => r.id === data.ruta.id);
+                if (rutaCompleta) {
+                  data.ruta.area = rutaCompleta.area;
+                }
+              } catch (e) {}
+            }
+            setTareaDetail(data);
+          }
+        })
         .catch((err) => console.error(err));
     }
   }, [selectedTareaId]);
-
   const handleVerArchivo = (filename) => {
     if (!correoDetail) return;
     const url = `${API}/storage/mails/${correoDetail.id_mensaje}/${filename}`;
@@ -969,52 +1165,6 @@ const handleDevolverTarea = async (tareaId, radicadoId) => {
 
   const formatCurrency = (val) => {
     return new Intl.NumberFormat("es-CO", { style: "currency", currency: "COP", minimumFractionDigits: 0 }).format(val || 0);
-  };
-
-  const handleInputChange = (e) => {
-    const { name, value, type } = e.target;
-    setEditForm(prev => ({
-      ...prev,
-      [name]: type === "number" ? (value === "" ? 0 : parseFloat(value)) : value
-    }));
-  };
-
-  const handleSave = async () => {
-    if (!selectedDocId) return;
-
-    const payload = {
-      orden_compra: editForm.orden_compra || "",
-      id_area: parseInt(editForm.id_area) || 0,
-      asunto: editForm.asunto || "",
-      orientacion_sello_recibido: editForm.orientacion_sello_recibido || "",
-      numero_folios: parseInt(editForm.numero_folios) || 0,
-    };
-
-    if (!payload.id_area || payload.id_area === 0) {
-      alert("Debe seleccionar un área válida");
-      return;
-    }
-
-    setSaving(true);
-    try {
-      const res = await fetch(`${API}/documentocomercial/${selectedDocId}`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json", Authorization: `Bearer ${obtenerToken()}` },
-        body: JSON.stringify(payload),
-      });
-      if (!res.ok) {
-        const errData = await res.json();
-        throw new Error(errData.error || "Error guardando");
-      }
-      const updated = await res.json();
-      setDocDetail(updated);
-      setIsEditing(false);
-      setDocumentos(prev => prev.map(d => d.id === updated.id ? { ...d, total: updated.total, numero_documento: updated.numero_documento } : d));
-    } catch (err) {
-      alert("Error al guardar: " + err.message);
-    } finally {
-      setSaving(false);
-    }
   };
 
   // ── Modal de Radicación ──
@@ -1224,7 +1374,7 @@ const handleDevolverTarea = async (tareaId, radicadoId) => {
   const getTabInfo = () => {
     switch (activeTab) {
       case "correos": return { icon: "fa-solid fa-envelope", title: "Recepción de Correos", subtitle: "Gestiona las facturas electrónicas recibidas" };
-      case "documentos": return { icon: "fa-solid fa-file-invoice", title: "Documentos Pendientes", subtitle: "Revisa, completa y aprueba documentos para radicación" };
+      case "documentos": return { icon: "fa-solid fa-file-invoice", title: "Documentos Pendientes", subtitle: "Revisa y aprueba documentos para radicación" };
       case "radicados": return { icon: "fa-solid fa-stamp", title: "Documentos Radicados", subtitle: "Consulta el estado de los documentos radicados" };
       case "catalogos": return { icon: "fa-solid fa-sliders", title: "Catálogos del Sistema", subtitle: "Gestiona tipos de radicación, pagos y métodos" };
       case "tareas": return { icon: "fa-solid fa-clipboard-list", title: "Mis Tareas", subtitle: "Documentos radicados asignados a ti" };
@@ -1233,46 +1383,6 @@ const handleDevolverTarea = async (tareaId, radicadoId) => {
   };
 
   const tabInfo = getTabInfo();
-
-  const renderField = (label, name, type = "text", options = null) => {
-    if (!isEditing) {
-      let displayValue = editForm[name];
-      if (type === "select" && options) {
-        const opt = options.find(o => o.id == displayValue);
-        displayValue = opt ? opt.nombre : (displayValue || "—");
-      }
-      if (type === "date" && displayValue) {
-        displayValue = new Date(displayValue).toLocaleDateString();
-      }
-      return (
-        <div className="doc-field" key={name}>
-          <label>{label}</label>
-          <span>{displayValue || "—"}</span>
-        </div>
-      );
-    }
-
-    if (type === "select" && options) {
-      return (
-        <div className="doc-field" key={name}>
-          <label>{label}</label>
-          <select name={name} value={editForm[name] || ""} onChange={handleInputChange} className="doc-input">
-            <option value="">Seleccione...</option>
-            {options.map(opt => (
-              <option key={opt.id} value={opt.id}>{opt.nombre}</option>
-            ))}
-          </select>
-        </div>
-      );
-    }
-
-    return (
-      <div className="doc-field" key={name}>
-        <label>{label}</label>
-        <input type={type} name={name} value={editForm[name] || ""} onChange={handleInputChange} className="doc-input" />
-      </div>
-    );
-  };
 
   const renderWelcome = () => (
     <div className="content-body">
@@ -1334,7 +1444,14 @@ const handleDevolverTarea = async (tareaId, radicadoId) => {
   const renderDocumentos = () => (
     <div className="correos-container">
       <div className="correos-list">
-        <h3>Pendientes de Revisión ({documentos.length})</h3>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "0 15px" }}>
+          <h3>Pendientes de Revisión ({documentos.length})</h3>
+          {esAdmin && (
+            <button className="doc-btn doc-btn-primary" onClick={openCrearDocModal}>
+              <i className="fa-solid fa-plus"></i> Crear Documento Manual
+            </button>
+          )}
+        </div>
         {loadingDocs ? <p style={{ padding: "15px" }}>Cargando documentos...</p> : documentos.length === 0 ? (
           <p style={{ padding: "15px", color: "#6b7280" }}>No hay documentos pendientes.</p>
         ) : (
@@ -1365,27 +1482,8 @@ const handleDevolverTarea = async (tareaId, radicadoId) => {
                   <div className="doc-field"><label>Tipo</label><span>{docDetail.tipo}</span></div>
                   <div className="doc-field"><label>Número Documento</label><span>{docDetail.numero_documento}</span></div>
                   <div className="doc-field"><label>Fecha Emisión</label><span>{new Date(docDetail.fecha_documento).toLocaleDateString()}</span></div>
-                  <div className="doc-field">
-                    <label>Área</label>
-                    {isEditing ? <select name="id_area" value={editForm.id_area || ""} onChange={handleInputChange} className="doc-input"><option value="">Seleccione...</option>{areas.map(a => <option key={a.id} value={a.id}>{a.nombre}</option>)}</select> : <span>{docDetail.area?.nombre || "—"}</span>}
-                  </div>
                   <div className="doc-field"><label>Moneda</label><span>{docDetail.moneda?.nombre || "—"}</span></div>
-                  <div className="doc-field">
-                    <label>Orden de Compra</label>
-                    {isEditing ? <input type="text" name="orden_compra" value={editForm.orden_compra || ""} onChange={handleInputChange} className="doc-input" /> : <span>{docDetail.orden_compra || "—"}</span>}
-                  </div>
-                  <div className="doc-field">
-                    <label>Asunto</label>
-                    {isEditing ? <input type="text" name="asunto" value={editForm.asunto || ""} onChange={handleInputChange} className="doc-input" /> : <span>{docDetail.asunto || "—"}</span>}
-                  </div>
-                  <div className="doc-field">
-                    <label>Orientación Sello</label>
-                    {isEditing ? <select name="orientacion_sello_recibido" value={editForm.orientacion_sello_recibido || ""} onChange={handleInputChange} className="doc-input"><option value="">Seleccione...</option><option value="HORIZONTAL">HORIZONTAL</option><option value="VERTICAL">VERTICAL</option></select> : <span>{docDetail.orientacion_sello_recibido || "No definida"}</span>}
-                  </div>
-                  <div className="doc-field">
-                    <label>Número Folios</label>
-                    {isEditing ? <input type="number" name="numero_folios" value={editForm.numero_folios || 0} onChange={handleInputChange} className="doc-input" min="0" /> : <span>{docDetail.numero_folios || "—"}</span>}
-                  </div>
+                  <div className="doc-field"><label>Asunto</label><span>{docDetail.correo?.asunto || "—"}</span></div>
                 </div>
               </div>
 
@@ -1433,19 +1531,10 @@ const handleDevolverTarea = async (tareaId, radicadoId) => {
                 </div>
               )}
             </div>
-
             <div className="doc-actions">
-              {isEditing ? (
-                <>
-                  <button className="doc-btn doc-btn-secondary" onClick={() => setIsEditing(false)} disabled={saving}><i className="fa-solid fa-xmark"></i> Cancelar</button>
-                  <button className="doc-btn doc-btn-primary" onClick={handleSave} disabled={saving}><i className="fa-solid fa-floppy-disk"></i> {saving ? "Guardando..." : "Guardar Cambios"}</button>
-                </>
-              ) : (
-                <>
-                  <button className="doc-btn doc-btn-secondary" onClick={() => setIsEditing(true)}><i className="fa-solid fa-pen"></i> Completar Campos</button>
-                  <button className="doc-btn doc-btn-primary" onClick={() => openRadicarModal(docDetail.id)}><i className="fa-solid fa-stamp"></i> Aprobar para Radicación</button>
-                </>
-              )}
+              <button className="doc-btn doc-btn-primary" onClick={() => openRadicarModal(docDetail.id)}>
+                <i className="fa-solid fa-stamp"></i> Aprobar para Radicación
+              </button>
             </div>
           </div>
         )}
@@ -1779,6 +1868,7 @@ const handleDevolverTarea = async (tareaId, radicadoId) => {
                 <div className="doc-field"><label>Fecha Radicación</label><span>{new Date(radicadoDetail.fecha_radicacion).toLocaleString()}</span></div>
                 <div className="doc-field"><label>Tipo Radicación</label><span>{radicadoDetail.tipo_radicacion?.nombre || "—"}</span></div>
                 <div className="doc-field"><label>Ruta</label><span>{radicadoDetail.ruta?.nombre || "—"}</span></div>
+                <div className="doc-field"><label>Área</label><span>{typeof radicadoDetail.ruta?.area === 'string' ? radicadoDetail.ruta.area : (radicadoDetail.ruta?.area?.nombre || "—")}</span></div>
                 <div className="doc-field"><label>Método de Pago</label><span>{radicadoDetail.metodo_pago?.nombre || "—"}</span></div>
                 <div className="doc-field"><label>Estado Posesión</label><span>{radicadoDetail.estado_posesion || "—"}</span></div>
                 <div className="doc-field"><label>Paso Actual</label><span>{radicadoDetail.paso_actual?.nombre || "Inicio"}</span></div>
@@ -2017,7 +2107,7 @@ const handleDevolverTarea = async (tareaId, radicadoId) => {
                     <div className="doc-field"><label>Fecha Radicación</label><span>{new Date(tareaDetail.fecha_radicacion).toLocaleString()}</span></div>
                     <div className="doc-field"><label>Tipo Radicación</label><span>{tareaDetail.tipo_radicacion?.nombre || "—"}</span></div>
                     <div className="doc-field"><label>Ruta</label><span>{tareaDetail.ruta?.nombre || "—"}</span></div>
-                    <div className="doc-field"><label>Método de Pago</label><span>{tareaDetail.metodo_pago?.nombre || "—"}</span></div>
+                    <div className="doc-field"><label>Área</label><span>{typeof tareaDetail.ruta?.area === 'string' ? tareaDetail.ruta.area : (tareaDetail.ruta?.area?.nombre || "—")}</span></div>                    <div className="doc-field"><label>Método de Pago</label><span>{tareaDetail.metodo_pago?.nombre || "—"}</span></div>
                     <div className="doc-field"><label>Estado Posesión</label><span>{tareaDetail.estado_posesion || "—"}</span></div>
                     <div className="doc-field"><label>Paso Actual</label><span>{tareaDetail.paso_actual?.nombre || "Inicio"}</span></div>
                     <div className="doc-field"><label>Responsable</label><span>{tareaDetail.usuario_actual?.nombre || "—"}</span></div>
@@ -2490,6 +2580,136 @@ const editorPermitido =
           }
         }}
       />
+      )}
+
+            {/* ── Modal Crear Documento Manual ── */}
+      {showCrearDocModal && (
+        <div className="modal-overlay" onClick={() => setShowCrearDocModal(false)}>
+          <div className="modal-content" onClick={(e) => e.stopPropagation()} style={{ maxWidth: 800, maxHeight: "90vh", overflowY: "auto" }}>
+            <div className="modal-header">
+              <h3><i className="fa-solid fa-file-circle-plus"></i> Crear Documento Manual</h3>
+              <button className="modal-close" onClick={() => setShowCrearDocModal(false)}><i className="fa-solid fa-xmark"></i></button>
+            </div>
+            <div className="modal-body">
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+                <div className="modal-field">
+                  <label>Tipo <span className="required">*</span></label>
+                  <select name="tipo" value={docForm.tipo} onChange={handleDocFormChange} className="doc-input">
+                    <option value="FACTURA_FISICA">Factura Física</option>
+                    <option value="CUENTA_COBRO">Cuenta de Cobro</option>
+                    <option value="NOTA_CREDITO">Nota Crédito</option>
+                    <option value="NOTA_DEBITO">Nota Débito</option>
+                  </select>
+                </div>
+                <div className="modal-field">
+                  <label>Número Documento <span className="required">*</span></label>
+                  <input type="text" name="numero_documento" value={docForm.numero_documento} onChange={handleDocFormChange} className="doc-input" placeholder="Ej: F001-1234" />
+                </div>
+                <div className="modal-field">
+                  <label>Proveedor <span className="required">*</span></label>
+                  <select name="id_proveedor" value={docForm.id_proveedor} onChange={handleDocFormChange} className="doc-input">
+                    <option value="">Seleccione...</option>
+                    {proveedoresCatalogo.map(p => (
+                      <option key={p.id} value={p.id}>{p.razon_social} — {p.numero_documento}</option>
+                    ))}
+                  </select>
+                </div>
+                <div className="modal-field">
+                  <label>Receptor <span className="required">*</span></label>
+                  <select name="id_receptor" value={docForm.id_receptor} onChange={handleDocFormChange} className="doc-input">
+                    <option value="">Seleccione...</option>
+                    {receptoresCatalogo.map(r => (
+                      <option key={r.id} value={r.id}>{r.nombre} — {r.numero_documento}</option>
+                    ))}
+                  </select>
+                </div>
+                <div className="modal-field">
+                  <label>Área <span className="required">*</span></label>
+                  <select name="id_area" value={docForm.id_area} onChange={handleDocFormChange} className="doc-input">
+                    <option value="">Seleccione...</option>
+                    {areasCatalogo.map(a => (
+                      <option key={a.id} value={a.id}>{a.nombre}</option>
+                    ))}
+                  </select>
+                </div>
+                <div className="modal-field">
+                  <label>Moneda <span className="required">*</span></label>
+                  <select name="moneda_id" value={docForm.moneda_id} onChange={handleDocFormChange} className="doc-input">
+                    <option value="">Seleccione...</option>
+                    {monedasCatalogo.map(m => (
+                      <option key={m.id} value={m.id}>{m.nombre} ({m.codigo})</option>
+                    ))}
+                  </select>
+                </div>
+                <div className="modal-field">
+                  <label>Fecha Emisión <span className="required">*</span></label>
+                  <input type="date" name="fecha_documento" value={docForm.fecha_documento} onChange={handleDocFormChange} className="doc-input" />
+                </div>
+                <div className="modal-field" style={{ gridColumn: "1 / -1" }}>
+                  <label>Asunto / Observación</label>
+                  <input type="text" name="asunto" value={docForm.asunto} onChange={handleDocFormChange} className="doc-input" placeholder="Descripción general del documento" />
+                </div>
+              </div>
+
+              {/* ── Detalles ── */}
+              <div className="doc-section" style={{ marginTop: 20 }}>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
+                  <h4><i className="fa-solid fa-list"></i> Detalle de Ítems</h4>
+                  <button className="doc-btn doc-btn-secondary" onClick={handleAddDetalle} type="button">
+                    <i className="fa-solid fa-plus"></i> Agregar Ítem
+                  </button>
+                </div>
+                {docForm.detalles.length === 0 ? (
+                  <p style={{ color: "#6b7280", fontSize: "0.9em" }}>Sin ítems. Agregue al menos uno.</p>
+                ) : (
+                  <table className="doc-items-table">
+                    <thead>
+                      <tr>
+                        <th>Descripción</th>
+                        <th style={{ width: 90 }}>Cant.</th>
+                        <th style={{ width: 130 }}>Valor Unit.</th>
+                        <th style={{ width: 110 }}>IVA Unit.</th>
+                        <th style={{ width: 130 }}>Total Línea</th>
+                        <th style={{ width: 40 }}></th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {docForm.detalles.map((d, idx) => (
+                        <tr key={idx}>
+                          <td><input type="text" value={d.descripcion} onChange={(e) => handleDetalleChange(idx, "descripcion", e.target.value)} className="doc-input" placeholder="Descripción" /></td>
+                          <td><input type="number" value={d.cantidad} onChange={(e) => handleDetalleChange(idx, "cantidad", e.target.value)} className="doc-input" min="0" step="0.01" /></td>
+                          <td><input type="number" value={d.valor_unitario} onChange={(e) => handleDetalleChange(idx, "valor_unitario", e.target.value)} className="doc-input" min="0" /></td>
+                          <td><input type="number" value={d.iva_unitario} onChange={(e) => handleDetalleChange(idx, "iva_unitario", e.target.value)} className="doc-input" min="0" /></td>
+                          <td style={{ textAlign: "right", fontWeight: 600 }}>{formatCurrency(d.total)}</td>
+                          <td>
+                            <button className="btn-icon btn-toggle" onClick={() => handleRemoveDetalle(idx)} title="Eliminar">
+                              <i className="fa-solid fa-xmark"></i>
+                            </button>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                )}
+              </div>
+
+              {/* ── Totales ── */}
+              <div className="doc-section" style={{ marginTop: 16, background: "#f9fafb", padding: 12, borderRadius: 8 }}>
+                <div className="doc-totals">
+                  <div className="doc-total-row"><span>Subtotal</span><span>{formatCurrency(docForm.subtotal)}</span></div>
+                  <div className="doc-total-row"><span>IVA</span><span>{formatCurrency(docForm.iva)}</span></div>
+                  <div className="doc-total-row total-final"><span>Total Documento</span><span>{formatCurrency(docForm.total)}</span></div>
+                </div>
+              </div>
+            </div>
+            <div className="modal-footer">
+              <button className="doc-btn doc-btn-secondary" onClick={() => setShowCrearDocModal(false)} disabled={creandoDoc}>Cancelar</button>
+              <button className="doc-btn doc-btn-primary" onClick={handleCrearDocumentoSubmit} disabled={creandoDoc}>
+                <i className="fa-solid fa-floppy-disk"></i> {creandoDoc ? "Guardando..." : "Guardar Documento"}
+              </button>
+            </div>
+          </div>
+        </div>
       )}
 
       {/* ── Modal de Devolución (global, accesible desde cualquier tab) ── */}
