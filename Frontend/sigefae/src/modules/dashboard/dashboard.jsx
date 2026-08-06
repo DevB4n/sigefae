@@ -897,11 +897,12 @@ const handleDevolverTarea = async (tareaId, radicadoId) => {
         fetch(`${API}/metodos-pago`, { headers }).then(r => r.json()),
         fetch(`${API}/normas-reparto?activo=true`, { headers }).then(r => r.json()),
       ])
-        .then(([a, tr, r, mp]) => {
+        .then(([a, tr, r, mp, nr]) => {
           setAreas(Array.isArray(a) ? a : []);
           setTiposRadicacion(Array.isArray(tr) ? tr : []);
           setRutas(Array.isArray(r) ? r : []);
           setMetodosPago(Array.isArray(mp) ? mp : []);
+          setNormasRepartoCatalogo(Array.isArray(nr) ? nr : []);   // ← AGREGAR
         })
         .catch(err => console.error("Error cargando catálogos:", err));
     }
@@ -1019,7 +1020,13 @@ const handleDevolverTarea = async (tareaId, radicadoId) => {
   // ── Modal de Radicación ──
   const openRadicarModal = (docId) => {
     setRadicarDocId(docId);
-    setRadicarForm({ tipo_radicacion_id: "", ruta_id: "", metodo_pago_id: "", numero_radicado: "" });
+    setRadicarForm({
+      tipo_radicacion_id: "",
+      ruta_id: "",
+      metodo_pago_id: "",
+      numero_radicado: "",
+      normas_reparto: []   // ← FALTABA ESTO
+    });
     setShowRadicarModal(true);
   };
 
@@ -1552,7 +1559,7 @@ const handleDevolverTarea = async (tareaId, radicadoId) => {
                 </div>
 
                 {/* Lista de normas agregadas */}
-                {radicarForm.normas_reparto.length === 0 ? (
+                {(radicarForm.normas_reparto || []).length === 0 ? (
                   <p style={{ fontSize: "0.85em", color: "#6b7280" }}>No se han asignado normas de reparto.</p>
                 ) : (
                   <div style={{ display: "flex", flexDirection: "column", gap: 6, marginBottom: 10 }}>
