@@ -84,6 +84,18 @@ export default function ProcesosLogistica() {
   const [receptoresCatalogo, setReceptoresCatalogo] = useState([]);
   const [creandoDoc, setCreandoDoc] = useState(false);
 
+    // ── Crear Proveedor Rápido ──
+  const [showCrearProveedorModal, setShowCrearProveedorModal] = useState(false);
+  const [proveedorForm, setProveedorForm] = useState({
+    razon_social: "",
+    numero_documento: "",
+    tipo_documento_id: "",
+    email: "",
+    telefono: ""
+  });
+  const [tiposDocumentoCatalogo, setTiposDocumentoCatalogo] = useState([]);
+  const [creandoProveedor, setCreandoProveedor] = useState(false);
+
   //normas de reparto
     // ── Filtros jerárquicos para normas en el modal de radicación ──
   const [normaFiltroSede, setNormaFiltroSede] = useState("");
@@ -231,7 +243,7 @@ export default function ProcesosLogistica() {
     }
   };
 
-    // Cargar catálogos necesarios para crear documento manual
+     // Cargar catálogos necesarios para crear documento manual
   useEffect(() => {
     if (activeTab !== "documentos") return;
     const headers = { Authorization: `Bearer ${obtenerToken()}` };
@@ -258,9 +270,14 @@ export default function ProcesosLogistica() {
         .then(d => setMonedasCatalogo(Array.isArray(d) ? d : []))
         .catch(() => {});
     }
+
+    // Tipos de documento (para crear proveedor rápido)
+    fetch(`${API}/tipo-documento`, { headers })
+      .then(r => r.json())
+      .then(d => setTiposDocumentoCatalogo(Array.isArray(d) ? d : []))
+      .catch(() => setTiposDocumentoCatalogo([]));
   }, [activeTab]);
 
-    // ── Cargar comentarios del radicado ──
   useEffect(() => {
     const radicadoId = activeTab === "tareas" ? selectedTareaId :
                        activeTab === "radicados" ? selectedRadicadoId : null;
@@ -290,28 +307,92 @@ export default function ProcesosLogistica() {
   }, [activeTab, selectedRadicadoId, selectedTareaId]);
 
 
-    const openCrearDocModal = () => {
+      const openCrearDocModal = () => {
     setSelectedDocId(null);
     setDocDetail(null);
     setDocForm({
       tipo: "FACTURA_FISICA",
       numero_documento: "",
-      orden_compra: "",
       id_proveedor: "",
       id_receptor: "",
       id_area: "",
       tipo_factura_id: "",
       asunto: "",
       fecha_documento: new Date().toISOString().split("T")[0],
-      fecha_vencimiento: "",
       moneda_id: "",
       subtotal: 0,
       iva: 0,
       total: 0,
-      numero_folios: 1,
       detalles: []
     });
     setShowCrearDocModal(true);
+  };
+
+    const openCrearProveedorModal = () => {
+    setProveedorForm({
+      razon_social: "",
+      numero_documento: "",
+      tipo_documento_id: "",
+      email: "",
+      telefono: ""
+    });
+    setShowCrearProveedorModal(true);
+  };
+
+  const handleProveedorFormChange = (e) => {
+    const { name, value } = e.target;
+    setProveedorForm(prev => ({ ...prev, [name]: value }));
+  };
+
+  const handleCrearProveedorSubmit = async () => {
+    if (!proveedorForm.razon_social.trim() || !proveedorForm.numero_documento.trim() || !proveedorForm.tipo_documento_id) {
+      alert("Complete Razón Social, Número de Documento y Tipo de Documento");
+      return;
+    }
+
+    setCreandoProveedor(true);
+    const payload = {
+      razon_social: proveedorForm.razon_social.trim(),
+      numero_documento: proveedorForm.numero_documento.trim(),
+      tipo_documento_id: parseInt(proveedorForm.tipo_documento_id),
+      email: proveedorForm.email.trim() || null,
+      telefono: proveedorForm.telefono.trim() || null,
+      id_categoria_proveedor: null,
+      direccion_id: null
+    };
+
+    try {
+      const res = await fetch(`${API}/proveedor`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${obtenerToken()}`
+        },
+        body: JSON.stringify(payload)
+      });
+      if (!res.ok) {
+        const err = await res.json();
+        throw new Error(err.error || "Error creando proveedor");
+      }
+      const nuevo = await res.json();
+      alert("Proveedor creado correctamente");
+
+      // Recargar catálogo y seleccionar el nuevo
+      const listRes = await fetch(`${API}/proveedor`, { headers: { Authorization: `Bearer ${obtenerToken()}` } });
+      const listData = await listRes.json();
+      setProveedoresCatalogo(Array.isArray(listData) ? listData : []);
+
+      // Auto-seleccionar en el formulario de documento
+      if (nuevo.id) {
+        setDocForm(prev => ({ ...prev, id_proveedor: String(nuevo.id) }));
+      }
+
+      setShowCrearProveedorModal(false);
+    } catch (err) {
+      alert("Error: " + err.message);
+    } finally {
+      setCreandoProveedor(false);
+    }
   };
 
   const recalcularTotales = (detalles) => {
@@ -2649,8 +2730,19 @@ const editorPermitido =
                   <label>Número Documento <span className="required">*</span></label>
                   <input type="text" name="numero_documento" value={docForm.numero_documento} onChange={handleDocFormChange} className="doc-input" placeholder="Ej: F001-1234" />
                 </div>
-                <div className="modal-field">
-                  <label>Proveedor <span className="required">*</span></label>
+                  <div className="modal-field">
+                  <label style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                    <span>Proveedor <span className="required">*</span></span>
+                    <button 
+                      type="button"
+                      className="btn-icon btn-edit" 
+                      onClick={openCrearProveedorModal}
+                      title="Nuevo Proveedor"
+                      style={{ width: 24, height: 24, fontSize: "0.8em" }}
+                    >
+                      <i className="fa-solid fa-plus"></i>
+                    </button>
+                  </label>
                   <select name="id_proveedor" value={docForm.id_proveedor} onChange={handleDocFormChange} className="doc-input">
                     <option value="">Seleccione...</option>
                     {proveedoresCatalogo.map(p => (
@@ -2737,6 +2829,8 @@ const editorPermitido =
                 )}
               </div>
 
+              
+
               {/* ── Totales ── */}
               <div className="doc-section" style={{ marginTop: 16, background: "#f9fafb", padding: 12, borderRadius: 8 }}>
                 <div className="doc-totals">
@@ -2755,6 +2849,57 @@ const editorPermitido =
           </div>
         </div>
       )}
+
+            {/* ── Modal Crear Proveedor Rápido ── */}
+      {showCrearProveedorModal && (
+        <div className="modal-overlay" onClick={() => setShowCrearProveedorModal(false)}>
+          <div className="modal-content" onClick={(e) => e.stopPropagation()} style={{ maxWidth: 500 }}>
+            <div className="modal-header">
+              <h3><i className="fa-solid fa-building"></i> Nuevo Proveedor</h3>
+              <button className="modal-close" onClick={() => setShowCrearProveedorModal(false)}><i className="fa-solid fa-xmark"></i></button>
+            </div>
+            <div className="modal-body">
+              <div className="modal-field">
+                <label>Razón Social <span className="required">*</span></label>
+                <input type="text" name="razon_social" value={proveedorForm.razon_social} onChange={handleProveedorFormChange} className="doc-input" placeholder="Ej: INVERCOMER DEL CARIBE SAS" />
+              </div>
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+                <div className="modal-field">
+                  <label>Tipo Documento <span className="required">*</span></label>
+                  <select name="tipo_documento_id" value={proveedorForm.tipo_documento_id} onChange={handleProveedorFormChange} className="doc-input">
+                    <option value="">Seleccione...</option>
+                    {tiposDocumentoCatalogo.map(t => (
+                      <option key={t.id} value={t.id}>{t.nombre}</option>
+                    ))}
+                  </select>
+                </div>
+                <div className="modal-field">
+                  <label>Número Documento <span className="required">*</span></label>
+                  <input type="text" name="numero_documento" value={proveedorForm.numero_documento} onChange={handleProveedorFormChange} className="doc-input" placeholder="Ej: 900383385" />
+                </div>
+              </div>
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+                <div className="modal-field">
+                  <label>Email</label>
+                  <input type="email" name="email" value={proveedorForm.email} onChange={handleProveedorFormChange} className="doc-input" placeholder="opcional" />
+                </div>
+                <div className="modal-field">
+                  <label>Teléfono</label>
+                  <input type="text" name="telefono" value={proveedorForm.telefono} onChange={handleProveedorFormChange} className="doc-input" placeholder="opcional" />
+                </div>
+              </div>
+            </div>
+            <div className="modal-footer">
+              <button className="doc-btn doc-btn-secondary" onClick={() => setShowCrearProveedorModal(false)} disabled={creandoProveedor}>Cancelar</button>
+              <button className="doc-btn doc-btn-primary" onClick={handleCrearProveedorSubmit} disabled={creandoProveedor}>
+                <i className="fa-solid fa-floppy-disk"></i> {creandoProveedor ? "Guardando..." : "Guardar Proveedor"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── Modal de Devolución (global, accesible desde cualquier tab) ── */}
 
       {/* ── Modal de Devolución (global, accesible desde cualquier tab) ── */}
       {showDevolverModal && (
