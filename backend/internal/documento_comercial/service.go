@@ -343,16 +343,11 @@ func (s *Service) GetByID(id uint) (*Response, error) {
 
 	if err := s.db.
 		Preload("Proveedor").
-		Preload("Proveedor.TipoDocumento").
-		Preload("Proveedor.Direccion").
-		Preload("Proveedor.Direccion.Municipio").
-		Preload("Proveedor.Direccion.Municipio.Departamento").
 		Preload("Receptor").
 		Preload("Area").
 		Preload("TipoFactura").
 		Preload("Moneda").
 		Preload("Correo").
-		Preload("Correo.EstadoCorreo").
 		Preload("Detalles").
 		First(&documento, id).Error; err != nil {
 

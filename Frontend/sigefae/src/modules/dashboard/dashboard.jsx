@@ -1887,7 +1887,7 @@ const handleDevolverTarea = async (tareaId, radicadoId) => {
                     <div className="doc-field"><label>Receptor</label><span>{radicadoDetail.documento_comercial.receptor?.nombre || "—"}</span></div>
                   </div>
                 </div>
-
+                        
                 <div className="doc-section">
                   <h4><i className="fa-solid fa-calculator"></i> Valores</h4>
                   <div className="doc-totals">
@@ -1896,6 +1896,28 @@ const handleDevolverTarea = async (tareaId, radicadoId) => {
                     <div className="doc-total-row total-final"><span>Total</span><span>{formatCurrency(radicadoDetail.documento_comercial.total)}</span></div>
                   </div>
                 </div>
+                        
+                {/* ← NUEVO: Detalle de ítems */}
+                {radicadoDetail.documento_comercial.detalles && radicadoDetail.documento_comercial.detalles.length > 0 && (
+                  <div className="doc-section">
+                    <h4><i className="fa-solid fa-list"></i> Detalle de Ítems ({radicadoDetail.documento_comercial.detalles.length})</h4>
+                    <table className="doc-items-table">
+                      <thead>
+                        <tr><th>Descripción</th><th>Cantidad</th><th>Valor Unit.</th><th>Total</th></tr>
+                      </thead>
+                      <tbody>
+                        {radicadoDetail.documento_comercial.detalles.map((item) => (
+                          <tr key={item.id}>
+                            <td>{item.descripcion}</td>
+                            <td>{item.cantidad}</td>
+                            <td>{formatCurrency(item.valor_unitario)}</td>
+                            <td>{formatCurrency(item.total)}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
               </>
             )}
 
@@ -2114,7 +2136,7 @@ const handleDevolverTarea = async (tareaId, radicadoId) => {
                   </div>
                 </div>
 
-                {tareaDetail.documento_comercial && (
+                                {tareaDetail.documento_comercial && (
                   <>
                     <div className="doc-section">
                       <h4><i className="fa-solid fa-file-invoice"></i> Documento Comercial</h4>
@@ -2134,6 +2156,28 @@ const handleDevolverTarea = async (tareaId, radicadoId) => {
                         <div className="doc-total-row total-final"><span>Total</span><span>{formatCurrency(tareaDetail.documento_comercial.total)}</span></div>
                       </div>
                     </div>
+
+                    {/* ← NUEVO: Detalle de ítems */}
+                    {tareaDetail.documento_comercial.detalles && tareaDetail.documento_comercial.detalles.length > 0 && (
+                      <div className="doc-section">
+                        <h4><i className="fa-solid fa-list"></i> Detalle de Ítems ({tareaDetail.documento_comercial.detalles.length})</h4>
+                        <table className="doc-items-table">
+                          <thead>
+                            <tr><th>Descripción</th><th>Cantidad</th><th>Valor Unit.</th><th>Total</th></tr>
+                          </thead>
+                          <tbody>
+                            {tareaDetail.documento_comercial.detalles.map((item) => (
+                              <tr key={item.id}>
+                                <td>{item.descripcion}</td>
+                                <td>{item.cantidad}</td>
+                                <td>{formatCurrency(item.valor_unitario)}</td>
+                                <td>{formatCurrency(item.total)}</td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                    )}
                   </>
                 )}
 
