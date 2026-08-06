@@ -21,6 +21,32 @@ func New(database *gorm.DB) *Service {
 
 func (s *Service) Create(req CreateRequest) (*Response, error) {
 
+	// ── Defaults para creación rápida (si no mandan catálogo, toma el primero) ──
+	if req.CategoriaID == 0 {
+		var first db.CategoriaProveedor
+		if err := s.db.First(&first).Error; err == nil {
+			req.CategoriaID = first.ID
+		}
+	}
+	if req.TipoPersonaID == 0 {
+		var first db.TipoPersona
+		if err := s.db.First(&first).Error; err == nil {
+			req.TipoPersonaID = first.ID
+		}
+	}
+	if req.ActividadEconomicaID == 0 {
+		var first db.ActividadEconomica
+		if err := s.db.First(&first).Error; err == nil {
+			req.ActividadEconomicaID = first.ID
+		}
+	}
+	if req.DireccionID == 0 {
+		var first db.Direccion
+		if err := s.db.First(&first).Error; err == nil {
+			req.DireccionID = first.ID
+		}
+	}
+
 	// ==========================
 	// Validar Tipo Documento
 	// ==========================

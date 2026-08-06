@@ -344,7 +344,7 @@ export default function ProcesosLogistica() {
     setProveedorForm(prev => ({ ...prev, [name]: value }));
   };
 
-  const handleCrearProveedorSubmit = async () => {
+    const handleCrearProveedorSubmit = async () => {
     if (!proveedorForm.razon_social.trim() || !proveedorForm.numero_documento.trim() || !proveedorForm.tipo_documento_id) {
       alert("Complete Razón Social, Número de Documento y Tipo de Documento");
       return;
@@ -355,10 +355,15 @@ export default function ProcesosLogistica() {
       razon_social: proveedorForm.razon_social.trim(),
       numero_documento: proveedorForm.numero_documento.trim(),
       tipo_documento_id: parseInt(proveedorForm.tipo_documento_id),
+      // El backend rellenará estos con el primer registro de cada catálogo:
+      categoria_id: 0,
+      tipo_persona_id: 0,
+      actividad_economica_id: 0,
+      direccion_id: 0,
+      nombre_comercial: proveedorForm.razon_social.trim(), // mismo valor por defecto
       email: proveedorForm.email.trim() || null,
       telefono: proveedorForm.telefono.trim() || null,
-      id_categoria_proveedor: null,
-      direccion_id: null
+      ruta_predeterminada_id: null
     };
 
     try {
