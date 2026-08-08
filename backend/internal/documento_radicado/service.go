@@ -25,16 +25,6 @@ func New(database *gorm.DB) *Service {
 func (s *Service) Create(dto CreateDTO, usuarioID uint) (*db.DocumentoRadicado, error) {
 	var radicado db.DocumentoRadicado
 
-	// Validar normas de reparto
-	if len(dto.NormasReparto) > 0 {
-		var total float64
-		for _, n := range dto.NormasReparto {
-			total += n.Porcentaje
-		}
-		if total != 100 {
-			return nil, errors.New("la suma de porcentajes de normas de reparto debe ser exactamente 100%")
-		}
-	}
 
 	err := s.db.Transaction(func(tx *gorm.DB) error {
 		// ── 1. Validar que el documento comercial existe ──
@@ -594,13 +584,6 @@ func (s *Service) GetNormasReparto(radicadoID uint) ([]db.RadicadoNormaReparto, 
 
 func (s *Service) AsignarNormasReparto(radicadoID uint, dtos []NormaRepartoInputDTO) error {
 	return s.db.Transaction(func(tx *gorm.DB) error {
-		var total float64
-		for _, d := range dtos {
-			total += d.Porcentaje
-		}
-		if total != 100 {
-			return errors.New("la suma de porcentajes debe ser exactamente 100%")
-		}
 
 		if err := tx.Where("documento_radicado_id = ?", radicadoID).Delete(&db.RadicadoNormaReparto{}).Error; err != nil {
 			return err

@@ -193,3 +193,4 @@ func (h *Handler) AsignarNormasReparto(c *gin.Context) {
 	}
 	c.JSON(http.StatusOK, gin.H{"message": "normas asignadas correctamente"})
 }
+

@@ -2,6 +2,7 @@ package tarea
 
 import (
 	"fmt"
+	"math"          // ← AGREGAR
 	"net/http"
 	"strconv"
 	"time"
@@ -12,7 +13,6 @@ import (
 	"sigefae/internal/db"
 	"sigefae/internal/notificacion"
 )
-
 type Handler struct {
 	service  *Service
 	notifSvc *notificacion.Service
@@ -152,10 +152,22 @@ func (h *Handler) Completar(c *gin.Context) {
 			})
 
 			notificarA = siguiente.UsuarioAsignadoID
-		} else {
-			h.db.Model(&db.DocumentoRadicado{}).Where("id = ?", tarea.DocumentoRadicadoID).Updates(map[string]interface{}{
-				"estado_posesion": "Completado",
+			} else {
+		// ── VALIDACIÓN: es el último paso, las normas deben sumar 100 % ──
+		var totalPorcentaje float64
+		h.db.Raw("SELECT COALESCE(SUM(porcentaje),0) FROM documento_radicado_norma_repartos WHERE documento_radicado_id = ?",
+			tarea.DocumentoRadicadoID).Scan(&totalPorcentaje)
+
+		if math.Abs(totalPorcentaje-100.0) > 0.01 {
+			c.JSON(http.StatusBadRequest, gin.H{
+				"error": fmt.Sprintf("Las normas de reparto suman %.2f %%. Deben sumar exactamente 100 %% antes de finalizar el proceso.", totalPorcentaje),
 			})
+			return
+		}
+
+		h.db.Model(&db.DocumentoRadicado{}).Where("id = ?", tarea.DocumentoRadicadoID).Updates(map[string]interface{}{
+			"estado_posesion": "Completado",
+		})
 		}
 	}
 

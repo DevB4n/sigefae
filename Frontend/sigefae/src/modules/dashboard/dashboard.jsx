@@ -98,6 +98,11 @@ export default function ProcesosLogistica() {
   const [creandoProveedor, setCreandoProveedor] = useState(false);
   const [tareasPorRadicado, setTareasPorRadicado] = useState({});
 
+    // ── Modal de Normas de Reparto en detalle ──
+  const [showNormaModal, setShowNormaModal] = useState(false);
+  const [normaEditandoId, setNormaEditandoId] = useState(null);
+  const [normaFormDetalle, setNormaFormDetalle] = useState({ norma_reparto_id: "", porcentaje: "" });
+
   //normas de reparto
     // ── Filtros jerárquicos para normas en el modal de radicación ──
   const [normaFiltroSede, setNormaFiltroSede] = useState("");
@@ -377,6 +382,85 @@ export default function ProcesosLogistica() {
       telefono: ""
     });
     setShowCrearProveedorModal(true);
+  };
+
+    const openNormaModal = (radicadoId, normaExistente = null) => {
+    if (normaExistente) {
+      setNormaEditandoId(normaExistente.id);
+      setNormaFormDetalle({
+        norma_reparto_id: String(normaExistente.norma_reparto_id || normaExistente.norma_reparto?.id || ""),
+        porcentaje: String(normaExistente.porcentaje || "")
+      });
+    } else {
+      setNormaEditandoId(null);
+      setNormaFormDetalle({ norma_reparto_id: "", porcentaje: "" });
+      setNormaFiltroSede("");
+      setNormaFiltroArea("");
+    }
+    if (normasRepartoCatalogo.length === 0) {
+      fetch(`${API}/normas-reparto?activo=true`, { headers: { Authorization: `Bearer ${obtenerToken()}` } })
+        .then(r => r.json())
+        .then(d => setNormasRepartoCatalogo(Array.isArray(d) ? d : []));
+    }
+    setShowNormaModal(true);
+  };
+
+  const handleGuardarNormaDetalle = async (radicadoId) => {
+    if (!normaFormDetalle.norma_reparto_id || normaFormDetalle.porcentaje === "") {
+      alert("Seleccione una norma y el porcentaje");
+      return;
+    }
+    const body = {
+      norma_reparto_id: parseInt(normaFormDetalle.norma_reparto_id),
+      porcentaje: parseFloat(normaFormDetalle.porcentaje)
+    };
+    try {
+      const url = normaEditandoId
+        ? `${API}/documentoradicado/${radicadoId}/normas-reparto/${normaEditandoId}`
+        : `${API}/documentoradicado/${radicadoId}/normas-reparto`;
+      const method = normaEditandoId ? "PUT" : "POST";
+
+      const res = await fetch(url, {
+        method,
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${obtenerToken()}`
+        },
+        body: JSON.stringify(body)
+      });
+      if (!res.ok) {
+        const err = await res.json();
+        throw new Error(err.error || "Error guardando norma");
+      }
+      alert(normaEditandoId ? "Norma actualizada correctamente" : "Norma agregada correctamente");
+      setShowNormaModal(false);
+      const nrRes = await fetch(`${API}/documentoradicado/${radicadoId}/normas-reparto`, {
+        headers: { Authorization: `Bearer ${obtenerToken()}` }
+      });
+      const nrData = await nrRes.json();
+      setNormasRepartoRadicado(Array.isArray(nrData) ? nrData : []);
+    } catch (err) {
+      alert("Error: " + err.message);
+    }
+  };
+
+  const handleEliminarNorma = async (asignacionId, radicadoId) => {
+    if (!confirm("¿Está seguro de eliminar esta norma de reparto?")) return;
+    try {
+      const res = await fetch(`${API}/documentoradicado/${radicadoId}/normas-reparto/${asignacionId}`, {
+        method: "DELETE",
+        headers: { Authorization: `Bearer ${obtenerToken()}` }
+      });
+      if (!res.ok) throw new Error("Error eliminando norma");
+      alert("Norma eliminada");
+      const nrRes = await fetch(`${API}/documentoradicado/${radicadoId}/normas-reparto`, {
+        headers: { Authorization: `Bearer ${obtenerToken()}` }
+      });
+      const nrData = await nrRes.json();
+      setNormasRepartoRadicado(Array.isArray(nrData) ? nrData : []);
+    } catch (err) {
+      alert("Error: " + err.message);
+    }
   };
 
   const handleProveedorFormChange = (e) => {
@@ -1384,25 +1468,79 @@ const handleDevolverTarea = async (tareaId, radicadoId) => {
   };
 
 
-    const renderNormasReparto = () => {
-    if (normasRepartoRadicado.length === 0) return null;
+      const renderNormasReparto = (radicadoId, readOnly = false) => {
+    const totalPct = normasRepartoRadicado.reduce((s, n) => s + (parseFloat(n.porcentaje) || 0), 0);
+    const estaCompleto = Math.abs(totalPct - 100) < 0.01;
+
     return (
       <div className="doc-section">
-        <h4><i className="fa-solid fa-chart-pie"></i> Normas de Reparto ({normasRepartoRadicado.length})</h4>
-        <table className="doc-items-table">
-          <thead><tr><th>Código</th><th>Nombre</th><th>Sede</th><th>Área</th><th style={{ textAlign: "right" }}>%</th></tr></thead>
-          <tbody>
-            {normasRepartoRadicado.map((n) => (
-              <tr key={n.id}>
-                <td><strong>{n.norma_reparto?.codigo || n.codigo}</strong></td>
-                <td>{n.norma_reparto?.nombre || n.nombre}</td>
-                <td>{n.norma_reparto?.sucursal || n.sucursal}</td>
-                <td>{n.norma_reparto?.departamento || n.departamento}</td>
-                <td style={{ textAlign: "right", fontWeight: 700 }}>{parseFloat(n.porcentaje).toFixed(2)}%</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12, flexWrap: "wrap", gap: 8 }}>
+          <h4 style={{ margin: 0 }}><i className="fa-solid fa-chart-pie"></i> Normas de Reparto ({normasRepartoRadicado.length})</h4>
+          {!readOnly && (
+            <button className="doc-btn doc-btn-secondary" onClick={() => openNormaModal(radicadoId)} style={{ padding: "6px 12px", fontSize: "0.8em" }}>
+              <i className="fa-solid fa-plus"></i> Agregar Norma
+            </button>
+          )}
+        </div>
+
+        {normasRepartoRadicado.length === 0 ? (
+          <p style={{ color: "#6b7280", fontSize: "0.9em" }}>No hay normas de reparto asignadas.</p>
+        ) : (
+          <>
+            <table className="doc-items-table">
+              <thead>
+                <tr>
+                  <th>Código</th>
+                  <th>Nombre</th>
+                  <th>Sede</th>
+                  <th>Área</th>
+                  <th style={{ textAlign: "right" }}>%</th>
+                  {esAdmin && !readOnly && <th style={{ width: 90, textAlign: "center" }}>Acciones</th>}
+                </tr>
+              </thead>
+              <tbody>
+                {normasRepartoRadicado.map((n) => (
+                  <tr key={n.id}>
+                    <td><strong>{n.norma_reparto?.codigo || n.codigo}</strong></td>
+                    <td>{n.norma_reparto?.nombre || n.nombre}</td>
+                    <td>{n.norma_reparto?.sucursal || n.sucursal}</td>
+                    <td>{n.norma_reparto?.departamento || n.departamento}</td>
+                    <td style={{ textAlign: "right", fontWeight: 700 }}>{parseFloat(n.porcentaje).toFixed(2)}%</td>
+                    {esAdmin && !readOnly && (
+                      <td style={{ textAlign: "center" }}>
+                        <div style={{ display: "flex", gap: 6, justifyContent: "center" }}>
+                          <button className="btn-icon btn-edit" onClick={() => openNormaModal(radicadoId, n)} title="Editar">
+                            <i className="fa-solid fa-pen"></i>
+                          </button>
+                          <button className="btn-icon btn-toggle" onClick={() => handleEliminarNorma(n.id, radicadoId)} title="Eliminar">
+                            <i className="fa-solid fa-xmark"></i>
+                          </button>
+                        </div>
+                      </td>
+                    )}
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+
+            <div style={{
+              marginTop: 10,
+              padding: "10px 14px",
+              background: estaCompleto ? "#d1fae5" : "#fef3c7",
+              borderRadius: 8,
+              display: "flex",
+              justifyContent: "space-between",
+              alignItems: "center",
+              fontSize: "0.9em",
+              fontWeight: 700,
+              color: estaCompleto ? "#065f46" : "#92400e",
+              border: `1px solid ${estaCompleto ? "#a7f3d0" : "#fde68a"}`
+            }}>
+              <span><i className={`fa-solid ${estaCompleto ? "fa-check-circle" : "fa-triangle-exclamation"}`} style={{ marginRight: 6 }}></i> Total asignado</span>
+              <span>{totalPct.toFixed(2)} % {estaCompleto ? "(Completo)" : `(Faltan ${(100 - totalPct).toFixed(2)} %)`}</span>
+            </div>
+          </>
+        )}
       </div>
     );
   };
@@ -1821,16 +1959,12 @@ const handleDevolverTarea = async (tareaId, radicadoId) => {
                   </div>
                 )}
 
-                {totalPorcentajeNormas > 0 && totalPorcentajeNormas !== 100 && (
-                  <p style={{ fontSize: "0.8em", color: "#dc2626", marginTop: 4 }}>
-                    <i className="fa-solid fa-triangle-exclamation"></i> La suma de porcentajes debe ser exactamente 100%
-                  </p>
-                )}
+                |
               </div>
             </div>
             <div className="modal-footer">
               <button className="doc-btn doc-btn-secondary" onClick={closeRadicarModal} disabled={radicando}>Cancelar</button>
-              <button className="doc-btn doc-btn-primary" onClick={handleRadicarSubmit} disabled={radicando || (radicarForm.normas_reparto.length > 0 && totalPorcentajeNormas !== 100)}>
+              <button className="doc-btn doc-btn-primary" onClick={handleRadicarSubmit} disabled={radicando}>
                 <i className="fa-solid fa-stamp"></i> {radicando ? "Radicando..." : "Confirmar Radicación"}
               </button>
             </div>
@@ -1997,7 +2131,7 @@ const handleDevolverTarea = async (tareaId, radicadoId) => {
 
             {renderTrazabilidad()}
             
-            {renderNormasReparto()}
+            {renderNormasReparto(radicadoDetail.id, radicadoDetail.estado_posesion === "Completado")}
             
             {/* ── Comentarios ── */}
             {renderComentarios(radicadoDetail.id,radicadoDetail.estado_posesion === "Completado")}
@@ -2260,8 +2394,8 @@ const handleDevolverTarea = async (tareaId, radicadoId) => {
                 {renderFlujoAprobacion()}
 
                 {renderTrazabilidad()}
-                {renderNormasReparto()}
-                {renderComentarios(tareaDetail.id,tareaDetail.estado_posesion === "Completado")}
+                {renderNormasReparto(tareaDetail.id, tareaDetail.estado_posesion === "Completado")}
+                {renderComentarios(tareaDetail.id, tareaDetail.estado_posesion === "Completado")}
 
                 <div className="doc-section">
                   <h4><i className="fa-solid fa-circle-info"></i> Información del Radicado</h4>
@@ -2901,9 +3035,9 @@ const editorPermitido =
               </div>
             </div>
             <div className="modal-footer">
-              <button className="doc-btn doc-btn-secondary" onClick={() => setShowCrearDocModal(false)} disabled={creandoDoc}>Cancelar</button>
-              <button className="doc-btn doc-btn-primary" onClick={handleCrearDocumentoSubmit} disabled={creandoDoc}>
-                <i className="fa-solid fa-floppy-disk"></i> {creandoDoc ? "Guardando..." : "Guardar Documento"}
+              <button className="doc-btn doc-btn-secondary" onClick={closeRadicarModal} disabled={radicando}>Cancelar</button>
+              <button className="doc-btn doc-btn-primary" onClick={handleRadicarSubmit} disabled={radicando}>
+                <i className="fa-solid fa-stamp"></i> {radicando ? "Radicando..." : "Confirmar Radicación"}
               </button>
             </div>
           </div>
