@@ -258,6 +258,9 @@ func New(database *gorm.DB) *gin.Engine {
 		// =========================
 		protected.GET("/trazabilidad", trazabilidadHandler.List)
 
+		protected.GET("/rutas", rutaHandler.List)
+		protected.GET("/normas-reparto", normaRepartoHandler.List)
+		protected.GET("/normas-reparto/:id", normaRepartoHandler.GetByID)
 		// =========================
 		// Notificacion (usuario logueado)
 		// =========================
@@ -270,6 +273,8 @@ func New(database *gorm.DB) *gin.Engine {
 
 		//documento comercial
 		protected.GET("/documentocomercial/:id", documentoComercialHandler.GetByID)
+
+		
 
 		protected.GET("/me", func(c *gin.Context) {
 			user := c.MustGet("user").(db.Usuario)
@@ -342,7 +347,6 @@ func New(database *gorm.DB) *gin.Engine {
 			// Rutas
 			// =========================
 			admin.POST("/rutas", rutaHandler.Create)
-			admin.GET("/rutas", rutaHandler.List)
 			admin.PUT("/rutas/:id", rutaHandler.Update)
 			admin.PATCH("/rutas/:id/activo", rutaHandler.UpdateStatus)
 
@@ -580,8 +584,6 @@ func New(database *gorm.DB) *gin.Engine {
 
 			// Normas de Reparto
 			admin.POST("/normas-reparto", normaRepartoHandler.Create)
-			admin.GET("/normas-reparto", normaRepartoHandler.List)
-			admin.GET("/normas-reparto/:id", normaRepartoHandler.GetByID)
 			admin.PUT("/normas-reparto/:id", normaRepartoHandler.Update)
 			admin.PATCH("/normas-reparto/:id/activo", normaRepartoHandler.UpdateStatus)
 

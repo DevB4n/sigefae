@@ -47,7 +47,6 @@ func (h *Handler) ListByRadicado(c *gin.Context) {
 
 	c.JSON(http.StatusOK, tareas)
 }
-
 func (h *Handler) Completar(c *gin.Context) {
 	id, err := strconv.Atoi(c.Param("id"))
 	if err != nil {
@@ -81,6 +80,55 @@ func (h *Handler) Completar(c *gin.Context) {
 		return
 	}
 
+	// ═══════════════════════════════════════════════════════════════
+	// 1. DETERMINAR QUÉ VA A PASAR DESPUÉS (sin modificar nada aún)
+	// ═══════════════════════════════════════════════════════════════
+
+	var siguiente db.Tarea
+	var haySiguiente bool
+	var haySaltoDirecto bool
+
+	// 1.1 Verificar si hay retorno directo pendiente
+	var tareaRetornoID *uint
+	if tarea.DocumentoRadicado != nil {
+		tareaRetornoID = tarea.DocumentoRadicado.TareaPendienteRetornoID
+	}
+	if tareaRetornoID != nil && *tareaRetornoID != 0 {
+		if err := h.db.First(&siguiente, *tareaRetornoID).Error; err == nil {
+			haySaltoDirecto = true
+		}
+	}
+
+	// 1.2 Si no hay salto directo, buscar siguiente tarea en el flujo
+	if !haySaltoDirecto {
+		if err := h.db.Where("documento_radicado_id = ? AND id > ? AND estado_id != ?",
+			tarea.DocumentoRadicadoID, tarea.ID, estadoCompletado.ID).
+			Order("id asc").First(&siguiente).Error; err == nil {
+			haySiguiente = true
+		}
+	}
+
+	// ═══════════════════════════════════════════════════════════════
+	// 2. VALIDAR NORMAS DE REPARTO SOLO SI ES LA ÚLTIMA TAREA
+	// ═══════════════════════════════════════════════════════════════
+	if !haySaltoDirecto && !haySiguiente {
+		var totalPorcentaje float64
+		h.db.Model(&db.RadicadoNormaReparto{}).
+			Where("documento_radicado_id = ?", tarea.DocumentoRadicadoID).
+			Select("COALESCE(SUM(porcentaje),0)").
+			Scan(&totalPorcentaje)
+
+		if math.Abs(totalPorcentaje-100.0) > 0.01 {
+			c.JSON(http.StatusBadRequest, gin.H{
+				"error": fmt.Sprintf("Las normas de reparto suman %.2f %%. Deben sumar exactamente 100 %% antes de finalizar el proceso.", totalPorcentaje),
+			})
+			return
+		}
+	}
+
+	// ═══════════════════════════════════════════════════════════════
+	// 3. AHORA SÍ: marcar tarea como completada
+	// ═══════════════════════════════════════════════════════════════
 	if err := h.db.Model(&tarea).Updates(map[string]interface{}{
 		"estado_id":          estadoCompletado.ID,
 		"fecha_finalizacion": now,
@@ -89,28 +137,16 @@ func (h *Handler) Completar(c *gin.Context) {
 		return
 	}
 
-	var siguiente db.Tarea
+	// ═══════════════════════════════════════════════════════════════
+	// 4. EJECUTAR LA TRANSICIÓN (salto, siguiente o finalizar)
+	// ═══════════════════════════════════════════════════════════════
 	var notificarA uint = 0
 	var numRadicado string = ""
-
 	if tarea.DocumentoRadicado != nil {
 		numRadicado = tarea.DocumentoRadicado.NumeroRadicado
 	}
 
-	var tareaRetornoID *uint
-	if tarea.DocumentoRadicado != nil {
-		tareaRetornoID = tarea.DocumentoRadicado.TareaPendienteRetornoID
-	}
-	var saltoDirecto = false
-
-	// VERIFICAR RETORNO DIRECTO
-	if tareaRetornoID != nil && *tareaRetornoID != 0 {
-		if err := h.db.First(&siguiente, *tareaRetornoID).Error; err == nil {
-			saltoDirecto = true
-		}
-	}
-
-	if saltoDirecto {
+	if haySaltoDirecto {
 		var estadoEnProceso db.EstadoTarea
 		h.db.Where("nombre = ?", "En Proceso").First(&estadoEnProceso)
 		if estadoEnProceso.ID == 0 {
@@ -123,55 +159,41 @@ func (h *Handler) Completar(c *gin.Context) {
 			"fecha_finalizacion": gorm.Expr("NULL"),
 		})
 
-		// Eliminar la marca de retorno (para que si se devuelve de nuevo, se pueda)
 		h.db.Model(&db.DocumentoRadicado{}).Where("id = ?", tarea.DocumentoRadicadoID).Updates(map[string]interface{}{
-			"usuario_actual_id":           siguiente.UsuarioAsignadoID,
-			"estado_posesion":             "EnProceso",
+			"usuario_actual_id":          siguiente.UsuarioAsignadoID,
+			"estado_posesion":            "EnProceso",
 			"tarea_pendiente_retorno_id": gorm.Expr("NULL"),
 		})
 		notificarA = siguiente.UsuarioAsignadoID
-	} else {
-		if err := h.db.Where("documento_radicado_id = ? AND id > ? AND estado_id != ?",
-			tarea.DocumentoRadicadoID, tarea.ID, estadoCompletado.ID).
-			Order("id asc").First(&siguiente).Error; err == nil {
 
-			var estadoEnProceso db.EstadoTarea
-			h.db.Where("nombre = ?", "En Proceso").First(&estadoEnProceso)
-			if estadoEnProceso.ID == 0 {
-				estadoEnProceso.ID = 2
-			}
-
-			h.db.Model(&siguiente).Updates(map[string]interface{}{
-				"estado_id":    estadoEnProceso.ID,
-				"fecha_inicio": now,
-			})
-
-			h.db.Model(&db.DocumentoRadicado{}).Where("id = ?", tarea.DocumentoRadicadoID).Updates(map[string]interface{}{
-				"usuario_actual_id": siguiente.UsuarioAsignadoID,
-				"estado_posesion":   "EnProceso",
-			})
-
-			notificarA = siguiente.UsuarioAsignadoID
-			} else {
-		// ── VALIDACIÓN: es el último paso, las normas deben sumar 100 % ──
-		var totalPorcentaje float64
-		h.db.Raw("SELECT COALESCE(SUM(porcentaje),0) FROM documento_radicado_norma_repartos WHERE documento_radicado_id = ?",
-			tarea.DocumentoRadicadoID).Scan(&totalPorcentaje)
-
-		if math.Abs(totalPorcentaje-100.0) > 0.01 {
-			c.JSON(http.StatusBadRequest, gin.H{
-				"error": fmt.Sprintf("Las normas de reparto suman %.2f %%. Deben sumar exactamente 100 %% antes de finalizar el proceso.", totalPorcentaje),
-			})
-			return
+	} else if haySiguiente {
+		var estadoEnProceso db.EstadoTarea
+		h.db.Where("nombre = ?", "En Proceso").First(&estadoEnProceso)
+		if estadoEnProceso.ID == 0 {
+			estadoEnProceso.ID = 2
 		}
 
+		h.db.Model(&siguiente).Updates(map[string]interface{}{
+			"estado_id":    estadoEnProceso.ID,
+			"fecha_inicio": now,
+		})
+
+		h.db.Model(&db.DocumentoRadicado{}).Where("id = ?", tarea.DocumentoRadicadoID).Updates(map[string]interface{}{
+			"usuario_actual_id": siguiente.UsuarioAsignadoID,
+			"estado_posesion":   "EnProceso",
+		})
+		notificarA = siguiente.UsuarioAsignadoID
+
+	} else {
+		// Última tarea → finalizar radicado
 		h.db.Model(&db.DocumentoRadicado{}).Where("id = ?", tarea.DocumentoRadicadoID).Updates(map[string]interface{}{
 			"estado_posesion": "Completado",
 		})
-		}
 	}
 
-	// ── NOTIFICAR al siguiente usuario ──
+	// ═══════════════════════════════════════════════════════════════
+	// 5. NOTIFICAR AL SIGUIENTE USUARIO
+	// ═══════════════════════════════════════════════════════════════
 	if h.notifSvc != nil && notificarA != 0 && notificarA != user.ID {
 		docID := tarea.DocumentoRadicadoID
 		h.notifSvc.CreateFromEvent(notificacion.CreateDTO{
@@ -184,9 +206,12 @@ func (h *Handler) Completar(c *gin.Context) {
 		})
 	}
 
-	// ── REGISTRAR Trazabilidad ──
+	// ═══════════════════════════════════════════════════════════════
+	// 6. REGISTRAR TRAZABILIDAD
+	// ═══════════════════════════════════════════════════════════════
 	var accionTrazabilidad string
 	var descTrazabilidad string
+
 	if notificarA != 0 {
 		var usuarioSiguiente db.Usuario
 		h.db.First(&usuarioSiguiente, notificarA)
@@ -194,7 +219,6 @@ func (h *Handler) Completar(c *gin.Context) {
 		if nombreSiguiente == "" {
 			nombreSiguiente = "Usuario Desconocido"
 		}
-
 		accionTrazabilidad = "Paso Completado y Asignado"
 		descTrazabilidad = fmt.Sprintf("El usuario completó su tarea. El documento fue asignado a: %s", nombreSiguiente)
 	} else {
@@ -212,7 +236,6 @@ func (h *Handler) Completar(c *gin.Context) {
 
 	c.JSON(http.StatusOK, gin.H{"message": "Tarea completada"})
 }
-
 func (h *Handler) Devolver(c *gin.Context) {
 	id, err := strconv.Atoi(c.Param("id"))
 	if err != nil {

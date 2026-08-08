@@ -102,6 +102,8 @@ export default function ProcesosLogistica() {
   const [showNormaModal, setShowNormaModal] = useState(false);
   const [normaEditandoId, setNormaEditandoId] = useState(null);
   const [normaFormDetalle, setNormaFormDetalle] = useState({ norma_reparto_id: "", porcentaje: "" });
+  const [normaModalRadicadoId, setNormaModalRadicadoId] = useState(null);
+  const [completandoTarea, setCompletandoTarea] = useState(false);
 
   //normas de reparto
     // ── Filtros jerárquicos para normas en el modal de radicación ──
@@ -385,83 +387,145 @@ export default function ProcesosLogistica() {
   };
 
     const openNormaModal = (radicadoId, normaExistente = null) => {
-    if (normaExistente) {
-      setNormaEditandoId(normaExistente.id);
-      setNormaFormDetalle({
-        norma_reparto_id: String(normaExistente.norma_reparto_id || normaExistente.norma_reparto?.id || ""),
-        porcentaje: String(normaExistente.porcentaje || "")
-      });
-    } else {
-      setNormaEditandoId(null);
-      setNormaFormDetalle({ norma_reparto_id: "", porcentaje: "" });
-      setNormaFiltroSede("");
-      setNormaFiltroArea("");
+  setNormaModalRadicadoId(radicadoId); // ← NUEVO
+
+  if (normaExistente) {
+    setNormaEditandoId(normaExistente.id);
+    setNormaFormDetalle({
+      norma_reparto_id: String(normaExistente.norma_reparto_id || normaExistente.norma_reparto?.id || ""),
+      porcentaje: String(normaExistente.porcentaje || "")
+    });
+    // Pre-llenar filtros si conocemos la norma
+    const norma = normasRepartoCatalogo.find(n => n.id === (normaExistente.norma_reparto_id || normaExistente.norma_reparto?.id));
+    if (norma) {
+      setNormaFiltroSede(norma.sucursal || "");
+      setNormaFiltroArea(norma.departamento || "");
     }
-    if (normasRepartoCatalogo.length === 0) {
-      fetch(`${API}/normas-reparto?activo=true`, { headers: { Authorization: `Bearer ${obtenerToken()}` } })
-        .then(r => r.json())
-        .then(d => setNormasRepartoCatalogo(Array.isArray(d) ? d : []));
-    }
-    setShowNormaModal(true);
-  };
+  } else {
+    setNormaEditandoId(null);
+    setNormaFormDetalle({ norma_reparto_id: "", porcentaje: "" });
+    setNormaFiltroSede("");
+    setNormaFiltroArea("");
+  }
+
+  if (normasRepartoCatalogo.length === 0) {
+    fetch(`${API}/normas-reparto?activo=true`, { headers: { Authorization: `Bearer ${obtenerToken()}` } })
+      .then(r => r.json())
+      .then(d => setNormasRepartoCatalogo(Array.isArray(d) ? d : []));
+  }
+  setShowNormaModal(true);
+};
 
   const handleGuardarNormaDetalle = async (radicadoId) => {
-    if (!normaFormDetalle.norma_reparto_id || normaFormDetalle.porcentaje === "") {
-      alert("Seleccione una norma y el porcentaje");
-      return;
-    }
-    const body = {
+  if (!normaFormDetalle.norma_reparto_id || normaFormDetalle.porcentaje === "") {
+    alert("Seleccione una norma y el porcentaje");
+    return;
+  }
+
+  try {
+    // 1. Tomar las normas actuales y mapearlas al formato del backend
+    let nuevasNormas = normasRepartoRadicado.map(n => ({
+      norma_reparto_id: n.norma_reparto_id || n.norma_reparto?.id,
+      porcentaje: parseFloat(n.porcentaje)
+    }));
+
+    const payloadNorma = {
       norma_reparto_id: parseInt(normaFormDetalle.norma_reparto_id),
       porcentaje: parseFloat(normaFormDetalle.porcentaje)
     };
-    try {
-      const url = normaEditandoId
-        ? `${API}/documentoradicado/${radicadoId}/normas-reparto/${normaEditandoId}`
-        : `${API}/documentoradicado/${radicadoId}/normas-reparto`;
-      const method = normaEditandoId ? "PUT" : "POST";
 
-      const res = await fetch(url, {
-        method,
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${obtenerToken()}`
-        },
-        body: JSON.stringify(body)
-      });
-      if (!res.ok) {
-        const err = await res.json();
-        throw new Error(err.error || "Error guardando norma");
+    if (normaEditandoId) {
+      // Editar: reemplazar la que tiene ese ID de asignación
+      const idx = normasRepartoRadicado.findIndex(n => n.id === normaEditandoId);
+      if (idx !== -1) {
+        nuevasNormas[idx] = payloadNorma;
+      } else {
+        // Fallback por si no encuentra el id
+        const idx2 = nuevasNormas.findIndex(n => n.norma_reparto_id === payloadNorma.norma_reparto_id);
+        if (idx2 !== -1) nuevasNormas[idx2] = payloadNorma;
+        else nuevasNormas.push(payloadNorma);
       }
-      alert(normaEditandoId ? "Norma actualizada correctamente" : "Norma agregada correctamente");
-      setShowNormaModal(false);
-      const nrRes = await fetch(`${API}/documentoradicado/${radicadoId}/normas-reparto`, {
-        headers: { Authorization: `Bearer ${obtenerToken()}` }
-      });
-      const nrData = await nrRes.json();
-      setNormasRepartoRadicado(Array.isArray(nrData) ? nrData : []);
-    } catch (err) {
-      alert("Error: " + err.message);
+    } else {
+      // Crear: verificar duplicado por norma_reparto_id
+      const yaExiste = nuevasNormas.find(n => n.norma_reparto_id === payloadNorma.norma_reparto_id);
+      if (yaExiste) {
+        alert("Esta norma ya fue agregada");
+        return;
+      }
+      nuevasNormas.push(payloadNorma);
     }
-  };
 
-  const handleEliminarNorma = async (asignacionId, radicadoId) => {
-    if (!confirm("¿Está seguro de eliminar esta norma de reparto?")) return;
-    try {
-      const res = await fetch(`${API}/documentoradicado/${radicadoId}/normas-reparto/${asignacionId}`, {
-        method: "DELETE",
-        headers: { Authorization: `Bearer ${obtenerToken()}` }
-      });
-      if (!res.ok) throw new Error("Error eliminando norma");
-      alert("Norma eliminada");
-      const nrRes = await fetch(`${API}/documentoradicado/${radicadoId}/normas-reparto`, {
-        headers: { Authorization: `Bearer ${obtenerToken()}` }
-      });
-      const nrData = await nrRes.json();
-      setNormasRepartoRadicado(Array.isArray(nrData) ? nrData : []);
-    } catch (err) {
-      alert("Error: " + err.message);
+    // 2. Enviar SIEMPRE como array al endpoint que reemplaza todo
+    const res = await fetch(`${API}/documentoradicado/${radicadoId}/normas-reparto`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${obtenerToken()}`
+      },
+      body: JSON.stringify({ normas: nuevasNormas })
+    });
+
+    if (!res.ok) {
+      const err = await res.json();
+      throw new Error(err.error || "Error guardando norma");
     }
-  };
+
+    alert(normaEditandoId ? "Norma actualizada correctamente" : "Norma agregada correctamente");
+    setShowNormaModal(false);
+    setNormaEditandoId(null);
+
+    // 3. Refrescar
+    const nrRes = await fetch(`${API}/documentoradicado/${radicadoId}/normas-reparto`, {
+      headers: { Authorization: `Bearer ${obtenerToken()}` }
+    });
+    const nrData = await nrRes.json();
+    setNormasRepartoRadicado(Array.isArray(nrData) ? nrData : []);
+
+  } catch (err) {
+    alert("Error: " + err.message);
+  }
+};
+
+const handleEliminarNorma = async (asignacionId, radicadoId) => {
+  if (!confirm("¿Está seguro de eliminar esta norma de reparto?")) return;
+
+  try {
+    // 1. Construir array sin la norma eliminada
+    const normasRestantes = normasRepartoRadicado
+      .filter(n => n.id !== asignacionId)
+      .map(n => ({
+        norma_reparto_id: n.norma_reparto_id || n.norma_reparto?.id,
+        porcentaje: parseFloat(n.porcentaje)
+      }));
+
+    // 2. Enviar array actualizado (reemplaza todo en el backend)
+    const res = await fetch(`${API}/documentoradicado/${radicadoId}/normas-reparto`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${obtenerToken()}`
+      },
+      body: JSON.stringify({ normas: normasRestantes })
+    });
+
+    if (!res.ok) {
+      const err = await res.json();
+      throw new Error(err.error || "Error eliminando norma");
+    }
+
+    alert("Norma eliminada");
+
+    // 3. Refrescar
+    const nrRes = await fetch(`${API}/documentoradicado/${radicadoId}/normas-reparto`, {
+      headers: { Authorization: `Bearer ${obtenerToken()}` }
+    });
+    const nrData = await nrRes.json();
+    setNormasRepartoRadicado(Array.isArray(nrData) ? nrData : []);
+
+  } catch (err) {
+    alert("Error: " + err.message);
+  }
+};
 
   const handleProveedorFormChange = (e) => {
     const { name, value } = e.target;
@@ -880,48 +944,72 @@ export default function ProcesosLogistica() {
 );
 
   // ── Completar tarea ──
-
-    // ── Completar tarea ──
   const handleCompletarTarea = async (tareaId, radicadoId) => {
-    try {
-      const res = await fetch(`${API}/tarea/${tareaId}/completar`, {
-        method: "PATCH",
-        headers: { Authorization: `Bearer ${obtenerToken()}` }
-      });
-      if (!res.ok) {
+  if (completandoTarea) return; // ← evita doble clic
+  setCompletandoTarea(true);
+
+  try {
+    const res = await fetch(`${API}/tarea/${tareaId}/completar`, {
+      method: "PATCH",
+      headers: { Authorization: `Bearer ${obtenerToken()}` }
+    });
+
+    // Si devuelve error porque YA está completada, no lanzamos excepción,
+    // solo recargamos para sincronizar la vista
+    let errMsg = null;
+    if (!res.ok) {
+      try {
         const errData = await res.json();
-        throw new Error(errData.error || "Error completando tarea");
+        errMsg = errData.error || "";
+      } catch (e) {
+        errMsg = "Error completando tarea";
       }
+    }
 
+    if (errMsg && !errMsg.toLowerCase().includes("ya está completada")) {
+      throw new Error(errMsg);
+    }
+
+    if (!errMsg) {
       alert("Tarea completada correctamente");
+    }
 
-      const flujoRes = await fetch(`${API}/documentoradicado/${radicadoId}/tareas`, {
-        headers: { Authorization: `Bearer ${obtenerToken()}` }
-      });
-      const flujoData = await flujoRes.json();
-      setTareasFlujo(Array.isArray(flujoData) ? flujoData : []);
+    // ── Recargar flujo ──
+    const flujoRes = await fetch(`${API}/documentoradicado/${radicadoId}/tareas`, {
+      headers: { Authorization: `Bearer ${obtenerToken()}` }
+    });
+    const flujoData = await flujoRes.json();
+    setTareasFlujo(Array.isArray(flujoData) ? flujoData : []);
 
-      const detalleRes = await fetch(`${API}/documentoradicado/${radicadoId}`, {
-        headers: { Authorization: `Bearer ${obtenerToken()}` }
-      });
-      const detalleData = await detalleRes.json();
-      if (detalleData && detalleData.id) {
-        if (activeTab === "tareas") setTareaDetail(detalleData);
-        if (activeTab === "radicados") setRadicadoDetail(detalleData);
-      }
+    // ── Recargar detalle del radicado ──
+    const detalleRes = await fetch(`${API}/documentoradicado/${radicadoId}`, {
+      headers: { Authorization: `Bearer ${obtenerToken()}` }
+    });
+    const detalleData = await detalleRes.json();
+    if (detalleData && detalleData.id) {
+      if (activeTab === "tareas") setTareaDetail(detalleData);
+      if (activeTab === "radicados") setRadicadoDetail(detalleData);
+    }
 
+    // ── Recargar lista ──
+    const listaRes = await fetch(`${API}/documentoradicado`, {
+      headers: { Authorization: `Bearer ${obtenerToken()}` }
+    });
+    const listaData = await listaRes.json();
+    if (Array.isArray(listaData)) {
       if (activeTab === "tareas") {
-        const listaRes = await fetch(`${API}/documentoradicado`, {
-          headers: { Authorization: `Bearer ${obtenerToken()}` }
-        });
-        const listaData = await listaRes.json();
-        if (Array.isArray(listaData)) {
-          setMisTareas(listaData.filter(r => r.usuario_actual_id === userId && r.estado_posesion !== "Completado"));
-        }
+        setMisTareas(listaData.filter(r => r.usuario_actual_id === userId && r.estado_posesion !== "Completado"));
+        setMisTareasCompletadas(listaData.filter(r => r.estado_posesion === "Completado"));
+      } else if (activeTab === "radicados") {
+        setRadicados(listaData);
       }
+    }
 
-      // ── NOTIFICAR al siguiente usuario en el flujo ──
-      const siguiente = flujoData.find(t => t.estado?.nombre === "En Proceso");
+    // ── Notificar al siguiente SOLO si no hubo error previo ──
+    if (!errMsg) {
+      const siguiente = (Array.isArray(flujoData) ? flujoData : []).find(
+        t => t.estado?.nombre === "En Proceso"
+      );
       if (siguiente?.usuario_asignado?.id && siguiente.usuario_asignado.id !== userId) {
         await fetch(`${API}/notificacion`, {
           method: "POST",
@@ -939,11 +1027,14 @@ export default function ProcesosLogistica() {
           })
         });
       }
-
-    } catch (err) {
-      alert("Error: " + err.message);
     }
-  };
+
+  } catch (err) {
+    alert("Error: " + err.message);
+  } finally {
+    setCompletandoTarea(false);
+  }
+};
 
   
   
@@ -2479,8 +2570,8 @@ const handleDevolverTarea = async (tareaId, radicadoId) => {
                   if (esResponsable && tareaDetail.estado_posesion !== "Completado") {
                     return (
                       <>
-                        <button className="doc-btn doc-btn-primary" onClick={() => handleCompletarTarea(tareaActiva.id, tareaDetail.id)}>
-                          <i className="fa-solid fa-check"></i> Marcar como Completado
+                        <button className="doc-btn doc-btn-primary" onClick={() => handleCompletarTarea(tareaActiva.id, tareaDetail.id)}disabled={completandoTarea}>
+                          <i className={`fa-solid ${completandoTarea ? 'fa-spinner fa-spin' : 'fa-check'}`}></i> {completandoTarea ? " Completando..." : " Marcar como Completado"}
                         </button>
                         <button 
                           className="doc-btn doc-btn-secondary" 
@@ -3168,6 +3259,78 @@ const editorPermitido =
           </div>
         </div>
       )}
+      {/* ── Modal Agregar/Editar Norma de Reparto ── */}
+{showNormaModal && (
+  <div className="modal-overlay" onClick={() => setShowNormaModal(false)}>
+    <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+      <div className="modal-header">
+        <h3><i className="fa-solid fa-chart-pie"></i> {normaEditandoId ? "Editar" : "Agregar"} Norma de Reparto</h3>
+        <button className="modal-close" onClick={() => setShowNormaModal(false)}><i className="fa-solid fa-xmark"></i></button>
+      </div>
+      <div className="modal-body">
+        <div style={{ display: "flex", gap: 8, marginBottom: 10 }}>
+          <select
+            className="doc-input"
+            style={{ flex: 1 }}
+            value={normaFiltroSede}
+            onChange={(e) => { setNormaFiltroSede(e.target.value); setNormaFiltroArea(""); }}
+          >
+            <option value="">Todas las sedes</option>
+            {sedesDisponibles.map(s => <option key={s} value={s}>{s}</option>)}
+          </select>
+          <select
+            className="doc-input"
+            style={{ flex: 1 }}
+            value={normaFiltroArea}
+            onChange={(e) => setNormaFiltroArea(e.target.value)}
+          >
+            <option value="">Todas las áreas</option>
+            {areasDisponibles.map(a => <option key={a} value={a}>{a}</option>)}
+          </select>
+        </div>
+
+        <div className="modal-field">
+          <label>Norma <span className="required">*</span></label>
+          <select
+            className="doc-input"
+            value={normaFormDetalle.norma_reparto_id}
+            onChange={(e) => setNormaFormDetalle(prev => ({ ...prev, norma_reparto_id: e.target.value }))}
+          >
+            <option value="">Seleccione norma...</option>
+            {normasFiltradas.map(n => (
+              <option key={n.id} value={String(n.id)}>
+                {n.codigo} — {n.nombre} ({n.sucursal} / {n.departamento})
+              </option>
+            ))}
+          </select>
+        </div>
+
+        <div className="modal-field">
+          <label>Porcentaje <span className="required">*</span></label>
+          <input
+            type="number"
+            min="0"
+            max="100"
+            step="0.01"
+            className="doc-input"
+            value={normaFormDetalle.porcentaje}
+            onChange={(e) => setNormaFormDetalle(prev => ({ ...prev, porcentaje: e.target.value }))}
+            placeholder="%"
+          />
+        </div>
+      </div>
+      <div className="modal-footer">
+        <button className="doc-btn doc-btn-secondary" onClick={() => setShowNormaModal(false)}>Cancelar</button>
+        <button
+          className="doc-btn doc-btn-primary"
+          onClick={() => handleGuardarNormaDetalle(normaModalRadicadoId)}
+        >
+          <i className="fa-solid fa-floppy-disk"></i> {normaEditandoId ? "Actualizar" : "Agregar"}
+        </button>
+      </div>
+    </div>
+  </div>
+)}
     </>
   );
 }
