@@ -957,6 +957,54 @@ body {
   justify-content: space-between;
   align-items: center;
 }
+
+/* ── Asignado en lista (radicados / tareas) ── */
+.correo-item-status {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-top: 4px;
+}
+
+.item-asignado {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 0.78em;
+  color: var(--gray-600);
+  min-width: 0;          /* clave para que ellipsis funcione dentro de flex */
+  flex-shrink: 1;
+}
+
+.item-asignado i {
+  font-size: 0.85em;
+  color: var(--pardo-blue);
+  flex-shrink: 0;
+}
+
+.asignado-nombre {
+  font-weight: 600;
+  color: var(--gray-900);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.asignado-accion {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  color: var(--gray-600);
+}
+
+/* En pantallas muy angostas oculta la acción y deja solo el nombre */
+@media (max-width: 380px) {
+  .asignado-accion {
+    display: none;
+  }
+}
+
 /* ── RESPONSIVE ───────────────────────────────────────── */
 @media (max-width:1024px) {
     .sidebar.open { width:260px; }

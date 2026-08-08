@@ -93,8 +93,10 @@ export default function ProcesosLogistica() {
     email: "",
     telefono: ""
   });
+
   const [tiposDocumentoCatalogo, setTiposDocumentoCatalogo] = useState([]);
   const [creandoProveedor, setCreandoProveedor] = useState(false);
+  const [tareasPorRadicado, setTareasPorRadicado] = useState({});
 
   //normas de reparto
     // ── Filtros jerárquicos para normas en el modal de radicación ──
@@ -224,6 +226,44 @@ export default function ProcesosLogistica() {
       setNormasRepartoRadicado([]); 
     }
   }, [selectedRadicadoId, selectedTareaId]);
+
+  useEffect(() => {
+  if (activeTab === "radicados") {
+    setLoadingRadicados(true);
+    fetch(`${API}/documentoradicado`, { headers: { Authorization: `Bearer ${obtenerToken()}` } })
+      .then((res) => res.json())
+      .then(async (data) => {
+        if (Array.isArray(data)) {
+          setRadicados(data);
+
+          // ── Cargar la tarea activa real de cada radicado ──
+          const tareasMap = {};
+          await Promise.all(
+            data.map(async (rad) => {
+              if (rad.estado_posesion === "Completado") return;
+              try {
+                const res = await fetch(`${API}/documentoradicado/${rad.id}/tareas`, {
+                  headers: { Authorization: `Bearer ${obtenerToken()}` }
+                });
+                const tareas = await res.json();
+                const tareaActiva = (Array.isArray(tareas) ? tareas : []).find(
+                  (t) => t.estado?.nombre === "En Proceso"
+                );
+                if (tareaActiva) {
+                  tareasMap[rad.id] = tareaActiva;
+                }
+              } catch (e) {
+                // silencioso
+              }
+            })
+          );
+          setTareasPorRadicado(tareasMap);
+        }
+      })
+      .catch((err) => console.error(err))
+      .finally(() => setLoadingRadicados(false));
+  }
+}, [activeTab]);
 
   const handleDescargarExpediente = async (radicado) => {
     if (!radicado) return;
@@ -1826,6 +1866,21 @@ const handleDevolverTarea = async (tareaId, radicadoId) => {
                  rad.estado_posesion === "Devuelto" ? "Devuelto" :
                  rad.estado_posesion === "Libre" ? "Libre" : "En espera"}
               </span>
+                
+                {rad.estado_posesion !== "Completado" && rad.usuario_actual?.nombre && (
+                  <span
+                    className="item-asignado"
+                    title={`${rad.usuario_actual.nombre} — ${tareasPorRadicado[rad.id]?.descripcion || rad.paso_actual?.nombre || "Sin paso"}`}>
+                    <i className="fa-solid fa-user"></i>
+                    <span className="asignado-nombre">{rad.usuario_actual.nombre}</span>
+                    {(() => {
+                      const accion =
+                        tareasPorRadicado[rad.id]?.descripcion ||
+                        rad.paso_actual?.nombre;
+                      return accion && <span className="asignado-accion">• {accion}</span>;
+                    })()}
+                  </span>
+                )}
             </div>
           </div>
         ))
