@@ -127,3 +127,25 @@
   flex-shrink: 0;
   margin-top: 4px;
 }
+
+/* Admin toast styles */
+.admin-toast-wrap {
+    position: fixed;
+    top: 80px;
+    right: 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    z-index: 9999;
+}
+.admin-toast {
+    background: #111827;
+    color: #fff;
+    padding: 12px 16px;
+    border-radius: 8px;
+    box-shadow: 0 6px 18px rgba(0,0,0,0.15);
+    cursor: pointer;
+    max-width: 320px;
+}
+.admin-toast-title { font-weight: 700; margin-bottom: 6px; }
+.admin-toast-body { font-size: 0.95em; color: #e5e7eb; }

@@ -5,6 +5,7 @@ import logo from "../../assets/login/logo.png";
 import { obtenerToken } from "../auth/token.js";
 import PdfEditor from "../../components/PdfEditor";
 import NotificacionesDropdown from "../../components/NotificacionesDropdown";
+import AdminToast from "../../components/AdminToast";
 import { generarExpedientePDF } from "../../utils/expedientePdf";
 
 const API = "http://localhost:8080/api";
@@ -3132,6 +3133,7 @@ const editorPermitido =
             setSelectedTareaId(id);
             setSelectedRadicadoId(null);
           }} />
+          <AdminToast />
         </div>
       </header>
 

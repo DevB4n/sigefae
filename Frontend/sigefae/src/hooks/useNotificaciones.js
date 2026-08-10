@@ -39,6 +39,10 @@ export function useNotificaciones() {
                 })
               );
             });
+            // Emitir evento in-app para toasts (Admin/visual)
+            try {
+              window.dispatchEvent(new CustomEvent('notificacion-nueva', { detail: ultima }));
+            } catch (e) { /* ignore */ }
           }
         }
 
