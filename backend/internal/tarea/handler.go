@@ -208,7 +208,15 @@ func (h *Handler) Completar(c *gin.Context) {
 
 		// Además notificar a los administradores para control
 		var admins []db.Usuario
-		if err := h.db.Joins("Rol").Where("rol.nombre = ?", "Superadministrador").Find(&admins).Error; err == nil {
+		if err := h.db.Joins("Rol").Where("Rol.nombre = ?", "Superadministrador").Find(&admins).Error; err == nil {
+			
+			var usuarioSiguiente db.Usuario
+			h.db.First(&usuarioSiguiente, notificarA)
+			nombreSiguiente := usuarioSiguiente.Nombre
+			if nombreSiguiente == "" {
+				nombreSiguiente = "Usuario Desconocido"
+			}
+
 			for _, a := range admins {
 				// evitar notificar al responsable ya notificado
 				if a.ID == uint(user.ID) || a.ID == notificarA {
@@ -218,9 +226,27 @@ func (h *Handler) Completar(c *gin.Context) {
 				_, _ = h.notifSvc.CreateFromEvent(notificacion.CreateDTO{
 					UsuarioID:           a.ID,
 					DocumentoRadicadoID: &copyDocID,
-					Mensaje:             fmt.Sprintf("El radicado %s fue reasignado a %d", numRadicado, notificarA),
+					Mensaje:             fmt.Sprintf("El radicado %s fue reasignado a %s", numRadicado, nombreSiguiente),
 					Estado:              "Pendiente",
 					Tipo:                "Asignacion",
+					FechaCreacion:       time.Now(),
+				})
+			}
+		}
+	} else if h.notifSvc != nil && notificarA == 0 {
+		var admins []db.Usuario
+		if err := h.db.Joins("Rol").Where("Rol.nombre = ?", "Superadministrador").Find(&admins).Error; err == nil {
+			for _, a := range admins {
+				if a.ID == uint(user.ID) {
+					continue
+				}
+				copyDocID := tarea.DocumentoRadicadoID
+				_, _ = h.notifSvc.CreateFromEvent(notificacion.CreateDTO{
+					UsuarioID:           a.ID,
+					DocumentoRadicadoID: &copyDocID,
+					Mensaje:             fmt.Sprintf("El radicado %s ha finalizado su flujo automáticamente.", numRadicado),
+					Estado:              "Pendiente",
+					Tipo:                "Finalizado",
 					FechaCreacion:       time.Now(),
 				})
 			}
@@ -414,7 +440,7 @@ func (h *Handler) Devolver(c *gin.Context) {
 
 		// Notificar también a administradores
 		var admins []db.Usuario
-		if err := h.db.Joins("Rol").Where("rol.nombre = ?", "Superadministrador").Find(&admins).Error; err == nil {
+		if err := h.db.Joins("Rol").Where("Rol.nombre = ?", "Superadministrador").Find(&admins).Error; err == nil {
 			for _, a := range admins {
 				// evitar notificar al usuario destino (ya notificado)
 				if a.ID == destino.UsuarioAsignadoID {
@@ -426,7 +452,7 @@ func (h *Handler) Devolver(c *gin.Context) {
 					DocumentoRadicadoID: &copyDocID,
 					Mensaje:             fmt.Sprintf("El radicado %s fue devuelto por %s a %s. Motivo: %s", numRad, user.Nombre, nombreDestino, dto.Observacion),
 					Estado:              "Pendiente",
-					Tipo:                "Asignacion",
+					Tipo:                "Devolucion",
 					FechaCreacion:       now,
 				})
 			}

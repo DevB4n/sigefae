@@ -232,7 +232,7 @@ func (h *Handler) SolicitarRechazo(c *gin.Context) {
 
 	// Notificar administradores (como antes)
 	var admins []db.Usuario
-	if err := h.db.Joins("Rol").Where("rol.nombre = ?", "Superadministrador").Find(&admins).Error; err != nil {
+	if err := h.db.Joins("Rol").Where("Rol.nombre = ?", "Superadministrador").Find(&admins).Error; err != nil {
 		// no crítico: continuar
 		admins = []db.Usuario{}
 	}
@@ -518,7 +518,7 @@ func (h *Handler) MarcarCompletado(c *gin.Context) {
 	// Notificar a administradores que el radicado fue completado
 	if h.notifSvc != nil {
 		var admins []db.Usuario
-		if err := h.db.Joins("Rol").Where("rol.nombre = ?", "Superadministrador").Find(&admins).Error; err == nil {
+		if err := h.db.Joins("Rol").Where("Rol.nombre = ?", "Superadministrador").Find(&admins).Error; err == nil {
 			docID := radicado.ID
 			for _, a := range admins {
 				_, _ = h.notifSvc.CreateFromEvent(notificacion.CreateDTO{

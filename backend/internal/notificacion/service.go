@@ -71,7 +71,7 @@ func (s *Service) Create(dto CreateDTO) (*Response, error) {
 	// ==========================
 
 	switch dto.Tipo {
-	case "Recordatorio", "Asignacion", "Sistema":
+	case "Recordatorio", "Asignacion", "Sistema", "Rechazo", "Finalizado", "Devolucion":
 	default:
 		return nil, errors.New("tipo de notificación inválido")
 	}
@@ -196,7 +196,7 @@ func (s *Service) Update(id uint, dto UpdateDTO) (*Response, error) {
 	// ==========================
 
 	switch dto.Tipo {
-	case "Recordatorio", "Asignacion", "Sistema":
+	case "Recordatorio", "Asignacion", "Sistema", "Rechazo", "Finalizado", "Devolucion":
 	default:
 		return nil, errors.New("tipo de notificación inválido")
 	}
@@ -272,7 +272,7 @@ func (s *Service) CreateFromEvent(dto CreateDTO) (*Response, error) {
 	}
 	// Normalizar tipo
 	switch dto.Tipo {
-	case "Recordatorio", "Asignacion", "Sistema", "Rechazo", "Finalizado":
+	case "Recordatorio", "Asignacion", "Sistema", "Rechazo", "Finalizado", "Devolucion":
 	default:
 		dto.Tipo = "Sistema"
 	}
