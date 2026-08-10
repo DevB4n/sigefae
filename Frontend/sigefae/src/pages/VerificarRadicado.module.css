@@ -124,6 +124,27 @@
   border-bottom: 2px solid #f1f5f9;
 }
 
+.cardHeader[role="button"] {
+  cursor: pointer;
+}
+
+.toggleIcon {
+  margin-left: auto;
+  color: #6b7280;
+  font-size: 0.9rem;
+}
+
+.toggleIcon svg {
+  transition: transform 0.18s ease;
+  color: #6b7280;
+  width: 18px;
+  height: 18px;
+}
+
+.collapsed svg {
+  transform: rotate(180deg);
+}
+
 .cardIcon {
   width: 40px;
   height: 40px;

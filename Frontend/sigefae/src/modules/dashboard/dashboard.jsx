@@ -118,6 +118,19 @@ export default function ProcesosLogistica() {
   const [catalogoActivo, setCatalogoActivo] = useState("tipo-radicacion");
   const [catalogoItems, setCatalogoItems] = useState([]);
   const [catalogoLoading, setCatalogoLoading] = useState(false);
+
+  // Habilitar colapsado de secciones usando delegación de eventos (funciona con contenido dinámico)
+  useEffect(() => {
+    const handler = (e) => {
+      const h = e.target.closest && e.target.closest('.doc-section > h4');
+      if (!h) return;
+      const parent = h.parentElement;
+      if (!parent) return;
+      parent.classList.toggle('collapsed');
+    };
+    document.addEventListener('click', handler);
+    return () => document.removeEventListener('click', handler);
+  }, []);
   const [showCatalogoForm, setShowCatalogoForm] = useState(false);
   const [catalogoEditing, setCatalogoEditing] = useState(null);
   const [catalogoForm, setCatalogoForm] = useState({});
@@ -629,6 +642,7 @@ const handleEliminarNorma = async (asignacionId, radicadoId) => {
   };
 
   const handleCrearDocumentoSubmit = async () => {
+    console.log("handleCrearDocumentoSubmit called", { numero: docForm.numero_documento, proveedor: docForm.id_proveedor });
     if (!docForm.numero_documento || !docForm.id_proveedor || !docForm.id_receptor || !docForm.id_area || !docForm.moneda_id || !docForm.fecha_documento) {
       alert("Complete todos los campos obligatorios (*)");
       return;
@@ -1565,14 +1579,14 @@ const handleDevolverTarea = async (tareaId, radicadoId) => {
 
     return (
       <div className="doc-section">
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12, flexWrap: "wrap", gap: 8 }}>
-          <h4 style={{ margin: 0 }}><i className="fa-solid fa-chart-pie"></i> Normas de Reparto ({normasRepartoRadicado.length})</h4>
+        <h4 style={{ margin: 0, display: 'flex', alignItems: 'center', gap: 8, justifyContent: 'space-between' }}>
+          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}><i className="fa-solid fa-chart-pie"></i> Normas de Reparto ({normasRepartoRadicado.length})</span>
           {!readOnly && (
             <button className="doc-btn doc-btn-secondary" onClick={() => openNormaModal(radicadoId)} style={{ padding: "6px 12px", fontSize: "0.8em" }}>
               <i className="fa-solid fa-plus"></i> Agregar Norma
             </button>
           )}
-        </div>
+        </h4>
 
         {normasRepartoRadicado.length === 0 ? (
           <p style={{ color: "#6b7280", fontSize: "0.9em" }}>No hay normas de reparto asignadas.</p>
@@ -2054,9 +2068,9 @@ const handleDevolverTarea = async (tareaId, radicadoId) => {
               </div>
             </div>
             <div className="modal-footer">
-              <button className="doc-btn doc-btn-secondary" onClick={closeRadicarModal} disabled={radicando}>Cancelar</button>
-              <button className="doc-btn doc-btn-primary" onClick={handleRadicarSubmit} disabled={radicando}>
-                <i className="fa-solid fa-stamp"></i> {radicando ? "Radicando..." : "Confirmar Radicación"}
+              <button className="doc-btn doc-btn-secondary" onClick={() => setShowCrearDocModal(false)} disabled={creandoDoc}>Cancelar</button>
+              <button className="doc-btn doc-btn-primary" onClick={handleCrearDocumentoSubmit} disabled={creandoDoc}>
+                <i className="fa-solid fa-file-circle-plus"></i> {creandoDoc ? "Creando..." : "Crear Documento"}
               </button>
             </div>
           </div>
@@ -3126,9 +3140,9 @@ const editorPermitido =
               </div>
             </div>
             <div className="modal-footer">
-              <button className="doc-btn doc-btn-secondary" onClick={closeRadicarModal} disabled={radicando}>Cancelar</button>
-              <button className="doc-btn doc-btn-primary" onClick={handleRadicarSubmit} disabled={radicando}>
-                <i className="fa-solid fa-stamp"></i> {radicando ? "Radicando..." : "Confirmar Radicación"}
+              <button className="doc-btn doc-btn-secondary" onClick={() => setShowCrearDocModal(false)} disabled={creandoDoc}>Cancelar</button>
+              <button className="doc-btn doc-btn-primary" onClick={handleCrearDocumentoSubmit} disabled={creandoDoc}>
+                <i className="fa-solid fa-file-circle-plus"></i> {creandoDoc ? "Creando..." : "Crear Documento"}
               </button>
             </div>
           </div>

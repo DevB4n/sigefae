@@ -450,6 +450,34 @@ body {
     margin-bottom: 24px;
 }
 
+    .doc-section > h4 {
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+
+    .doc-section > h4::after {
+        content: "";
+        margin-left: auto;
+        width: 20px;
+        height: 20px;
+        background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%236b7280' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><polyline points='6 9 12 15 18 9'/></svg>");
+        background-repeat: no-repeat;
+        background-position: center;
+        background-size: 16px 16px;
+        transform: rotate(0deg);
+        transition: transform 0.18s ease;
+    }
+
+    .doc-section.collapsed > h4::after {
+        transform: rotate(180deg);
+    }
+
+    .doc-section.collapsed > *:not(h4) {
+        display: none !important;
+    }
+
 .doc-section h4 {
     font-size: 0.95em;
     color: var(--pardo-navy);
