@@ -611,6 +611,31 @@ body {
     box-shadow: 0 4px 12px rgba(30, 58, 95, 0.3);
     transform: translateY(-1px);
 }
+
+/* Botón de acción peligro (rechazar / finalizar) */
+.doc-btn-danger {
+    background: linear-gradient(135deg, #c53030, #9b2c2c);
+    color: white;
+    border: none;
+    box-shadow: 0 6px 18px rgba(197, 64, 64, 0.18);
+}
+
+.doc-btn-danger:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 8px 22px rgba(197, 64, 64, 0.22);
+}
+
+/* Variante secundaria refinada */
+.doc-btn-secondary {
+    background: white;
+    color: var(--pardo-navy);
+    border: 1px solid var(--gray-200);
+}
+
+.doc-btn-secondary:hover {
+    background: var(--gray-100);
+    transform: translateY(-1px);
+}
 /* ── INPUTS EN MODO EDICIÓN ───────────────────────────── */
 .doc-input {
     width: 100%;

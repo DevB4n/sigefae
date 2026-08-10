@@ -1881,7 +1881,7 @@ const handleDevolverTarea = async (tareaId, radicadoId) => {
                   <span className={`status-badge ${s.estado === 'Pendiente' ? 'doc-pendiente' : s.estado === 'Aceptada' ? 'radicado' : 'doc-rechazado'}`}>{s.estado}</span>
                   {esAdmin && s.estado === 'Pendiente' && (
                     <>
-                      <button className="btn btn-primary" onClick={async () => {
+                      <button className="doc-btn doc-btn-primary" onClick={async () => {
                         if (!confirm('Aceptar solicitud y marcar como rechazado?')) return;
                         try {
                           const res = await fetch(`${API}/solicitud-rechazo/${s.id}/decidir`, {
@@ -1907,7 +1907,7 @@ const handleDevolverTarea = async (tareaId, radicadoId) => {
                           setSolicitudes(solicitudes.filter(x => x.id !== s.id));
                         } catch (err) { alert('Error: ' + err.message); }
                       }}>Aceptar</button>
-                      <button className="btn btn-danger" onClick={async () => {
+                      <button className="doc-btn doc-btn-danger" onClick={async () => {
                         if (!confirm('Rechazar solicitud (no marcar documento)?')) return;
                         try {
                           const res = await fetch(`${API}/solicitud-rechazo/${s.id}/decidir`, {
@@ -2321,25 +2321,25 @@ const handleDevolverTarea = async (tareaId, radicadoId) => {
                 radicadoDetail.estado_posesion === "Libre" ? "Libre" : "En espera"}
                 </span>
                 <button 
-                  className="btn btn-outline" 
+                  className="doc-btn doc-btn-secondary" 
                   onClick={() => handleDescargarExpediente(radicadoDetail)}
                   disabled={generandoPdf}
                 >
-                  <i className={`fa-solid ${generandoPdf ? 'fa-spinner fa-spin' : 'fa-file-pdf'}`}></i> 
+                  <i className={`fa-solid ${generandoPdf ? 'fa-spinner fa-spin' : 'fa-file-pdf'}`}></i>
                   {generandoPdf ? " Generando..." : " Expediente"}
                 </button>
                 {!isFinalState(radicadoDetail.estado_posesion) && esAdmin && (
                   <>
-                    <button className="btn btn-primary" style={{ marginLeft: 8 }} onClick={() => marcarCompletado(radicadoDetail.id)}>
+                    <button className="doc-btn doc-btn-primary" style={{ marginLeft: 8 }} onClick={() => marcarCompletado(radicadoDetail.id)}>
                       <i className="fa-solid fa-check"></i> Marcar como Completado
                     </button>
-                    <button className="btn btn-danger" style={{ marginLeft: 8 }} onClick={() => adminRechazar(radicadoDetail.id)}>
+                    <button className="doc-btn doc-btn-danger" style={{ marginLeft: 8 }} onClick={() => adminRechazar(radicadoDetail.id)}>
                       <i className="fa-solid fa-ban"></i> Rechazar (final)
                     </button>
                   </>
                 )}
                 {esUsuario && !isFinalState(radicadoDetail.estado_posesion) && (
-                  <button className="btn btn-outline" style={{ marginLeft: 8 }} onClick={() => solicitarRechazo(radicadoDetail.id)}>
+                  <button className="doc-btn doc-btn-secondary" style={{ marginLeft: 8 }} onClick={() => solicitarRechazo(radicadoDetail.id)}>
                     <i className="fa-solid fa-ban"></i> Solicitar Rechazo
                   </button>
                 )}
@@ -2612,7 +2612,7 @@ const handleDevolverTarea = async (tareaId, radicadoId) => {
                     tareaDetail.estado_posesion === "Libre" ? "Libre" : "En espera"}
                     </span>
                     <button 
-                      className="btn btn-outline" 
+                      className="doc-btn doc-btn-secondary" 
                       onClick={() => handleDescargarExpediente(tareaDetail)}
                       disabled={generandoPdf}
                     >
