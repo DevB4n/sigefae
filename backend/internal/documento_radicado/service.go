@@ -245,6 +245,18 @@ func (s *Service) Update(id uint, dto UpdateDTO) (*db.DocumentoRadicado, error) 
 		return nil, err
 	}
 
+	// Si el estado_posesion fue marcado como 'Devuelto', marcar en trazabilidad
+	if radicado.EstadoPosesion == "Devuelto" {
+		t := time.Now()
+		s.db.Create(&db.Trazabilidad{
+			DocumentoRadicadoID: radicado.ID,
+			UsuarioID:           0,
+			Accion:              "Rechazado",
+			Descripcion:         "Documento marcado como rechazado",
+			Fecha:               t,
+		})
+	}
+
 	updates := map[string]any{}
 	if dto.TipoRadicacionID != 0 {
 		updates["tipo_radicacion_id"] = dto.TipoRadicacionID

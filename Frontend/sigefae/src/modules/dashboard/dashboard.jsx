@@ -19,6 +19,8 @@ export default function ProcesosLogistica() {
   const userId = obtenerUserId();
    const esAdmin = userRol === "Superadministrador";
   const esUsuario = !esAdmin;
+  const showDebug = localStorage.getItem('show_debug') === '1';
+  const isFinalState = (s) => (s === "Completado" || s === "Devuelto" || s === "Rechazado");
  
   
   const handleSubirAnexo = async (e, radicadoId) => {
@@ -206,6 +208,9 @@ export default function ProcesosLogistica() {
 
   // ── Expediente PDF ──
   const [generandoPdf, setGenerandoPdf] = useState(false);
+  // Solicitudes de rechazo
+  const [solicitudes, setSolicitudes] = useState([]);
+  const [loadingSolicitudes, setLoadingSolicitudes] = useState(false);
   
   
   const totalPorcentajeNormas = (radicarForm.normas_reparto || []).reduce(
@@ -260,7 +265,7 @@ export default function ProcesosLogistica() {
           const tareasMap = {};
           await Promise.all(
             data.map(async (rad) => {
-              if (rad.estado_posesion === "Completado") return;
+              if (rad.estado_posesion === "Completado" || rad.estado_posesion === "Devuelto" || rad.estado_posesion === "Rechazado") return;
               try {
                 const res = await fetch(`${API}/documentoradicado/${rad.id}/tareas`, {
                   headers: { Authorization: `Bearer ${obtenerToken()}` }
@@ -365,6 +370,18 @@ export default function ProcesosLogistica() {
 
     return () => { cancelled = true; };
   }, [activeTab, selectedRadicadoId, selectedTareaId]);
+
+  // Cargar solicitudes cuando se activa la pestaña
+  useEffect(() => {
+    if (activeTab !== "solicitudes") return;
+    setLoadingSolicitudes(true);
+    const endpoint = esAdmin ? `${API}/solicitud-rechazo` : `${API}/solicitud-rechazo/mias`;
+    fetch(endpoint, { headers: { Authorization: `Bearer ${obtenerToken()}` } })
+      .then(r => r.json())
+      .then(data => setSolicitudes(Array.isArray(data) ? data : []))
+      .catch(err => { console.error("Error cargando solicitudes:", err); setSolicitudes([]); })
+      .finally(() => setLoadingSolicitudes(false));
+  }, [activeTab, esAdmin]);
 
 
       const openCrearDocModal = () => {
@@ -1012,8 +1029,8 @@ const handleEliminarNorma = async (asignacionId, radicadoId) => {
     const listaData = await listaRes.json();
     if (Array.isArray(listaData)) {
       if (activeTab === "tareas") {
-        setMisTareas(listaData.filter(r => r.usuario_actual_id === userId && r.estado_posesion !== "Completado"));
-        setMisTareasCompletadas(listaData.filter(r => r.estado_posesion === "Completado"));
+        setMisTareas(listaData.filter(r => r.usuario_actual_id === userId && !isFinalState(r.estado_posesion)));
+        setMisTareasCompletadas(listaData.filter(r => r.estado_posesion === "Completado" || r.estado_posesion === "Devuelto" || r.estado_posesion === "Rechazado"));
       } else if (activeTab === "radicados") {
         setRadicados(listaData);
       }
@@ -1102,8 +1119,8 @@ const handleDevolverTarea = async (tareaId, radicadoId) => {
 
     if (Array.isArray(listaData)) {
       if (activeTab === "tareas") {
-        const activas = listaData.filter(r => r.usuario_actual_id === userId && r.estado_posesion !== "Completado");
-        const completadas = listaData.filter(r => r.estado_posesion === "Completado");
+        const activas = listaData.filter(r => r.usuario_actual_id === userId && !isFinalState(r.estado_posesion));
+        const completadas = listaData.filter(r => r.estado_posesion === "Completado" || r.estado_posesion === "Devuelto" || r.estado_posesion === "Rechazado");
         setMisTareas(activas);
         setMisTareasCompletadas(completadas);
       } else if (activeTab === "radicados") {
@@ -1428,6 +1445,18 @@ const handleDevolverTarea = async (tareaId, radicadoId) => {
     }
   }, [selectedRadicadoId]);
 
+  // Al abrir un radicado/tarea, colapsar todas las secciones por defecto
+  useEffect(() => {
+    if (radicadoDetail || tareaDetail) {
+      // esperar que el DOM renderice
+      setTimeout(() => {
+        const parent = document.querySelector('.doc-detail-content');
+        if (!parent) return;
+        parent.querySelectorAll('.doc-section').forEach((el) => el.classList.add('collapsed'));
+      }, 30);
+    }
+  }, [radicadoDetail, tareaDetail]);
+
   // ── Cargar MIS TAREAS (filtradas por usuario logueado) ──
       useEffect(() => {
     if (activeTab === "tareas") {
@@ -1436,8 +1465,8 @@ const handleDevolverTarea = async (tareaId, radicadoId) => {
         .then((res) => res.json())
         .then((data) => {
           if (Array.isArray(data)) {
-            const activas = data.filter(r => r.usuario_actual_id === userId && r.estado_posesion !== "Completado");
-            const completadas = data.filter(r => r.estado_posesion === "Completado");
+            const activas = data.filter(r => r.usuario_actual_id === userId && !isFinalState(r.estado_posesion));
+            const completadas = data.filter(r => r.estado_posesion === "Completado" || r.estado_posesion === "Devuelto" || r.estado_posesion === "Rechazado");
             setMisTareas(activas);
             setMisTareasCompletadas(completadas);
           }
@@ -1569,6 +1598,77 @@ const handleDevolverTarea = async (tareaId, radicadoId) => {
       alert("Error al radicar: " + err.message);
     } finally {
       setRadicando(false);
+    }
+  };
+
+  const solicitarRechazo = async (documentoId) => {
+    if (!confirm("¿Desea solicitar el rechazo de este documento?")) return;
+    const motivo = prompt("Escriba un motivo (opcional):", "");
+    try {
+      const res = await fetch(`${API}/documentoradicado/${documentoId}/solicitar-rechazo`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${obtenerToken()}`,
+        },
+        body: JSON.stringify({ mensaje: motivo || "Solicitud de rechazo" }),
+      });
+      if (!res.ok) {
+        const err = await res.json();
+        throw new Error(err.error || "Error enviando solicitud");
+      }
+      alert("Solicitud de rechazo enviada a los administradores");
+    } catch (err) {
+      alert("Error: " + err.message);
+    }
+  };
+
+  const marcarCompletado = async (radicadoId) => {
+    if (!confirm("¿Marcar este radicado como completado? Esta acción es final.")) return;
+    const motivo = prompt("Escriba un mensaje (opcional):", "");
+    try {
+      const res = await fetch(`${API}/documentoradicado/${radicadoId}/completar`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${obtenerToken()}`,
+        },
+        body: JSON.stringify({ mensaje: motivo || "Marcado como completado por admin" }),
+      });
+      if (!res.ok) {
+        const err = await res.json();
+        throw new Error(err.error || "Error al completar");
+      }
+      alert("Radicado marcado como completado");
+      // refrescar detalle
+      const nuevo = await fetch(`${API}/documentoradicado/${radicadoId}`, { headers: { Authorization: `Bearer ${obtenerToken()}` } });
+      setRadicadoDetail(await nuevo.json());
+    } catch (err) {
+      alert("Error: " + err.message);
+    }
+  };
+
+  const adminRechazar = async (radicadoId) => {
+    if (!confirm("¿Confirmar rechazo definitivo de este radicado?")) return;
+    const motivo = prompt("Motivo (opcional):", "");
+    try {
+      const res = await fetch(`${API}/documentoradicado/${radicadoId}/rechazar`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${obtenerToken()}`,
+        },
+        body: JSON.stringify({ mensaje: motivo || "Rechazado por admin" }),
+      });
+      if (!res.ok) {
+        const err = await res.json();
+        throw new Error(err.error || "Error al rechazar");
+      }
+      alert("Radicado marcado como rechazado");
+      const nuevo = await fetch(`${API}/documentoradicado/${radicadoId}`, { headers: { Authorization: `Bearer ${obtenerToken()}` } });
+      setRadicadoDetail(await nuevo.json());
+    } catch (err) {
+      alert("Error: " + err.message);
     }
   };
 
@@ -1747,6 +1847,7 @@ const handleDevolverTarea = async (tareaId, radicadoId) => {
       case "radicados": return { icon: "fa-solid fa-stamp", title: "Documentos Radicados", subtitle: "Consulta el estado de los documentos radicados" };
       case "catalogos": return { icon: "fa-solid fa-sliders", title: "Catálogos del Sistema", subtitle: "Gestiona tipos de radicación, pagos y métodos" };
       case "tareas": return { icon: "fa-solid fa-clipboard-list", title: "Mis Tareas", subtitle: "Documentos radicados asignados a ti" };
+      case "solicitudes": return { icon: "fa-solid fa-circle-exclamation", title: "Solicitudes de Rechazo", subtitle: esAdmin ? "Solicitudes pendientes" : "Tus solicitudes de rechazo" };
       default: return { icon: "fa-solid fa-house", title: "Procesos administrativos", subtitle: "Selecciona un formato del menú lateral" };
     }
   };
@@ -1760,6 +1861,73 @@ const handleDevolverTarea = async (tareaId, radicadoId) => {
         <h2>Bienvenido, Usuario</h2>
         <p>En la barra a tu izquierda encontraras todos los procesos de SIGEFAE.</p>
       </div>
+    </div>
+  );
+
+  const renderSolicitudes = () => (
+    <div className="content-body">
+      <h3>Solicitudes de Rechazo</h3>
+      {loadingSolicitudes ? <p>Cargando solicitudes...</p> : solicitudes.length === 0 ? <p>No hay solicitudes.</p> : (
+        <div className="solicitudes-list">
+          {solicitudes.map((s) => (
+            <div key={s.id} className="solicitud-card">
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <div>
+                  <strong>#{s.id}</strong> — <span style={{ color: '#374151' }}>{s.mensaje || 'Sin mensaje'}</span>
+                  <div style={{ fontSize: '0.85em', color: '#6b7280' }}>{s.documento_radicado ? `Radicado #${s.documento_radicado.numero_radicado}` : ''}</div>
+                </div>
+                <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                  <span className={`status-badge ${s.estado === 'Pendiente' ? 'doc-pendiente' : s.estado === 'Aceptada' ? 'radicado' : 'doc-rechazado'}`}>{s.estado}</span>
+                  {esAdmin && s.estado === 'Pendiente' && (
+                    <>
+                      <button className="btn btn-primary" onClick={async () => {
+                        if (!confirm('Aceptar solicitud y marcar como rechazado?')) return;
+                        try {
+                          const res = await fetch(`${API}/solicitud-rechazo/${s.id}/decidir`, {
+                            method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${obtenerToken()}` },
+                            body: JSON.stringify({ accept: true, mensaje: '' })
+                          });
+                          if (!res.ok) throw new Error((await res.json()).error || 'Error');
+                          alert('Solicitud aceptada');
+                          // Refresh the radicado affected
+                          try {
+                            const docId = s.documento_radicado?.id || s.documento_radicado_id;
+                            if (docId) {
+                              const rres = await fetch(`${API}/documentoradicado/${docId}`, { headers: { Authorization: `Bearer ${obtenerToken()}` } });
+                              if (rres.ok) {
+                                const updated = await rres.json();
+                                setRadicados(prev => Array.isArray(prev) ? prev.map(r => r.id === updated.id ? updated : r) : prev);
+                                if (selectedRadicadoId === updated.id) setRadicadoDetail(updated);
+                                if (selectedTareaId === updated.id) setTareaDetail(updated);
+                              }
+                            }
+                          } catch (e) { console.warn('Error refreshing radicado', e); }
+                          // refresh solicitudes list
+                          setSolicitudes(solicitudes.filter(x => x.id !== s.id));
+                        } catch (err) { alert('Error: ' + err.message); }
+                      }}>Aceptar</button>
+                      <button className="btn btn-danger" onClick={async () => {
+                        if (!confirm('Rechazar solicitud (no marcar documento)?')) return;
+                        try {
+                          const res = await fetch(`${API}/solicitud-rechazo/${s.id}/decidir`, {
+                            method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${obtenerToken()}` },
+                            body: JSON.stringify({ accept: false, mensaje: '' })
+                          });
+                          if (!res.ok) throw new Error((await res.json()).error || 'Error');
+                          alert('Solicitud rechazada');
+                          // When admin rejects the solicitud (does not change radicado), just refresh list
+                          setSolicitudes(solicitudes.filter(x => x.id !== s.id));
+                        } catch (err) { alert('Error: ' + err.message); }
+                      }}>Rechazar</button>
+                    </>
+                  )}
+                </div>
+              </div>
+              <div style={{ marginTop: 8, fontSize: '0.85em', color: '#6b7280' }}>Solicitante: {s.usuario?.nombre || s.usuario_id} — {new Date(s.fecha_creacion).toLocaleString()}</div>
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 
@@ -2068,9 +2236,9 @@ const handleDevolverTarea = async (tareaId, radicadoId) => {
               </div>
             </div>
             <div className="modal-footer">
-              <button className="doc-btn doc-btn-secondary" onClick={() => setShowCrearDocModal(false)} disabled={creandoDoc}>Cancelar</button>
-              <button className="doc-btn doc-btn-primary" onClick={handleCrearDocumentoSubmit} disabled={creandoDoc}>
-                <i className="fa-solid fa-file-circle-plus"></i> {creandoDoc ? "Creando..." : "Crear Documento"}
+              <button className="doc-btn doc-btn-secondary" onClick={closeRadicarModal} disabled={radicando}>Cancelar</button>
+              <button className="doc-btn doc-btn-primary" onClick={handleRadicarSubmit} disabled={radicando}>
+                <i className="fa-solid fa-stamp"></i> {radicando ? "Radicando..." : "Radicar Documento"}
               </button>
             </div>
           </div>
@@ -2094,19 +2262,19 @@ const handleDevolverTarea = async (tareaId, radicadoId) => {
               <span className="correo-date">{new Date(rad.fecha_radicacion).toLocaleDateString()}</span>
             </div>
             <div className="correo-item-subject">{rad.documento_comercial?.tipo || "—"} — {rad.numero_radicado}</div>
-            <div className="correo-item-status">
+              <div className="correo-item-status">
               <span className={`status-badge ${
                 rad.estado_posesion === "Completado" ? "radicado" :
                 rad.estado_posesion === "EnProceso" ? "doc-pendiente" :
-                rad.estado_posesion === "Devuelto" ? "doc-rechazado" : ""
+                (rad.estado_posesion === "Devuelto" || rad.estado_posesion === "Rechazado") ? "doc-rechazado" : ""
               }`}>
                 {rad.estado_posesion === "Completado" ? "Finalizado" :
                  rad.estado_posesion === "EnProceso" ? "En Proceso" :
-                 rad.estado_posesion === "Devuelto" ? "Devuelto" :
+                 (rad.estado_posesion === "Devuelto" || rad.estado_posesion === "Rechazado") ? "Rechazado" :
                  rad.estado_posesion === "Libre" ? "Libre" : "En espera"}
               </span>
                 
-                {rad.estado_posesion !== "Completado" && rad.usuario_actual?.nombre && (
+                {(!isFinalState(rad.estado_posesion)) && rad.usuario_actual?.nombre && (
                   <span
                     className="item-asignado"
                     title={`${rad.usuario_actual.nombre} — ${tareasPorRadicado[rad.id]?.descripcion || rad.paso_actual?.nombre || "Sin paso"}`}>
@@ -2138,11 +2306,11 @@ const handleDevolverTarea = async (tareaId, radicadoId) => {
                 <span className={`status-badge ${
                   radicadoDetail.estado_posesion === "Completado" ? "radicado" :
                   radicadoDetail.estado_posesion === "EnProceso" ? "doc-pendiente" :
-                  radicadoDetail.estado_posesion === "Devuelto" ? "doc-rechazado" : ""
+                  (radicadoDetail.estado_posesion === "Devuelto" || radicadoDetail.estado_posesion === "Rechazado") ? "doc-rechazado" : ""
                 }`}>
-                  {radicadoDetail.estado_posesion === "Completado" ? "Finalizado" :
-                   radicadoDetail.estado_posesion === "EnProceso" ? "En Proceso" :
-                   radicadoDetail.estado_posesion === "Devuelto" ? "Devuelto" : "Pendiente"}
+                    {radicadoDetail.estado_posesion === "Completado" ? "Finalizado" :
+                      radicadoDetail.estado_posesion === "EnProceso" ? "En Proceso" :
+                      (radicadoDetail.estado_posesion === "Devuelto" || radicadoDetail.estado_posesion === "Rechazado") ? "Rechazado" : "Pendiente"}
                 </span>
               </div>
               <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
@@ -2159,6 +2327,21 @@ const handleDevolverTarea = async (tareaId, radicadoId) => {
                   <i className={`fa-solid ${generandoPdf ? 'fa-spinner fa-spin' : 'fa-file-pdf'}`}></i> 
                   {generandoPdf ? " Generando..." : " Expediente"}
                 </button>
+                {!isFinalState(radicadoDetail.estado_posesion) && esAdmin && (
+                  <>
+                    <button className="btn btn-primary" style={{ marginLeft: 8 }} onClick={() => marcarCompletado(radicadoDetail.id)}>
+                      <i className="fa-solid fa-check"></i> Marcar como Completado
+                    </button>
+                    <button className="btn btn-danger" style={{ marginLeft: 8 }} onClick={() => adminRechazar(radicadoDetail.id)}>
+                      <i className="fa-solid fa-ban"></i> Rechazar (final)
+                    </button>
+                  </>
+                )}
+                {esUsuario && !isFinalState(radicadoDetail.estado_posesion) && (
+                  <button className="btn btn-outline" style={{ marginLeft: 8 }} onClick={() => solicitarRechazo(radicadoDetail.id)}>
+                    <i className="fa-solid fa-ban"></i> Solicitar Rechazo
+                  </button>
+                )}
               </div>
             </div>
             <p className="doc-cufe"><strong>Documento:</strong> {radicadoDetail.documento_comercial?.tipo} {radicadoDetail.documento_comercial?.numero_documento}</p>
@@ -2236,10 +2419,10 @@ const handleDevolverTarea = async (tareaId, radicadoId) => {
 
             {renderTrazabilidad()}
             
-            {renderNormasReparto(radicadoDetail.id, radicadoDetail.estado_posesion === "Completado")}
+            {renderNormasReparto(radicadoDetail.id, isFinalState(radicadoDetail.estado_posesion))}
             
             {/* ── Comentarios ── */}
-            {renderComentarios(radicadoDetail.id,radicadoDetail.estado_posesion === "Completado")}
+            {renderComentarios(radicadoDetail.id, isFinalState(radicadoDetail.estado_posesion))}
 
             <div className="doc-section">
               <h4><i className="fa-solid fa-circle-info"></i> Información del Radicado</h4>
@@ -2388,11 +2571,11 @@ const handleDevolverTarea = async (tareaId, radicadoId) => {
                   <span className={`status-badge ${
                     rad.estado_posesion === "Completado" ? "radicado" :
                     rad.estado_posesion === "EnProceso" ? "doc-pendiente" :
-                    rad.estado_posesion === "Devuelto" ? "doc-rechazado" : ""
+                    (rad.estado_posesion === "Devuelto" || rad.estado_posesion === "Rechazado") ? "doc-rechazado" : ""
                   }`}>
                     {rad.estado_posesion === "Completado" ? "Finalizado" :
                      rad.estado_posesion === "EnProceso" ? "En Proceso" :
-                     rad.estado_posesion === "Devuelto" ? "Devuelto" : "Sin estado"}
+                     (rad.estado_posesion === "Devuelto" || rad.estado_posesion === "Rechazado") ? "Rechazado" : "Sin estado"}
                   </span>
                 </div>
               </div>
@@ -2414,11 +2597,11 @@ const handleDevolverTarea = async (tareaId, radicadoId) => {
                     <span className={`status-badge ${
                       tareaDetail.estado_posesion === "Completado" ? "radicado" :
                       tareaDetail.estado_posesion === "EnProceso" ? "doc-pendiente" :
-                      tareaDetail.estado_posesion === "Devuelto" ? "doc-rechazado" : ""
+                      (tareaDetail.estado_posesion === "Devuelto" || tareaDetail.estado_posesion === "Rechazado") ? "doc-rechazado" : ""
                     }`}>
                       {tareaDetail.estado_posesion === "Completado" ? "Finalizado" :
                        tareaDetail.estado_posesion === "EnProceso" ? "En Proceso" :
-                       tareaDetail.estado_posesion === "Devuelto" ? "Devuelto" : "Pendiente"}
+                       (tareaDetail.estado_posesion === "Devuelto" || tareaDetail.estado_posesion === "Rechazado") ? "Rechazado" : "Pendiente"}
                     </span>
                   </div>
                   <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
@@ -2486,7 +2669,7 @@ const handleDevolverTarea = async (tareaId, radicadoId) => {
                 )}
 
                 {/* ── Subir anexo (solo si está activo) ── */}
-                {tareaDetail.estado_posesion !== "Completado" && (
+                {!isFinalState(tareaDetail.estado_posesion) && (
                   <div className="doc-section">
                     <h4><i className="fa-solid fa-cloud-arrow-up"></i> Adjuntar archivo</h4>
                     <input type="file" id="anexo-input" onChange={(e) => handleSubirAnexo(e, tareaDetail.id)} style={{ display: 'none' }} />
@@ -2499,8 +2682,8 @@ const handleDevolverTarea = async (tareaId, radicadoId) => {
                 {renderFlujoAprobacion()}
 
                 {renderTrazabilidad()}
-                {renderNormasReparto(tareaDetail.id, tareaDetail.estado_posesion === "Completado")}
-                {renderComentarios(tareaDetail.id, tareaDetail.estado_posesion === "Completado")}
+                {renderNormasReparto(tareaDetail.id, isFinalState(tareaDetail.estado_posesion))}
+                {renderComentarios(tareaDetail.id, isFinalState(tareaDetail.estado_posesion))}
 
                 <div className="doc-section">
                   <h4><i className="fa-solid fa-circle-info"></i> Información del Radicado</h4>
@@ -2577,29 +2760,31 @@ const handleDevolverTarea = async (tareaId, radicadoId) => {
               </div>
 
               <div className="doc-actions">
+                {/* Debug info (enable with localStorage.setItem('show_debug','1')) */}
+                {showDebug && (
+                  <div style={{ padding: 8, background: '#fff7ed', border: '1px solid #fcd34d', marginBottom: 8, borderRadius: 6, fontSize: '0.85em' }}>
+                    <div><strong>Debug:</strong></div>
+                    <div>userRol: {userRol} userId: {String(userId)}</div>
+                    <div>esAdmin: {String(esAdmin)} esUsuario: {String(esUsuario)}</div>
+                    <div>tarea.usuario_actual.id: {String(tareaDetail.usuario_actual?.id)}</div>
+                    <div>tareaActiva.usuario_asignado_id: {String(tareasFlujo.find(t=>t.estado?.nombre === 'En Proceso')?.usuario_asignado_id)}</div>
+                    <div>estado_posesion: {String(tareaDetail.estado_posesion)}</div>
+                  </div>
+                )}
                 {(() => {
-                  const tareaActiva = tareasFlujo.find(t => t.estado?.nombre === "En Proceso");
-                  const esResponsable = tareaActiva && (tareaActiva.usuario_asignado_id === userId || tareaDetail.usuario_actual?.id === userId);
+                  try {
+                    const tareaActivaTmp = tareasFlujo.find(t => t.estado?.nombre === "En Proceso");
+                    console.log('DEBUG tareaDetail', { userRol, userId, esAdmin, esUsuario, tareaDetail, tareaActiva: tareaActivaTmp, tareasFlujoLength: tareasFlujo.length });
+                  } catch (e) { console.warn('DEBUG error', e); }
 
-                  if (esResponsable && tareaDetail.estado_posesion !== "Completado") {
-                    return (
-                      <>
-                        <button className="doc-btn doc-btn-primary" onClick={() => handleCompletarTarea(tareaActiva.id, tareaDetail.id)}disabled={completandoTarea}>
-                          <i className={`fa-solid ${completandoTarea ? 'fa-spinner fa-spin' : 'fa-check'}`}></i> {completandoTarea ? " Completando..." : " Marcar como Completado"}
-                        </button>
-                        <button 
-                          className="doc-btn doc-btn-secondary" 
-                          onClick={() => {
-                            setDevolverForm({ tarea_destino_id: "", observacion: "", retorno_directo: true });
-                            setShowDevolverModal(true);
-                          }}
-                          style={{ borderColor: "var(--pardo-red)", color: "var(--pardo-red)" }}
-                        >
-                          <i className="fa-solid fa-reply"></i> Devolver
-                        </button>
-                      </>
-                    );
-                  }
+                  const tareaActiva = tareasFlujo.find(t => t.estado?.nombre === "En Proceso");
+                  // Compare IDs as strings to avoid type mismatches (number vs string)
+                  const esResponsable = tareaActiva && (
+                    String(tareaActiva.usuario_asignado_id) === String(userId) ||
+                    String(tareaDetail.usuario_actual?.id) === String(userId)
+                  );
+
+                  // Si el radicado ya está finalizado, mostrar badge
                   if (tareaDetail.estado_posesion === "Completado") {
                     return (
                       <span className="status-badge radicado" style={{ padding: "10px 16px" }}>
@@ -2607,6 +2792,33 @@ const handleDevolverTarea = async (tareaId, radicadoId) => {
                       </span>
                     );
                   }
+
+                  // Construir lista de botones que se mostrarán
+                  const botones = [];
+
+                  if (esResponsable && !isFinalState(tareaDetail.estado_posesion)) {
+                    botones.push(
+                      <button key="completar" className="doc-btn doc-btn-primary" onClick={() => handleCompletarTarea(tareaActiva.id, tareaDetail.id)} disabled={completandoTarea}>
+                        <i className={`fa-solid ${completandoTarea ? 'fa-spinner fa-spin' : 'fa-check'}`}></i> {completandoTarea ? " Completando..." : " Marcar como Completado"}
+                      </button>
+                    );
+                    botones.push(
+                      <button key="devolver" className="doc-btn doc-btn-secondary" onClick={() => { setDevolverForm({ tarea_destino_id: "", observacion: "", retorno_directo: true }); setShowDevolverModal(true); }} style={{ borderColor: "var(--pardo-red)", color: "var(--pardo-red)" }}>
+                        <i className="fa-solid fa-reply"></i> Devolver
+                      </button>
+                    );
+                  }
+
+                  // Mostrar siempre el botón de solicitar rechazo para usuarios normales (incluso si son responsables)
+                  if (esUsuario && !isFinalState(tareaDetail.estado_posesion)) {
+                    botones.push(
+                      <button key="solicitar" className="doc-btn doc-btn-secondary" onClick={() => solicitarRechazo(tareaDetail.id)}>
+                        <i className="fa-solid fa-ban"></i> Solicitar Rechazo
+                      </button>
+                    );
+                  }
+
+                  if (botones.length > 0) return <>{botones.map(b => b)}</>;
                   return null;
                 })()}
               </div>
@@ -2894,6 +3106,7 @@ const handleDevolverTarea = async (tareaId, radicadoId) => {
       case "correos": return renderCorreos();
       case "documentos": return renderDocumentos();
       case "radicados": return renderRadicados();
+      case "solicitudes": return renderSolicitudes();
       case "catalogos": return renderCatalogos();
       case "tareas": return renderTareas();
       default: return renderWelcome();
@@ -2903,7 +3116,7 @@ const handleDevolverTarea = async (tareaId, radicadoId) => {
   activeTab === "tareas" ? tareaDetail : radicadoDetail;
 
 const editorPermitido =
-  detalleRadicadoActual?.estado_posesion !== "Completado";
+  detalleRadicadoActual?.estado_posesion && !isFinalState(detalleRadicadoActual.estado_posesion);
 
   return (
     <>
@@ -2950,11 +3163,21 @@ const editorPermitido =
               </>
             )}
 
-            {/* ── Radicados: visible para todos ── */}
-            <a href="#" className={`menu-item ${activeTab === "radicados" ? "active" : ""}`} onClick={(e) => { e.preventDefault(); setActiveTab("radicados"); setIsSidebarOpen(false); }}>
-              <div className="item-icon"><i className="fa-solid fa-stamp"></i></div>
-              <div className="item-text"><span className="item-nombre">Radicados</span></div>
-            </a>
+            {/* ── Radicados: solo admin ── */}
+            {esAdmin && (
+              <a href="#" className={`menu-item ${activeTab === "radicados" ? "active" : ""}`} onClick={(e) => { e.preventDefault(); setActiveTab("radicados"); setIsSidebarOpen(false); }}>
+                <div className="item-icon"><i className="fa-solid fa-stamp"></i></div>
+                <div className="item-text"><span className="item-nombre">Radicados</span></div>
+              </a>
+            )}
+
+            {/* ── Solicitudes: solo admin (usuarios usan Mis Tareas) ── */}
+            {esAdmin && (
+              <a href="#" className={`menu-item ${activeTab === "solicitudes" ? "active" : ""}`} onClick={(e) => { e.preventDefault(); setActiveTab("solicitudes"); setIsSidebarOpen(false); }}>
+                <div className="item-icon"><i className="fa-solid fa-circle-exclamation"></i></div>
+                <div className="item-text"><span className="item-nombre">Solicitudes</span></div>
+              </a>
+            )}
 
             {/* ── Catálogos: solo admin ── */}
             {esAdmin && (

@@ -23,6 +23,7 @@ func CircularModels() []any {
 	return []any{
 		&DocumentoRadicado{},
 		&Tarea{},
+		&SolicitudRechazo{},
 		&Comentario{}, &Trazabilidad{}, &RegistroAprobacion{},
 		&Notificacion{}, &ReglaMontoRuta{},
 		&RadicadoNormaReparto{},

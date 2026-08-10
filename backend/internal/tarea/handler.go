@@ -205,6 +205,26 @@ func (h *Handler) Completar(c *gin.Context) {
 			Tipo:                "Asignacion",
 			FechaCreacion:       time.Now(),
 		})
+
+		// Además notificar a los administradores para control
+		var admins []db.Usuario
+		if err := h.db.Joins("Rol").Where("rol.nombre = ?", "Superadministrador").Find(&admins).Error; err == nil {
+			for _, a := range admins {
+				// evitar notificar al responsable ya notificado
+				if a.ID == uint(user.ID) || a.ID == notificarA {
+					continue
+				}
+				copyDocID := tarea.DocumentoRadicadoID
+				_, _ = h.notifSvc.CreateFromEvent(notificacion.CreateDTO{
+					UsuarioID:           a.ID,
+					DocumentoRadicadoID: &copyDocID,
+					Mensaje:             fmt.Sprintf("El radicado %s fue reasignado a %d", numRadicado, notificarA),
+					Estado:              "Pendiente",
+					Tipo:                "Asignacion",
+					FechaCreacion:       time.Now(),
+				})
+			}
+		}
 	}
 
 	// ═══════════════════════════════════════════════════════════════
@@ -328,10 +348,10 @@ func (h *Handler) Devolver(c *gin.Context) {
 		return
 	}
 
-	// Actualizar Radicado
+	// Actualizar Radicado: mantener en proceso y cambiar responsable al destino
 	radicadoUpdates := map[string]any{
 		"usuario_actual_id": destino.UsuarioAsignadoID,
-		"estado_posesion":   "Devuelto",
+		"estado_posesion":   "EnProceso",
 	}
 	if dto.RetornoDirecto {
 		radicadoUpdates["tarea_pendiente_retorno_id"] = tarea.ID
@@ -376,14 +396,14 @@ func (h *Handler) Devolver(c *gin.Context) {
 		Fecha:               now,
 	})
 
-	// Notificar
+	// Notificar al usuario destino
 	if h.notifSvc != nil {
 		docID := tarea.DocumentoRadicadoID
 		numRad := ""
 		if tarea.DocumentoRadicado != nil {
 			numRad = tarea.DocumentoRadicado.NumeroRadicado
 		}
-		h.notifSvc.CreateFromEvent(notificacion.CreateDTO{
+		_, _ = h.notifSvc.CreateFromEvent(notificacion.CreateDTO{
 			UsuarioID:           destino.UsuarioAsignadoID,
 			DocumentoRadicadoID: &docID,
 			Mensaje:             fmt.Sprintf("Te devolvieron el radicado %s para revisión. Motivo: %s", numRad, dto.Observacion),
@@ -391,6 +411,26 @@ func (h *Handler) Devolver(c *gin.Context) {
 			Tipo:                "Devolucion",
 			FechaCreacion:       now,
 		})
+
+		// Notificar también a administradores
+		var admins []db.Usuario
+		if err := h.db.Joins("Rol").Where("rol.nombre = ?", "Superadministrador").Find(&admins).Error; err == nil {
+			for _, a := range admins {
+				// evitar notificar al usuario destino (ya notificado)
+				if a.ID == destino.UsuarioAsignadoID {
+					continue
+				}
+				copyDocID := tarea.DocumentoRadicadoID
+				_, _ = h.notifSvc.CreateFromEvent(notificacion.CreateDTO{
+					UsuarioID:           a.ID,
+					DocumentoRadicadoID: &copyDocID,
+					Mensaje:             fmt.Sprintf("El radicado %s fue devuelto por %s a %s. Motivo: %s", numRad, user.Nombre, nombreDestino, dto.Observacion),
+					Estado:              "Pendiente",
+					Tipo:                "Asignacion",
+					FechaCreacion:       now,
+				})
+			}
+		}
 	}
 
 	c.JSON(http.StatusOK, gin.H{"message": "Tarea devuelta correctamente"})

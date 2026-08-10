@@ -1,10 +1,11 @@
 package api
 
 import (
+	"net/http"
+
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
-	"net/http"
 
 	"sigefae/internal/actividad_economica"
 	"sigefae/internal/archivo"
@@ -269,6 +270,8 @@ func New(database *gorm.DB) *gin.Engine {
 
 		protected.GET("/documentoradicado/:id/normas-reparto", documentoRadicadoHandler.GetNormasReparto)
 		protected.POST("/documentoradicado/:id/normas-reparto", documentoRadicadoHandler.AsignarNormasReparto)
+		protected.POST("/documentoradicado/:id/solicitar-rechazo", documentoRadicadoHandler.SolicitarRechazo)
+		protected.GET("/solicitud-rechazo/mias", documentoRadicadoHandler.ListMySolicitudes)
 
 		//documento comercial
 		protected.GET("/documentocomercial/:id", documentoComercialHandler.GetByID)
@@ -290,6 +293,12 @@ func New(database *gorm.DB) *gin.Engine {
 		admin := protected.Group("")
 		admin.Use(auth.RequireRole("Superadministrador"))
 		{
+			// =========================
+			// Rechazar documento (marcar como Devuelto / rechazado)
+			admin.POST("/documentoradicado/:id/rechazar", documentoRadicadoHandler.Rechazar)
+			admin.POST("/documentoradicado/:id/completar", documentoRadicadoHandler.MarcarCompletado)
+			admin.GET("/solicitud-rechazo", documentoRadicadoHandler.ListSolicitudes)
+			admin.POST("/solicitud-rechazo/:id/decidir", documentoRadicadoHandler.DecidirSolicitud)
 			// =========================
 			// Usuarios
 			// =========================

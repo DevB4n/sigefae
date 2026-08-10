@@ -193,3 +193,345 @@ func (h *Handler) AsignarNormasReparto(c *gin.Context) {
 	}
 	c.JSON(http.StatusOK, gin.H{"message": "normas asignadas correctamente"})
 }
+
+// SolicitarRechazo permite a un usuario solicitar que un administrador rechace
+// el documento. Se crean notificaciones para todos los administradores.
+func (h *Handler) SolicitarRechazo(c *gin.Context) {
+	user := c.MustGet("user").(db.Usuario)
+
+	id, err := strconv.ParseUint(c.Param("id"), 10, 64)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "id inválido"})
+		return
+	}
+
+	var body struct {
+		Mensaje string `json:"mensaje"`
+	}
+	_ = c.ShouldBindJSON(&body)
+
+	// Buscar administradores por rol de forma segura
+	var role db.Rol
+	if err := h.db.Where("nombre = ?", "Superadministrador").First(&role).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "no se pudo localizar el rol de administrador"})
+		return
+	}
+
+	// Crear registro de solicitud
+	sol := db.SolicitudRechazo{
+		DocumentoRadicadoID: uint(id),
+		UsuarioID:           user.ID,
+		Mensaje:             body.Mensaje,
+		Estado:              "Pendiente",
+		FechaCreacion:       time.Now(),
+	}
+	if err := h.db.Create(&sol).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	// Notificar administradores (como antes)
+	var admins []db.Usuario
+	if err := h.db.Joins("Rol").Where("rol.nombre = ?", "Superadministrador").Find(&admins).Error; err != nil {
+		// no crítico: continuar
+		admins = []db.Usuario{}
+	}
+	docID := uint(id)
+	for _, a := range admins {
+		msg := user.Nombre + " solicita rechazo. "
+		if body.Mensaje != "" {
+			msg = msg + ": " + body.Mensaje
+		}
+		if h.notifSvc != nil {
+			_, _ = h.notifSvc.CreateFromEvent(notificacion.CreateDTO{
+				UsuarioID:           a.ID,
+				DocumentoRadicadoID: &docID,
+				Mensaje:             msg,
+				Estado:              "Pendiente",
+				Tipo:                "Rechazo",
+				FechaCreacion:       time.Now(),
+			})
+		} else {
+			n := db.Notificacion{
+				UsuarioID:           a.ID,
+				DocumentoRadicadoID: &docID,
+				Mensaje:             msg,
+				Estado:              "Pendiente",
+				Tipo:                "Rechazo",
+				FechaCreacion:       time.Now(),
+			}
+			_ = h.db.Create(&n).Error
+		}
+	}
+
+	c.JSON(http.StatusCreated, gin.H{"message": "Solicitud creada", "solicitud_id": sol.ID})
+}
+
+// ListMySolicitudes devuelve las solicitudes del usuario autenticado
+func (h *Handler) ListMySolicitudes(c *gin.Context) {
+	user := c.MustGet("user").(db.Usuario)
+	var lista []db.SolicitudRechazo
+	if err := h.db.Preload("DocumentoRadicado").Where("usuario_id = ?", user.ID).Order("fecha_creacion desc").Find(&lista).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+	c.JSON(http.StatusOK, lista)
+}
+
+// ListSolicitudes devuelve las solicitudes pendientes (admin)
+func (h *Handler) ListSolicitudes(c *gin.Context) {
+	var lista []db.SolicitudRechazo
+	if err := h.db.Preload("DocumentoRadicado").Preload("Usuario").Where("estado = ?", "Pendiente").Order("fecha_creacion desc").Find(&lista).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+	c.JSON(http.StatusOK, lista)
+}
+
+// DecidirSolicitud permite al admin aceptar o rechazar una solicitud
+func (h *Handler) DecidirSolicitud(c *gin.Context) {
+	adminUser := c.MustGet("user").(db.Usuario)
+	id, err := strconv.ParseUint(c.Param("id"), 10, 64)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "id inválido"})
+		return
+	}
+	var body struct {
+		Accept  bool   `json:"accept"`
+		Mensaje string `json:"mensaje"`
+	}
+	if err := c.ShouldBindJSON(&body); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+	var sol db.SolicitudRechazo
+	if err := h.db.First(&sol, uint(id)).Error; err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "solicitud no encontrada"})
+		return
+	}
+	if sol.Estado != "Pendiente" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "solicitud ya procesada"})
+		return
+	}
+
+	now := time.Now()
+	estado := "Rechazada"
+	if body.Accept {
+		estado = "Aceptada"
+	}
+	sol.Estado = estado
+	sol.ResueltoPorID = &adminUser.ID
+	sol.Respuesta = body.Mensaje
+	sol.FechaResolucion = &now
+	if err := h.db.Save(&sol).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	// Si aceptada, marcar documento como `Rechazado` (estado final)
+	if body.Accept {
+		var radicado db.DocumentoRadicado
+		if err := h.db.First(&radicado, sol.DocumentoRadicadoID).Error; err == nil {
+			updates := map[string]any{
+				"estado_posesion":   "Rechazado",
+				"usuario_actual_id": 0,
+				"paso_actual_id":    gorm.Expr("NULL"),
+			}
+			_ = h.db.Model(&db.DocumentoRadicado{}).Where("id = ?", radicado.ID).Updates(updates).Error
+			h.db.Create(&db.Trazabilidad{
+				DocumentoRadicadoID: radicado.ID,
+				UsuarioID:           adminUser.ID,
+				Accion:              "Rechazo",
+				Descripcion:         body.Mensaje,
+				Fecha:               time.Now(),
+			})
+		}
+	}
+
+	// Notificar al solicitante
+	if h.notifSvc != nil {
+		_, _ = h.notifSvc.CreateFromEvent(notificacion.CreateDTO{
+			UsuarioID:           sol.UsuarioID,
+			DocumentoRadicadoID: &sol.DocumentoRadicadoID,
+			Mensaje:             "Su solicitud de rechazo fue procesada: " + estado + ". " + body.Mensaje,
+			Estado:              "Pendiente",
+			Tipo:                "Rechazo",
+			FechaCreacion:       time.Now(),
+		})
+	} else {
+		n := db.Notificacion{
+			UsuarioID:           sol.UsuarioID,
+			DocumentoRadicadoID: &sol.DocumentoRadicadoID,
+			Mensaje:             "Su solicitud de rechazo fue procesada: " + estado + ". " + body.Mensaje,
+			Estado:              "Pendiente",
+			Tipo:                "Rechazo",
+			FechaCreacion:       time.Now(),
+		}
+		_ = h.db.Create(&n).Error
+	}
+
+	c.JSON(http.StatusOK, gin.H{"message": "Solicitud procesada", "estado": estado})
+}
+
+// Rechazar permite al administrador marcar el documento como rechazado (estado final).
+func (h *Handler) Rechazar(c *gin.Context) {
+	adminUser := c.MustGet("user").(db.Usuario)
+
+	id, err := strconv.ParseUint(c.Param("id"), 10, 64)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "id inválido"})
+		return
+	}
+
+	var body struct {
+		Mensaje      string `json:"mensaje"`
+		NotifyUserID uint   `json:"notify_user_id"`
+	}
+	_ = c.ShouldBindJSON(&body)
+
+	var radicado db.DocumentoRadicado
+	if err := h.db.First(&radicado, uint(id)).Error; err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "documento no encontrado"})
+		return
+	}
+
+	// Intentar marcar la tarea activa como "Devuelta" y registrar cierre de la misma
+	now := time.Now()
+	var estadoEnProceso db.EstadoTarea
+	h.db.Where("nombre = ?", "En Proceso").First(&estadoEnProceso)
+	var estadoDevuelta db.EstadoTarea
+	h.db.Where("nombre = ?", "Devuelta").First(&estadoDevuelta)
+	if estadoDevuelta.ID == 0 {
+		estadoDevuelta.ID = 4
+	}
+
+	var tareaActiva db.Tarea
+	if estadoEnProceso.ID != 0 {
+		if err := h.db.Where("documento_radicado_id = ? AND estado_id = ?", radicado.ID, estadoEnProceso.ID).First(&tareaActiva).Error; err == nil {
+			// Cerrar la tarea activa como Devuelta
+			_ = h.db.Model(&tareaActiva).Updates(map[string]any{
+				"estado_id":          estadoDevuelta.ID,
+				"fecha_finalizacion": now,
+			}).Error
+
+			// Registrar comentario de rechazo en la tarea
+			h.db.Create(&db.Comentario{
+				DocumentoRadicadoID: radicado.ID,
+				UsuarioID:           adminUser.ID,
+				Descripcion:         "RECHAZO ADMIN: " + body.Mensaje,
+				Fecha:               now,
+			})
+		}
+	}
+	// Actualizar estado a 'Rechazado' (rechazo final) y dejarlo inactivo
+	updates := map[string]any{
+		"estado_posesion":            "Rechazado",
+		"usuario_actual_id":          0,
+		"paso_actual_id":             gorm.Expr("NULL"),
+		"tarea_pendiente_retorno_id": gorm.Expr("NULL"),
+	}
+
+	if err := h.db.Model(&db.DocumentoRadicado{}).Where("id = ?", radicado.ID).Updates(updates).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	// Registrar trazabilidad
+	h.db.Create(&db.Trazabilidad{
+		DocumentoRadicadoID: radicado.ID,
+		UsuarioID:           adminUser.ID,
+		Accion:              "Rechazo",
+		Descripcion:         body.Mensaje,
+		Fecha:               time.Now(),
+	})
+
+	// Notificar al usuario que solicitó (si viene) o al dueño del documento
+	if body.NotifyUserID != 0 {
+		_, _ = h.notifSvc.CreateFromEvent(notificacion.CreateDTO{
+			UsuarioID:           body.NotifyUserID,
+			DocumentoRadicadoID: &radicado.ID,
+			Mensaje:             "Su solicitud ha sido procesada: " + body.Mensaje,
+			Estado:              "Pendiente",
+			Tipo:                "Finalizado",
+			FechaCreacion:       time.Now(),
+		})
+	}
+
+	c.JSON(http.StatusOK, gin.H{"message": "Documento marcado como rechazado"})
+}
+
+// MarcarCompletado permite al administrador marcar el documento como completado (estado final).
+func (h *Handler) MarcarCompletado(c *gin.Context) {
+	adminUser := c.MustGet("user").(db.Usuario)
+
+	id, err := strconv.ParseUint(c.Param("id"), 10, 64)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "id inválido"})
+		return
+	}
+
+	var body struct {
+		Mensaje      string `json:"mensaje"`
+		NotifyUserID uint   `json:"notify_user_id"`
+	}
+	_ = c.ShouldBindJSON(&body)
+
+	var radicado db.DocumentoRadicado
+	if err := h.db.First(&radicado, uint(id)).Error; err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "documento no encontrado"})
+		return
+	}
+
+	updates := map[string]any{
+		"estado_posesion":            "Completado",
+		"usuario_actual_id":          0,
+		"paso_actual_id":             gorm.Expr("NULL"),
+		"tarea_pendiente_retorno_id": gorm.Expr("NULL"),
+	}
+
+	if err := h.db.Model(&db.DocumentoRadicado{}).Where("id = ?", radicado.ID).Updates(updates).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	// Registrar trazabilidad
+	h.db.Create(&db.Trazabilidad{
+		DocumentoRadicadoID: radicado.ID,
+		UsuarioID:           adminUser.ID,
+		Accion:              "Completado",
+		Descripcion:         body.Mensaje,
+		Fecha:               time.Now(),
+	})
+
+	// Notificar al usuario (opcional)
+	if body.NotifyUserID != 0 && h.notifSvc != nil {
+		_, _ = h.notifSvc.CreateFromEvent(notificacion.CreateDTO{
+			UsuarioID:           body.NotifyUserID,
+			DocumentoRadicadoID: &radicado.ID,
+			Mensaje:             "Su radicado fue marcado como completado: " + body.Mensaje,
+			Estado:              "Pendiente",
+			Tipo:                "Finalizado",
+			FechaCreacion:       time.Now(),
+		})
+	}
+
+	// Notificar a administradores que el radicado fue completado
+	if h.notifSvc != nil {
+		var admins []db.Usuario
+		if err := h.db.Joins("Rol").Where("rol.nombre = ?", "Superadministrador").Find(&admins).Error; err == nil {
+			docID := radicado.ID
+			for _, a := range admins {
+				_, _ = h.notifSvc.CreateFromEvent(notificacion.CreateDTO{
+					UsuarioID:           a.ID,
+					DocumentoRadicadoID: &docID,
+					Mensaje:             "El radicado " + radicado.NumeroRadicado + " fue marcado como Completado.",
+					Estado:              "Pendiente",
+					Tipo:                "Finalizado",
+					FechaCreacion:       time.Now(),
+				})
+			}
+		}
+	}
+
+	c.JSON(http.StatusOK, gin.H{"message": "Documento marcado como completado"})
+}
