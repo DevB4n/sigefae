@@ -2,7 +2,7 @@ package tarea
 
 import (
 	"fmt"
-	"math"          // ← AGREGAR
+	"math" // ← AGREGAR
 	"net/http"
 	"strconv"
 	"time"
@@ -13,6 +13,7 @@ import (
 	"sigefae/internal/db"
 	"sigefae/internal/notificacion"
 )
+
 type Handler struct {
 	service  *Service
 	notifSvc *notificacion.Service
@@ -129,7 +130,7 @@ func (h *Handler) Completar(c *gin.Context) {
 	// ═══════════════════════════════════════════════════════════════
 	// 3. AHORA SÍ: marcar tarea como completada
 	// ═══════════════════════════════════════════════════════════════
-	if err := h.db.Model(&tarea).Updates(map[string]interface{}{
+	if err := h.db.Model(&tarea).Updates(map[string]any{
 		"estado_id":          estadoCompletado.ID,
 		"fecha_finalizacion": now,
 	}).Error; err != nil {
@@ -153,13 +154,13 @@ func (h *Handler) Completar(c *gin.Context) {
 			estadoEnProceso.ID = 2
 		}
 
-		h.db.Model(&siguiente).Updates(map[string]interface{}{
+		h.db.Model(&siguiente).Updates(map[string]any{
 			"estado_id":          estadoEnProceso.ID,
 			"fecha_inicio":       now,
 			"fecha_finalizacion": gorm.Expr("NULL"),
 		})
 
-		h.db.Model(&db.DocumentoRadicado{}).Where("id = ?", tarea.DocumentoRadicadoID).Updates(map[string]interface{}{
+		h.db.Model(&db.DocumentoRadicado{}).Where("id = ?", tarea.DocumentoRadicadoID).Updates(map[string]any{
 			"usuario_actual_id":          siguiente.UsuarioAsignadoID,
 			"estado_posesion":            "EnProceso",
 			"tarea_pendiente_retorno_id": gorm.Expr("NULL"),
@@ -173,12 +174,12 @@ func (h *Handler) Completar(c *gin.Context) {
 			estadoEnProceso.ID = 2
 		}
 
-		h.db.Model(&siguiente).Updates(map[string]interface{}{
+		h.db.Model(&siguiente).Updates(map[string]any{
 			"estado_id":    estadoEnProceso.ID,
 			"fecha_inicio": now,
 		})
 
-		h.db.Model(&db.DocumentoRadicado{}).Where("id = ?", tarea.DocumentoRadicadoID).Updates(map[string]interface{}{
+		h.db.Model(&db.DocumentoRadicado{}).Where("id = ?", tarea.DocumentoRadicadoID).Updates(map[string]any{
 			"usuario_actual_id": siguiente.UsuarioAsignadoID,
 			"estado_posesion":   "EnProceso",
 		})
@@ -186,7 +187,7 @@ func (h *Handler) Completar(c *gin.Context) {
 
 	} else {
 		// Última tarea → finalizar radicado
-		h.db.Model(&db.DocumentoRadicado{}).Where("id = ?", tarea.DocumentoRadicadoID).Updates(map[string]interface{}{
+		h.db.Model(&db.DocumentoRadicado{}).Where("id = ?", tarea.DocumentoRadicadoID).Updates(map[string]any{
 			"estado_posesion": "Completado",
 		})
 	}
@@ -271,25 +272,25 @@ func (h *Handler) Devolver(c *gin.Context) {
 	// ===== VALIDACIONES QUE FALTAN =====
 	// 1. Mismo documento
 	if destino.DocumentoRadicadoID != tarea.DocumentoRadicadoID {
-	    c.JSON(http.StatusBadRequest, gin.H{"error": "La tarea destino no pertenece a este documento"})
-	    return
+		c.JSON(http.StatusBadRequest, gin.H{"error": "La tarea destino no pertenece a este documento"})
+		return
 	}
-	
+
 	// 2. No devolver a sí misma
 	if destino.ID == tarea.ID {
-	    c.JSON(http.StatusBadRequest, gin.H{"error": "No puede devolver a la misma tarea"})
-	    return
+		c.JSON(http.StatusBadRequest, gin.H{"error": "No puede devolver a la misma tarea"})
+		return
 	}
-	
+
 	// 3. Solo devolver a tareas COMPLETADAS (no a devueltas ni pendientes)
 	var estadoDestino db.EstadoTarea
 	if err := h.db.First(&estadoDestino, destino.EstadoID).Error; err != nil {
-	    c.JSON(http.StatusInternalServerError, gin.H{"error": "Error verificando estado de tarea destino"})
-	    return
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Error verificando estado de tarea destino"})
+		return
 	}
 	if estadoDestino.Nombre != "Completada" {
-	    c.JSON(http.StatusBadRequest, gin.H{"error": "Solo puede devolver a una tarea que haya sido completada"})
-	    return
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Solo puede devolver a una tarea que haya sido completada"})
+		return
 	}
 	// ===================================
 
@@ -309,7 +310,7 @@ func (h *Handler) Devolver(c *gin.Context) {
 	now := time.Now()
 
 	// Actualizar tarea actual a Devuelta
-	if err := h.db.Model(&tarea).Updates(map[string]interface{}{
+	if err := h.db.Model(&tarea).Updates(map[string]any{
 		"estado_id":          estadoDevuelta.ID,
 		"fecha_finalizacion": now,
 	}).Error; err != nil {
@@ -318,7 +319,7 @@ func (h *Handler) Devolver(c *gin.Context) {
 	}
 
 	// Reactivar tarea destino (limpiar fecha_finalizacion para que se muestre como activa)
-	if err := h.db.Model(&destino).Updates(map[string]interface{}{
+	if err := h.db.Model(&destino).Updates(map[string]any{
 		"estado_id":          estadoEnProceso.ID,
 		"fecha_inicio":       now,
 		"fecha_finalizacion": gorm.Expr("NULL"),
@@ -328,7 +329,7 @@ func (h *Handler) Devolver(c *gin.Context) {
 	}
 
 	// Actualizar Radicado
-	radicadoUpdates := map[string]interface{}{
+	radicadoUpdates := map[string]any{
 		"usuario_actual_id": destino.UsuarioAsignadoID,
 		"estado_posesion":   "Devuelto",
 	}

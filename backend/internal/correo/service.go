@@ -84,9 +84,7 @@ func (s *Service) Create(req CreateRequest) (*Response, error) {
 		response := toResponse(existing)
 
 		return &response, nil
-	}
-
-	if err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
+	} else if !errors.Is(err, gorm.ErrRecordNotFound) {
 		return nil, err
 	}
 
@@ -248,9 +246,7 @@ func (s *Service) Update(id uint, req UpdateRequest) (*Response, error) {
 
 	if err == nil {
 		return nil, errors.New("el id del mensaje ya existe")
-	}
-
-	if err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
+	} else if !errors.Is(err, gorm.ErrRecordNotFound) {
 		return nil, err
 	}
 
@@ -258,7 +254,7 @@ func (s *Service) Update(id uint, req UpdateRequest) (*Response, error) {
 	// Actualizar
 	// ==========================
 
-	if err := s.db.Model(&correo).Updates(map[string]interface{}{
+	if err := s.db.Model(&correo).Updates(map[string]any{
 		"asunto":          req.Asunto,
 		"de":              req.De,
 		"para":            req.Para,

@@ -99,4 +99,4 @@ func (h *Handler) UpdateStatus(c *gin.Context) {
 		return
 	}
 	c.JSON(http.StatusOK, toResponse(*norma))
-}	
+}

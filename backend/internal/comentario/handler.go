@@ -44,7 +44,7 @@ func (h *Handler) Create(c *gin.Context) {
 		if err := h.db.First(&rad, dto.DocumentoRadicadoID).Error; err == nil {
 			if rad.UsuarioActualID != 0 && rad.UsuarioActualID != dto.UsuarioID {
 				docID := dto.DocumentoRadicadoID
-				
+
 				mensajeNotif := "Nuevo comentario en " + rad.NumeroRadicado
 				if len(dto.Descripcion) > 0 {
 					trunc := dto.Descripcion
@@ -53,7 +53,7 @@ func (h *Handler) Create(c *gin.Context) {
 					}
 					mensajeNotif = "Nuevo comentario en #" + rad.NumeroRadicado + ": \"" + trunc + "\""
 				}
-				
+
 				h.notifSvc.CreateFromEvent(notificacion.CreateDTO{
 					UsuarioID:           rad.UsuarioActualID,
 					DocumentoRadicadoID: &docID,

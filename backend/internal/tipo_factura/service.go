@@ -40,11 +40,13 @@ func (s *Service) Create(req CreateRequest) (*Response, error) {
 		First(&existing).Error
 
 	if err == nil {
-		return nil, errors.New("el tipo de factura ya existe para esta área")
+		return nil, errors.New("el tipo de factura ya existe")
 	}
 
-	if err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
-		return nil, err
+	if err != nil {
+		if !errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, err
+		}
 	}
 
 	tipoFactura := db.TipoFactura{
@@ -148,16 +150,14 @@ func (s *Service) Update(id uint, req UpdateRequest) (*Response, error) {
 
 	if err == nil {
 		return nil, errors.New("el tipo de factura ya existe para esta área")
-	}
-
-	if err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
+	} else if !errors.Is(err, gorm.ErrRecordNotFound) {
 		return nil, err
 	}
 
 	if err := s.db.
 		Model(&db.TipoFactura{}).
 		Where("id = ?", id).
-		Updates(map[string]interface{}{
+		Updates(map[string]any{
 			"nombre":  req.Nombre,
 			"area_id": req.AreaID,
 		}).Error; err != nil {

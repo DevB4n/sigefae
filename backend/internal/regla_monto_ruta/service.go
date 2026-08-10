@@ -1,8 +1,8 @@
 package regla_monto_ruta
 
 import (
-	"sigefae/internal/db"
 	"gorm.io/gorm"
+	"sigefae/internal/db"
 )
 
 type Service struct {

@@ -59,7 +59,7 @@ func (s *Service) Update(id uint, dto UpdateDTO) (*db.NormaReparto, error) {
 	if err := s.db.First(&norma, id).Error; err != nil {
 		return nil, err
 	}
-	updates := map[string]interface{}{}
+	updates := map[string]any{}
 	if dto.Codigo != "" {
 		updates["codigo"] = dto.Codigo
 	}

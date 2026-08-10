@@ -28,10 +28,8 @@ func (s *Service) Create(req CreateRequest) (*Response, error) {
 		First(&existing).Error
 
 	if err == nil {
-		return nil, errors.New("el estado del documento radicado ya existe")
-	}
-
-	if err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
+		return nil, errors.New("el estado de documento radicado ya existe")
+	} else if !errors.Is(err, gorm.ErrRecordNotFound) {
 		return nil, err
 	}
 
@@ -109,14 +107,12 @@ func (s *Service) Update(id uint, req UpdateRequest) (*Response, error) {
 		First(&existing).Error
 
 	if err == nil {
-		return nil, errors.New("el estado del documento radicado ya existe")
-	}
-
-	if err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
+		return nil, errors.New("el estado de documento radicado ya existe")
+	} else if !errors.Is(err, gorm.ErrRecordNotFound) {
 		return nil, err
 	}
 
-	if err := s.db.Model(&estado).Updates(map[string]interface{}{
+	if err := s.db.Model(&estado).Updates(map[string]any{
 		"nombre": req.Nombre,
 	}).Error; err != nil {
 

@@ -1,10 +1,10 @@
 package api
 
 import (
-	"net/http"
-    "github.com/gin-contrib/cors"
+	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
+	"net/http"
 
 	"sigefae/internal/actividad_economica"
 	"sigefae/internal/archivo"
@@ -28,12 +28,14 @@ import (
 	"sigefae/internal/metodo_pago"
 	"sigefae/internal/moneda"
 	"sigefae/internal/municipio"
+	"sigefae/internal/norma_reparto"
 	"sigefae/internal/notificacion"
 	"sigefae/internal/pais"
 	"sigefae/internal/paso_ruta"
 	"sigefae/internal/proveedor"
 	"sigefae/internal/receptor"
 	"sigefae/internal/registro_aprobacion"
+	"sigefae/internal/regla_monto_ruta"
 	"sigefae/internal/responsabilidad_fiscal"
 	"sigefae/internal/role"
 	"sigefae/internal/ruta"
@@ -45,32 +47,30 @@ import (
 	"sigefae/internal/tipo_radicacion"
 	"sigefae/internal/trazabilidad"
 	"sigefae/internal/user"
-	"sigefae/internal/regla_monto_ruta"
-	"sigefae/internal/norma_reparto"
 )
 
 func New(database *gorm.DB) *gin.Engine {
 
 	router := gin.Default()
 	router.Use(cors.New(cors.Config{
-    AllowOrigins: []string{
-        "http://localhost:5173",
-    },
-    AllowMethods: []string{
-        "GET",
-        "POST",
-        "PUT",
-        "PATCH",
-        "DELETE",
-        "OPTIONS",
-    },
-    AllowHeaders: []string{
-        "Origin",
-        "Content-Type",
-        "Authorization",
-    },
-    AllowCredentials: true,
-}))
+		AllowOrigins: []string{
+			"http://localhost:5173",
+		},
+		AllowMethods: []string{
+			"GET",
+			"POST",
+			"PUT",
+			"PATCH",
+			"DELETE",
+			"OPTIONS",
+		},
+		AllowHeaders: []string{
+			"Origin",
+			"Content-Type",
+			"Authorization",
+		},
+		AllowCredentials: true,
+	}))
 
 	// ==========================
 	// Health Check
@@ -180,7 +180,6 @@ func New(database *gorm.DB) *gin.Engine {
 	codigoQrService := codigo_qr.New(database)
 	codigoQrHandler := codigo_qr.NewHandler(codigoQrService)
 
-
 	// ==========================
 	// NOTIFICACION PRIMERO (lo usan otros handlers)
 	// ==========================
@@ -213,7 +212,7 @@ func New(database *gorm.DB) *gin.Engine {
 
 	registroAprobacionService := registro_aprobacion.New(database)
 	registroAprobacionHandler := registro_aprobacion.NewHandler(registroAprobacionService)
-	
+
 	reglaMontoRutaService := regla_monto_ruta.New(database)
 	reglaMontoRutaHandler := regla_monto_ruta.NewHandler(reglaMontoRutaService)
 
@@ -273,8 +272,6 @@ func New(database *gorm.DB) *gin.Engine {
 
 		//documento comercial
 		protected.GET("/documentocomercial/:id", documentoComercialHandler.GetByID)
-
-		
 
 		protected.GET("/me", func(c *gin.Context) {
 			user := c.MustGet("user").(db.Usuario)
@@ -587,7 +584,6 @@ func New(database *gorm.DB) *gin.Engine {
 			admin.PUT("/normas-reparto/:id", normaRepartoHandler.Update)
 			admin.PATCH("/normas-reparto/:id/activo", normaRepartoHandler.UpdateStatus)
 
-			
 		}
 	}
 

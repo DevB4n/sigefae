@@ -125,7 +125,7 @@ func (s *Service) Update(id uint, dto UpdateDTO) (*Response, error) {
 	// Actualizar
 	// ==========================
 
-	if err := s.db.Model(&detalle).Updates(map[string]interface{}{
+	if err := s.db.Model(&detalle).Updates(map[string]any{
 		"documento_comercial_id": dto.DocumentoComercialID,
 		"descripcion":            dto.Descripcion,
 		"valor_unitario":         dto.ValorUnit,

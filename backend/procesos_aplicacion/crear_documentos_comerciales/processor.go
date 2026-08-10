@@ -106,7 +106,7 @@ func ProcesarFacturaXML(database *gorm.DB, invoice *Invoice, correoID uint) erro
 		// 2. Gestionar Geografía (País, Depto, Municipio)
 		supplierParty := invoice.AccountingSupplierParty.Party
 		addr := supplierParty.PhysicalLocation.Address
-		
+
 		// 3. Gestionar Proveedor
 		nitProveedor := supplierParty.PartyTaxScheme.CompanyID
 		var proveedor db.Proveedor
@@ -169,60 +169,60 @@ func ProcesarFacturaXML(database *gorm.DB, invoice *Invoice, correoID uint) erro
 		}
 
 		// 4. Crear Documento Comercial
-			
+
 		// Validar si la factura ya existe (CUFE)
 		var docExistente db.DocumentoComercial
 		if err := tx.Where("cufe = ?", invoice.UUID).First(&docExistente).Error; err == nil {
-		    // Si ya existe por CUFE, la saltamos.
-		    return nil
+			// Si ya existe por CUFE, la saltamos.
+			return nil
 		}
-		
+
 		issueDate, _ := time.Parse("2006-01-02", invoice.IssueDate)
 		var dueDate *time.Time
 		if invoice.DueDate != "" {
-		    d, err := time.Parse("2006-01-02", invoice.DueDate)
-		    if err == nil {
-		        dueDate = &d
-		    }
+			d, err := time.Parse("2006-01-02", invoice.DueDate)
+			if err == nil {
+				dueDate = &d
+			}
 		}
-		
+
 		// Subtotal: preferir LineExtensionAmount (suma de líneas).
 		// Si viene en 0, calcular desde los detalles como fallback.
 		subtotal := invoice.LegalMonetaryTotal.LineExtensionAmount
 		if subtotal == 0 && len(invoice.InvoiceLines) > 0 {
-		    for _, line := range invoice.InvoiceLines {
-		        subtotal += line.LineExtensionAmount
-		    }
+			for _, line := range invoice.InvoiceLines {
+				subtotal += line.LineExtensionAmount
+			}
 		}
-		
+
 		// IVA: buscar explícitamente el tax scheme "01" (IVA) para no confundir
 		// con retenciones u otros impuestos que puedan aparecer en TaxTotal.
 		var iva float64
 		for _, tax := range invoice.TaxTotal {
-		    // Nota: si en tu struct de parser agregas el TaxScheme ID, puedes filtrar
-		    // tax.TaxScheme.ID == "01". Mientras tanto sumamos TaxAmount.
-		    iva += tax.TaxAmount
+			// Nota: si en tu struct de parser agregas el TaxScheme ID, puedes filtrar
+			// tax.TaxScheme.ID == "01". Mientras tanto sumamos TaxAmount.
+			iva += tax.TaxAmount
 		}
-		
+
 		doc := db.DocumentoComercial{
-		    Tipo:             "FACTURA_ELECTRONICA",
-		    NumeroDocumento:  invoice.ID,
-		    IDProveedor:      proveedor.ID,
-		    IDReceptor:       receptor.ID,
-		    IDArea:           area.ID,
-		    FechaDocumento:   issueDate,
-		    FechaVencimiento: dueDate,
-		    MonedaID:         moneda.ID,
-		    Subtotal:         subtotal,
-		    Iva:              iva,
-		    Total:            invoice.LegalMonetaryTotal.PayableAmount,
-		    Cufe:             &invoice.UUID,
-		    CorreoID:         &correoID,
-		    Activo:           true,
+			Tipo:             "FACTURA_ELECTRONICA",
+			NumeroDocumento:  invoice.ID,
+			IDProveedor:      proveedor.ID,
+			IDReceptor:       receptor.ID,
+			IDArea:           area.ID,
+			FechaDocumento:   issueDate,
+			FechaVencimiento: dueDate,
+			MonedaID:         moneda.ID,
+			Subtotal:         subtotal,
+			Iva:              iva,
+			Total:            invoice.LegalMonetaryTotal.PayableAmount,
+			Cufe:             &invoice.UUID,
+			CorreoID:         &correoID,
+			Activo:           true,
 		}
-		
+
 		if err := tx.Create(&doc).Error; err != nil {
-		    return err
+			return err
 		}
 
 		// 5. Insertar Detalles de Factura

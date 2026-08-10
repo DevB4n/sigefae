@@ -67,9 +67,7 @@ func (s *Service) Create(req CreateRequest) (*Response, error) {
 
 	if err == nil {
 		return nil, errors.New("ya existe un paso con ese orden")
-	}
-
-	if err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
+	} else if !errors.Is(err, gorm.ErrRecordNotFound) {
 		return nil, err
 	}
 
@@ -215,9 +213,7 @@ func (s *Service) Update(id uint, req UpdateRequest) (*Response, error) {
 
 	if err == nil {
 		return nil, errors.New("ya existe un paso con ese orden en la ruta")
-	}
-
-	if err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
+	} else if !errors.Is(err, gorm.ErrRecordNotFound) {
 		return nil, err
 	}
 
@@ -225,7 +221,7 @@ func (s *Service) Update(id uint, req UpdateRequest) (*Response, error) {
 	// Actualizar
 	// ==========================
 
-	if err := s.db.Model(&paso).Updates(map[string]interface{}{
+	if err := s.db.Model(&paso).Updates(map[string]any{
 		"ruta_id":    req.RutaID,
 		"orden":      req.Orden,
 		"nombre":     req.Nombre,

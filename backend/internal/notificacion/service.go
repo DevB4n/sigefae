@@ -205,7 +205,7 @@ func (s *Service) Update(id uint, dto UpdateDTO) (*Response, error) {
 	// Actualizar
 	// ==========================
 
-	if err := s.db.Model(&notificacion).Updates(map[string]interface{}{
+	if err := s.db.Model(&notificacion).Updates(map[string]any{
 		"usuario_id":            dto.UsuarioID,
 		"documento_radicado_id": dto.DocumentoRadicadoID,
 		"mensaje":               dto.Mensaje,
@@ -292,4 +292,3 @@ func (s *Service) CreateFromEvent(dto CreateDTO) (*Response, error) {
 	resp := toResponse(n)
 	return &resp, nil
 }
-

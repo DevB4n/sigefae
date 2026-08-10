@@ -1,11 +1,11 @@
 package notificacion
 
 import (
-	"net/http"
-	"strconv"
 	"errors"
 	"gorm.io/gorm"
+	"net/http"
 	"sigefae/internal/db"
+	"strconv"
 
 	"github.com/gin-gonic/gin"
 )

@@ -177,7 +177,7 @@ func (s *Service) Update(id uint, req UpdateDTO) (*Response, error) {
 	// Actualizar
 	// ==========================
 
-	if err := s.db.Model(&tarea).Updates(map[string]interface{}{
+	if err := s.db.Model(&tarea).Updates(map[string]any{
 		"usuario_asignado_id": req.UsuarioAsignadoID,
 		"estado_id":           req.EstadoID,
 		"descripcion":         req.Descripcion,

@@ -50,9 +50,7 @@ func (s *Service) Create(req CreateRequest) (*Response, error) {
 
 	if err == nil {
 		return nil, errors.New("el método de pago ya existe")
-	}
-
-	if err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
+	} else if !errors.Is(err, gorm.ErrRecordNotFound) {
 		return nil, err
 	}
 
@@ -175,9 +173,7 @@ func (s *Service) Update(id uint, req UpdateRequest) (*Response, error) {
 
 	if err == nil {
 		return nil, errors.New("el método de pago ya existe")
-	}
-
-	if err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
+	} else if !errors.Is(err, gorm.ErrRecordNotFound) {
 		return nil, err
 	}
 
@@ -188,7 +184,7 @@ func (s *Service) Update(id uint, req UpdateRequest) (*Response, error) {
 	if err := s.db.
 		Model(&db.MetodoPago{}).
 		Where("id = ?", id).
-		Updates(map[string]interface{}{
+		Updates(map[string]any{
 			"nombre":       req.Nombre,
 			"tipo_pago_id": req.TipoPagoID,
 		}).Error; err != nil {

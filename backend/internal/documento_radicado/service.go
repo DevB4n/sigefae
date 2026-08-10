@@ -25,7 +25,6 @@ func New(database *gorm.DB) *Service {
 func (s *Service) Create(dto CreateDTO, usuarioID uint) (*db.DocumentoRadicado, error) {
 	var radicado db.DocumentoRadicado
 
-
 	err := s.db.Transaction(func(tx *gorm.DB) error {
 		// ── 1. Validar que el documento comercial existe ──
 		var docCom db.DocumentoComercial
@@ -35,7 +34,7 @@ func (s *Service) Create(dto CreateDTO, usuarioID uint) (*db.DocumentoRadicado, 
 			}
 			return err
 		}
-		
+
 		// ── 2. Validar que NO esté ya radicado ──
 		var existing db.DocumentoRadicado
 		if err := tx.Where("documento_comercial_id = ?", dto.DocumentoComercialID).First(&existing).Error; err == nil {
@@ -96,7 +95,7 @@ func (s *Service) Create(dto CreateDTO, usuarioID uint) (*db.DocumentoRadicado, 
 
 		// ── 7. Crear QR ──
 		qr := db.CodigoQr{
-			Url: fmt.Sprintf("http://localhost:5173/radicado/%s", numeroRadicado),
+			Url:    fmt.Sprintf("http://localhost:5173/radicado/%s", numeroRadicado),
 			Activo: true,
 		}
 		if err := tx.Create(&qr).Error; err != nil {
@@ -246,7 +245,7 @@ func (s *Service) Update(id uint, dto UpdateDTO) (*db.DocumentoRadicado, error) 
 		return nil, err
 	}
 
-	updates := map[string]interface{}{}
+	updates := map[string]any{}
 	if dto.TipoRadicacionID != 0 {
 		updates["tipo_radicacion_id"] = dto.TipoRadicacionID
 	}
@@ -484,7 +483,7 @@ func adjuntarArchivosDesdeCorreo(tx *gorm.DB, radicado *db.DocumentoRadicado, co
 		return fmt.Errorf("no se pudo crear directorio destino %s: %w", dstDir, err)
 	}
 
-		// 5. Copiar cada archivo (solo PDF)
+	// 5. Copiar cada archivo (solo PDF)
 	for _, entry := range entries {
 		if entry.IsDir() {
 			continue
@@ -547,29 +546,29 @@ func copyFile(src, dst string) error {
 }
 
 func (s *Service) GetByNumeroRadicado(numero string) (*db.DocumentoRadicado, error) {
-    var radicado db.DocumentoRadicado
-    if err := s.db.
-        Preload("DocumentoComercial").
-        Preload("DocumentoComercial.Proveedor").
-        Preload("DocumentoComercial.Receptor").
-        Preload("DocumentoComercial.Moneda").
-        Preload("TipoRadicacion").
-        Preload("Ruta").
-        Preload("MetodoPago").
-        Preload("Estado").
-        Preload("PasoActual").
-        Preload("UsuarioActual").
-        Preload("Qr").
-        Preload("NormasReparto").
-        Preload("NormasReparto.NormaReparto").
-        Where("numero_radicado = ?", numero).
-        First(&radicado).Error; err != nil {
-        if errors.Is(err, gorm.ErrRecordNotFound) {
-            return nil, errors.New("documento no encontrado")
-        }
-        return nil, err
-    }
-    return &radicado, nil
+	var radicado db.DocumentoRadicado
+	if err := s.db.
+		Preload("DocumentoComercial").
+		Preload("DocumentoComercial.Proveedor").
+		Preload("DocumentoComercial.Receptor").
+		Preload("DocumentoComercial.Moneda").
+		Preload("TipoRadicacion").
+		Preload("Ruta").
+		Preload("MetodoPago").
+		Preload("Estado").
+		Preload("PasoActual").
+		Preload("UsuarioActual").
+		Preload("Qr").
+		Preload("NormasReparto").
+		Preload("NormasReparto.NormaReparto").
+		Where("numero_radicado = ?", numero).
+		First(&radicado).Error; err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, errors.New("documento no encontrado")
+		}
+		return nil, err
+	}
+	return &radicado, nil
 }
 
 func (s *Service) GetNormasReparto(radicadoID uint) ([]db.RadicadoNormaReparto, error) {

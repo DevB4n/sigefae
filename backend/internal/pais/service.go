@@ -32,9 +32,7 @@ func (s *Service) Create(req CreateDTO) (*Response, error) {
 
 	if err == nil {
 		return nil, errors.New("el país ya existe")
-	}
-
-	if err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
+	} else if !errors.Is(err, gorm.ErrRecordNotFound) {
 		return nil, err
 	}
 
@@ -48,9 +46,7 @@ func (s *Service) Create(req CreateDTO) (*Response, error) {
 
 	if err == nil {
 		return nil, errors.New("el código del país ya existe")
-	}
-
-	if err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
+	} else if !errors.Is(err, gorm.ErrRecordNotFound) {
 		return nil, err
 	}
 
@@ -140,9 +136,7 @@ func (s *Service) Update(id uint, req UpdateDTO) (*Response, error) {
 
 	if err == nil {
 		return nil, errors.New("el país ya existe")
-	}
-
-	if err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
+	} else if !errors.Is(err, gorm.ErrRecordNotFound) {
 		return nil, err
 	}
 
@@ -156,9 +150,7 @@ func (s *Service) Update(id uint, req UpdateDTO) (*Response, error) {
 
 	if err == nil {
 		return nil, errors.New("el código del país ya existe")
-	}
-
-	if err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
+	} else if !errors.Is(err, gorm.ErrRecordNotFound) {
 		return nil, err
 	}
 
@@ -166,7 +158,7 @@ func (s *Service) Update(id uint, req UpdateDTO) (*Response, error) {
 	// Actualizar
 	// ==========================
 
-	if err := s.db.Model(&pais).Updates(map[string]interface{}{
+	if err := s.db.Model(&pais).Updates(map[string]any{
 		"nombre": req.Nombre,
 		"codigo": req.Codigo,
 	}).Error; err != nil {

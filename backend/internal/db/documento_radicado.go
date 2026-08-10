@@ -7,38 +7,38 @@ import "time"
 // ---------------------------------------------------------------------------
 
 type DocumentoRadicado struct {
-	ID                     uint                     `gorm:"primaryKey;column:id" json:"id"`
-	DocumentoComercialID   uint                     `gorm:"column:documento_comercial_id;uniqueIndex:uk_radicado_documento" json:"documento_comercial_id"`
-	DocumentoComercial     *DocumentoComercial      `gorm:"foreignKey:DocumentoComercialID;references:ID" json:"documento_comercial,omitempty"`
-	TipoRadicacionID       uint                     `gorm:"column:tipo_radicacion_id;index:idx_radicado_tipo" json:"tipo_radicacion_id"`
-	TipoRadicacion         *TipoRadicacion          `gorm:"foreignKey:TipoRadicacionID;references:ID" json:"tipo_radicacion,omitempty"`
-	RutaID                 uint                     `gorm:"column:ruta_id;index:idx_radicado_ruta" json:"ruta_id"`
-	Ruta                   *Ruta                    `gorm:"foreignKey:RutaID;references:ID" json:"ruta,omitempty"`
-	NumeroRadicado         string                   `gorm:"column:numero_radicado;type:varchar(100);uniqueIndex:uk_numero_radicado" json:"numero_radicado"`
-	FechaRadicacion        time.Time                `gorm:"column:fecha_radicacion;index:idx_radicado_fecha" json:"fecha_radicacion"`
-	UsuarioActualID        uint                     `gorm:"column:usuario_actual_id;index:idx_radicado_usuario" json:"usuario_actual_id"`
-	UsuarioActual          *Usuario                 `gorm:"foreignKey:UsuarioActualID;references:ID" json:"usuario_actual,omitempty"`
-	EstadoPosesion         string                   `gorm:"column:estado_posesion;type:varchar(50)" json:"estado_posesion"` // "Libre", "Tomado", "EnProceso"
-	PasoActualID           *uint                    `gorm:"column:paso_actual_id;index:idx_radicado_paso_actual" json:"paso_actual_id,omitempty"`
-	PasoActual             *PasoRuta                `gorm:"foreignKey:PasoActualID;references:ID" json:"paso_actual,omitempty"`
-	PasoPendienteRetornoID *uint                    `gorm:"column:paso_pendiente_retorno_id;index:idx_radicado_paso_retorno" json:"paso_pendiente_retorno_id,omitempty"`
-	PasoPendienteRetorno   *PasoRuta                `gorm:"foreignKey:PasoPendienteRetornoID;references:ID" json:"paso_pendiente_retorno,omitempty"`
-	TareaPendienteRetornoID *uint                   `gorm:"column:tarea_pendiente_retorno_id;index:idx_radicado_tarea_retorno" json:"tarea_pendiente_retorno_id,omitempty"`
-	TareaPendienteRetorno   *Tarea                  `gorm:"foreignKey:TareaPendienteRetornoID;references:ID" json:"tarea_pendiente_retorno,omitempty"`
-	EstadoID               uint                     `gorm:"column:estado_id;index:idx_radicado_estado" json:"estado_id"`
-	Estado                 *EstadoDocumentoRadicado `gorm:"foreignKey:EstadoID;references:ID" json:"estado,omitempty"`
-	UltimaActividad        *time.Time               `gorm:"column:ultima_actividad" json:"ultima_actividad"` // Puntero para evitar problemas de fecha cero
-	QrID                   uint                     `gorm:"column:qr_id;index:idx_radicado_qr" json:"qr_id"`
-	Qr                     *CodigoQr                `gorm:"foreignKey:QrID;references:ID" json:"qr,omitempty"`
-	NormasReparto 			[]RadicadoNormaReparto `gorm:"foreignKey:DocumentoRadicadoID" json:"normas_reparto,omitempty"`
-	MetodoPagoID           uint                     `gorm:"column:metodo_pago_id;index:idx_radicado_metodo_pago" json:"metodo_pago_id"`
-	MetodoPago             *MetodoPago              `gorm:"foreignKey:MetodoPagoID;references:ID" json:"metodo_pago,omitempty"`
-	Archivos               []Archivo                `gorm:"foreignKey:DocumentoRadicadoID" json:"archivos,omitempty"` // Los archivos pertenecen al Expediente!
-	Comentarios            []Comentario             `gorm:"foreignKey:DocumentoRadicadoID" json:"comentarios,omitempty"`
-	Tareas                 []Tarea                  `gorm:"foreignKey:DocumentoRadicadoID" json:"tareas,omitempty"`
-	Trazabilidades         []Trazabilidad           `gorm:"foreignKey:DocumentoRadicadoID" json:"trazabilidades,omitempty"`
-	Aprobaciones           []RegistroAprobacion     `gorm:"foreignKey:DocumentoRadicadoID" json:"aprobaciones,omitempty"`
-	UpdatedAt              time.Time                `gorm:"column:updated_at" json:"updated_at"`
+	ID                      uint                     `gorm:"primaryKey;column:id" json:"id"`
+	DocumentoComercialID    uint                     `gorm:"column:documento_comercial_id;uniqueIndex:uk_radicado_documento" json:"documento_comercial_id"`
+	DocumentoComercial      *DocumentoComercial      `gorm:"foreignKey:DocumentoComercialID;references:ID" json:"documento_comercial,omitempty"`
+	TipoRadicacionID        uint                     `gorm:"column:tipo_radicacion_id;index:idx_radicado_tipo" json:"tipo_radicacion_id"`
+	TipoRadicacion          *TipoRadicacion          `gorm:"foreignKey:TipoRadicacionID;references:ID" json:"tipo_radicacion,omitempty"`
+	RutaID                  uint                     `gorm:"column:ruta_id;index:idx_radicado_ruta" json:"ruta_id"`
+	Ruta                    *Ruta                    `gorm:"foreignKey:RutaID;references:ID" json:"ruta,omitempty"`
+	NumeroRadicado          string                   `gorm:"column:numero_radicado;type:varchar(100);uniqueIndex:uk_numero_radicado" json:"numero_radicado"`
+	FechaRadicacion         time.Time                `gorm:"column:fecha_radicacion;index:idx_radicado_fecha" json:"fecha_radicacion"`
+	UsuarioActualID         uint                     `gorm:"column:usuario_actual_id;index:idx_radicado_usuario" json:"usuario_actual_id"`
+	UsuarioActual           *Usuario                 `gorm:"foreignKey:UsuarioActualID;references:ID" json:"usuario_actual,omitempty"`
+	EstadoPosesion          string                   `gorm:"column:estado_posesion;type:varchar(50)" json:"estado_posesion"` // "Libre", "Tomado", "EnProceso"
+	PasoActualID            *uint                    `gorm:"column:paso_actual_id;index:idx_radicado_paso_actual" json:"paso_actual_id,omitempty"`
+	PasoActual              *PasoRuta                `gorm:"foreignKey:PasoActualID;references:ID" json:"paso_actual,omitempty"`
+	PasoPendienteRetornoID  *uint                    `gorm:"column:paso_pendiente_retorno_id;index:idx_radicado_paso_retorno" json:"paso_pendiente_retorno_id,omitempty"`
+	PasoPendienteRetorno    *PasoRuta                `gorm:"foreignKey:PasoPendienteRetornoID;references:ID" json:"paso_pendiente_retorno,omitempty"`
+	TareaPendienteRetornoID *uint                    `gorm:"column:tarea_pendiente_retorno_id;index:idx_radicado_tarea_retorno" json:"tarea_pendiente_retorno_id,omitempty"`
+	TareaPendienteRetorno   *Tarea                   `gorm:"foreignKey:TareaPendienteRetornoID;references:ID" json:"tarea_pendiente_retorno,omitempty"`
+	EstadoID                uint                     `gorm:"column:estado_id;index:idx_radicado_estado" json:"estado_id"`
+	Estado                  *EstadoDocumentoRadicado `gorm:"foreignKey:EstadoID;references:ID" json:"estado,omitempty"`
+	UltimaActividad         *time.Time               `gorm:"column:ultima_actividad" json:"ultima_actividad"` // Puntero para evitar problemas de fecha cero
+	QrID                    uint                     `gorm:"column:qr_id;index:idx_radicado_qr" json:"qr_id"`
+	Qr                      *CodigoQr                `gorm:"foreignKey:QrID;references:ID" json:"qr,omitempty"`
+	NormasReparto           []RadicadoNormaReparto   `gorm:"foreignKey:DocumentoRadicadoID" json:"normas_reparto,omitempty"`
+	MetodoPagoID            uint                     `gorm:"column:metodo_pago_id;index:idx_radicado_metodo_pago" json:"metodo_pago_id"`
+	MetodoPago              *MetodoPago              `gorm:"foreignKey:MetodoPagoID;references:ID" json:"metodo_pago,omitempty"`
+	Archivos                []Archivo                `gorm:"foreignKey:DocumentoRadicadoID" json:"archivos,omitempty"` // Los archivos pertenecen al Expediente!
+	Comentarios             []Comentario             `gorm:"foreignKey:DocumentoRadicadoID" json:"comentarios,omitempty"`
+	Tareas                  []Tarea                  `gorm:"foreignKey:DocumentoRadicadoID" json:"tareas,omitempty"`
+	Trazabilidades          []Trazabilidad           `gorm:"foreignKey:DocumentoRadicadoID" json:"trazabilidades,omitempty"`
+	Aprobaciones            []RegistroAprobacion     `gorm:"foreignKey:DocumentoRadicadoID" json:"aprobaciones,omitempty"`
+	UpdatedAt               time.Time                `gorm:"column:updated_at" json:"updated_at"`
 }
 
 func (DocumentoRadicado) TableName() string { return "documento_radicado" }

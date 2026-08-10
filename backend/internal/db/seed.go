@@ -135,9 +135,9 @@ func Seed(db *gorm.DB) error {
 	// Origen de Archivo: Sistema  ← NUEVO
 	// ==========================
 	origenSistema := ArchivoOrigen{
-		ID:          1,
-		Nombre:      "Sistema",
-		Activo:      true,
+		ID:     1,
+		Nombre: "Sistema",
+		Activo: true,
 	}
 	if err := db.Where("id = ?", origenSistema.ID).FirstOrCreate(&origenSistema).Error; err != nil {
 		return err

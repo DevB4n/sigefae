@@ -138,9 +138,7 @@ func (s *Service) Create(dto CreateDTO) (*Response, error) {
 
 	if err == nil {
 		return nil, errors.New("el documento comercial ya existe para este proveedor")
-	}
-
-	if err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
+	} else if !errors.Is(err, gorm.ErrRecordNotFound) {
 		return nil, err
 	}
 
@@ -158,9 +156,7 @@ func (s *Service) Create(dto CreateDTO) (*Response, error) {
 
 		if err == nil {
 			return nil, errors.New("el CUFE ya existe")
-		}
-
-		if err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
+		} else if !errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, err
 		}
 	}
@@ -179,9 +175,7 @@ func (s *Service) Create(dto CreateDTO) (*Response, error) {
 
 		if err == nil {
 			return nil, errors.New("el correo ya está asociado a otro documento")
-		}
-
-		if err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
+		} else if !errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, err
 		}
 	}

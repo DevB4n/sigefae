@@ -10,7 +10,7 @@ type Response struct {
 	ID                  uint      `json:"id"`
 	DocumentoRadicadoID uint      `json:"documento_radicado_id"`
 	UsuarioID           uint      `json:"usuario_id"`
-	UsuarioNombre       string    `json:"usuario_nombre"`  // <-- nuevo
+	UsuarioNombre       string    `json:"usuario_nombre"` // <-- nuevo
 	Descripcion         string    `json:"descripcion"`
 	Fecha               time.Time `json:"fecha"`
 }

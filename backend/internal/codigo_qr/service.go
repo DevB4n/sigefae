@@ -31,9 +31,7 @@ func (s *Service) Create(dto CreateDTO) (*Response, error) {
 
 	if err == nil {
 		return nil, errors.New("la URL ya existe")
-	}
-
-	if err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
+	} else if !errors.Is(err, gorm.ErrRecordNotFound) {
 		return nil, err
 	}
 
@@ -107,9 +105,7 @@ func (s *Service) Update(id uint, dto UpdateDTO) (*Response, error) {
 
 	if err == nil {
 		return nil, errors.New("la URL ya existe")
-	}
-
-	if err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
+	} else if !errors.Is(err, gorm.ErrRecordNotFound) {
 		return nil, err
 	}
 
@@ -117,7 +113,7 @@ func (s *Service) Update(id uint, dto UpdateDTO) (*Response, error) {
 	// Actualizar
 	// ==========================
 
-	if err := s.db.Model(&codigo).Updates(map[string]interface{}{
+	if err := s.db.Model(&codigo).Updates(map[string]any{
 		"url": dto.Url,
 	}).Error; err != nil {
 

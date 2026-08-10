@@ -67,7 +67,7 @@ type Response struct {
 	EstadoID               uint                             `json:"estado_id"`
 	Estado                 *EstadoDocumentoRadicadoResponse `json:"estado,omitempty"`
 	UltimaActividad        *time.Time                       `json:"ultima_actividad,omitempty"`
-	NormasReparto 		   []NormaRepartoResponse 			`json:"normas_reparto,omitempty"`
+	NormasReparto          []NormaRepartoResponse           `json:"normas_reparto,omitempty"`
 	QrID                   uint                             `json:"qr_id"`
 	Qr                     *CodigoQrResponse                `json:"qr,omitempty"`
 	MetodoPagoID           uint                             `json:"metodo_pago_id"`
@@ -158,7 +158,7 @@ func toResponse(documento db.DocumentoRadicado) Response {
 			Nombre: documento.MetodoPago.Nombre,
 		}
 	}
-		if len(documento.NormasReparto) > 0 {
+	if len(documento.NormasReparto) > 0 {
 		for _, nr := range documento.NormasReparto {
 			item := NormaRepartoResponse{
 				ID:             nr.ID,
@@ -177,6 +177,7 @@ func toResponse(documento db.DocumentoRadicado) Response {
 
 	return response
 }
+
 type NormaRepartoResponse struct {
 	ID             uint    `json:"id"`
 	NormaRepartoID uint    `json:"norma_reparto_id"`

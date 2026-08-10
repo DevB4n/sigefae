@@ -78,9 +78,7 @@ func (s *Service) Create(req CreateDTO) (*Response, error) {
 
 	if err == nil {
 		return nil, errors.New("ya existe un archivo con esa ruta")
-	}
-
-	if err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
+	} else if !errors.Is(err, gorm.ErrRecordNotFound) {
 		return nil, err
 	}
 	// ==========================
@@ -170,16 +168,14 @@ func (s *Service) Update(id uint, req UpdateDTO) (*Response, error) {
 
 	if err == nil {
 		return nil, errors.New("ya existe un archivo con esa ruta")
-	}
-
-	if err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
+	} else if !errors.Is(err, gorm.ErrRecordNotFound) {
 		return nil, err
 	}
 	// ==========================
 	// Actualizar
 	// ==========================
 
-	if err := s.db.Model(&archivo).Updates(map[string]interface{}{
+	if err := s.db.Model(&archivo).Updates(map[string]any{
 		"nombre":    req.Nombre,
 		"extension": req.Extension,
 		"peso":      req.Peso,

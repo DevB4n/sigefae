@@ -1,9 +1,10 @@
 package db
+
 // internal/db/migrate.go
 
 // Fase 1: Tablas base (sin dependencias circulares)
-func BaseModels() []interface{} {
-	return []interface{}{
+func BaseModels() []any {
+	return []any{
 		&Pais{}, &Departamento{}, &Municipio{}, &Direccion{},
 		&TipoDocumento{}, &TipoPersona{}, &CategoriaProveedor{},
 		&ActividadEconomica{}, &Proveedor{}, &ResponsabilidadFiscal{},
@@ -13,13 +14,13 @@ func BaseModels() []interface{} {
 		&DetalleDocumentoComercial{}, &TipoFactura{}, &TipoPago{},
 		&MetodoPago{}, &TipoRadicacion{}, &CodigoQr{},
 		&EstadoDocumentoRadicado{}, &EstadoTarea{},
-		&NormaReparto{}, 
+		&NormaReparto{},
 	}
 }
 
 // Fase 2: Tablas con dependencias circulares
-func CircularModels() []interface{} {
-	return []interface{}{
+func CircularModels() []any {
+	return []any{
 		&DocumentoRadicado{},
 		&Tarea{},
 		&Comentario{}, &Trazabilidad{}, &RegistroAprobacion{},

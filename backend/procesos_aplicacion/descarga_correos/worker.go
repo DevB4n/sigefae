@@ -6,13 +6,13 @@ import (
 
 	"gorm.io/gorm"
 
+	"path/filepath"
 	"sigefae/env"
 	"sigefae/internal/correo"
 	"sigefae/procesos_aplicacion/crear_correos"
 	"sigefae/procesos_aplicacion/crear_documentos_comerciales"
 	"sigefae/procesos_aplicacion/descarga_correos/graph"
 	"sigefae/procesos_aplicacion/descarga_correos/sync"
-	"path/filepath"
 )
 
 func Start(cfg *env.Env, database *gorm.DB) {
@@ -72,7 +72,7 @@ func processMails(client *graph.Client, syncService *sync.Service, correoService
 			log.Printf("Error registrando el correo %s en la base de datos: %v\n", msg.ID, err)
 			continue
 		}
-		
+
 		// 3. Parsear XML (si existe) y llenar base de datos (Fase 1 del Plan)
 		folderPath := filepath.Join("storage", "mails", msg.ID)
 		if err := crear_documentos_comerciales.ProcesarCarpetaCorreo(database, creado.ID, folderPath); err != nil {

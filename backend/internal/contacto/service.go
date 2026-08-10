@@ -52,9 +52,7 @@ func (s *Service) Create(req CreateDTO) (*Response, error) {
 
 	if err == nil {
 		return nil, errors.New("ya existe un contacto con ese correo para este proveedor")
-	}
-
-	if err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
+	} else if !errors.Is(err, gorm.ErrRecordNotFound) {
 		return nil, err
 	}
 
@@ -173,9 +171,7 @@ func (s *Service) Update(id uint, req UpdateDTO) (*Response, error) {
 
 	if err == nil {
 		return nil, errors.New("ya existe un contacto con ese correo para este proveedor")
-	}
-
-	if err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
+	} else if !errors.Is(err, gorm.ErrRecordNotFound) {
 		return nil, err
 	}
 
@@ -183,7 +179,7 @@ func (s *Service) Update(id uint, req UpdateDTO) (*Response, error) {
 	// Actualizar
 	// ==========================
 
-	if err := s.db.Model(&contacto).Updates(map[string]interface{}{
+	if err := s.db.Model(&contacto).Updates(map[string]any{
 		"proveedor_id": req.ProveedorID,
 		"nombre":       req.Nombre,
 		"cargo":        req.Cargo,

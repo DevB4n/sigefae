@@ -29,9 +29,7 @@ func (s *Service) Create(req CreateRequest) (*Response, error) {
 
 	if err == nil {
 		return nil, errors.New("el estado de correo ya existe")
-	}
-
-	if err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
+	} else if !errors.Is(err, gorm.ErrRecordNotFound) {
 		return nil, err
 	}
 
@@ -110,13 +108,11 @@ func (s *Service) Update(id uint, req UpdateRequest) (*Response, error) {
 
 	if err == nil {
 		return nil, errors.New("el estado de correo ya existe")
-	}
-
-	if err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
+	} else if !errors.Is(err, gorm.ErrRecordNotFound) {
 		return nil, err
 	}
 
-	if err := s.db.Model(&estado).Updates(map[string]interface{}{
+	if err := s.db.Model(&estado).Updates(map[string]any{
 		"nombre": req.Nombre,
 	}).Error; err != nil {
 

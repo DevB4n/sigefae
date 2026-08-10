@@ -1,9 +1,9 @@
 package archivo
 
 import (
+	"fmt"
 	"net/http"
 	"strconv"
-	"fmt"
 	"time"
 
 	"github.com/gin-gonic/gin"
@@ -165,38 +165,38 @@ func (h *Handler) Delete(c *gin.Context) {
 	}
 }
 func (h *Handler) UploadAnexo(c *gin.Context) {
-    radicadoID, err := strconv.ParseUint(c.Param("id"), 10, 64)
-    if err != nil {
-        c.JSON(http.StatusBadRequest, gin.H{"error": "id de documento radicado inválido"})
-        return
-    }
+	radicadoID, err := strconv.ParseUint(c.Param("id"), 10, 64)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "id de documento radicado inválido"})
+		return
+	}
 
-    fileHeader, err := c.FormFile("file")
-    if err != nil {
-        c.JSON(http.StatusBadRequest, gin.H{"error": "archivo requerido"})
-        return
-    }
+	fileHeader, err := c.FormFile("file")
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "archivo requerido"})
+		return
+	}
 
-    rutaBase := "storage"
+	rutaBase := "storage"
 
-    response, err := h.service.UploadAnexo(uint(radicadoID), fileHeader, rutaBase)
-    if err != nil {
-        c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
-        return
-    }
+	response, err := h.service.UploadAnexo(uint(radicadoID), fileHeader, rutaBase)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
 
-    user, hasUser := c.Get("user")
-    if hasUser {
-        h.db.Create(&db.Trazabilidad{
-            DocumentoRadicadoID: uint(radicadoID),
-            UsuarioID:           user.(db.Usuario).ID,
-            Accion:              "Archivo Subido",
-            Descripcion:         "Se adjuntó el archivo: " + fileHeader.Filename,
-            Fecha:               time.Now(),
-        })
-    }
+	user, hasUser := c.Get("user")
+	if hasUser {
+		h.db.Create(&db.Trazabilidad{
+			DocumentoRadicadoID: uint(radicadoID),
+			UsuarioID:           user.(db.Usuario).ID,
+			Accion:              "Archivo Subido",
+			Descripcion:         "Se adjuntó el archivo: " + fileHeader.Filename,
+			Fecha:               time.Now(),
+		})
+	}
 
-    c.JSON(http.StatusCreated, response)
+	c.JSON(http.StatusCreated, response)
 }
 func (h *Handler) Download(c *gin.Context) {
 	id, err := strconv.ParseUint(c.Param("id"), 10, 64)

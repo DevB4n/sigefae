@@ -29,9 +29,7 @@ func (s *Service) Create(req CreateRequest) (*Response, error) {
 
 	if err == nil {
 		return nil, errors.New("la categoría de proveedor ya existe")
-	}
-
-	if err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
+	} else if !errors.Is(err, gorm.ErrRecordNotFound) {
 		return nil, err
 	}
 
@@ -115,13 +113,11 @@ func (s *Service) Update(id uint, req UpdateRequest) (*Response, error) {
 
 	if err == nil {
 		return nil, errors.New("la categoría de proveedor ya existe")
-	}
-
-	if err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
+	} else if !errors.Is(err, gorm.ErrRecordNotFound) {
 		return nil, err
 	}
 
-	if err := s.db.Model(&categoria).Updates(map[string]interface{}{
+	if err := s.db.Model(&categoria).Updates(map[string]any{
 		"nombre":      req.Nombre,
 		"descripcion": req.Descripcion,
 	}).Error; err != nil {

@@ -3,13 +3,13 @@ package proveedor
 type CreateRequest struct {
 	TipoDocumentoID      uint   `json:"tipo_documento_id" binding:"required"`
 	NumeroDocumento      string `json:"numero_documento" binding:"required"`
-	CategoriaID          uint   `json:"categoria_id"`           
+	CategoriaID          uint   `json:"categoria_id"`
 	RutaPredeterminadaID *uint  `json:"ruta_predeterminada_id"`
 	RazonSocial          string `json:"razon_social" binding:"required"`
 	NombreComercial      string `json:"nombre_comercial"`
-	TipoPersonaID        uint   `json:"tipo_persona_id"`        
-	ActividadEconomicaID uint   `json:"actividad_economica_id"` 
-	DireccionID          uint   `json:"direccion_id"`           
+	TipoPersonaID        uint   `json:"tipo_persona_id"`
+	ActividadEconomicaID uint   `json:"actividad_economica_id"`
+	DireccionID          uint   `json:"direccion_id"`
 }
 type UpdateRequest struct {
 	TipoDocumentoID      uint   `json:"tipo_documento_id" binding:"required"`
