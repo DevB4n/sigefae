@@ -1058,6 +1058,42 @@ body {
   }
 }
 
+/* ── CONTROLES DE LISTA (BÚSQUEDA Y ORDEN) ── */
+.list-controls {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    padding: 10px 15px;
+    background: var(--gray-50);
+    border-bottom: 1px solid var(--gray-200);
+}
+
+.list-controls input {
+    flex: 1;
+    padding: 8px 12px;
+    border: 1px solid var(--gray-200);
+    border-radius: 8px;
+    font-size: 0.85em;
+    outline: none;
+    transition: border-color 0.2s;
+}
+
+.list-controls input:focus {
+    border-color: var(--pardo-blue);
+}
+
+.list-controls select {
+    padding: 8px;
+    border: 1px solid var(--gray-200);
+    border-radius: 8px;
+    font-size: 0.85em;
+    background: white;
+    outline: none;
+    cursor: pointer;
+    flex-shrink: 0;
+    max-width: 100%;
+}
+
 /* ── RESPONSIVE ───────────────────────────────────────── */
 @media (max-width:1024px) {
     .sidebar.open { width:260px; }

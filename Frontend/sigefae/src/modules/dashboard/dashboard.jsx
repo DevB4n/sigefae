@@ -189,6 +189,19 @@ export default function ProcesosLogistica() {
   const [tareasSubTab, setTareasSubTab] = useState("activas"); // "activas" | "completadas"
   const [misTareasCompletadas, setMisTareasCompletadas] = useState([]);
 
+  // ── Filtros y Ordenamiento ──
+  const [searchCorreos, setSearchCorreos] = useState("");
+  const [sortCorreos, setSortCorreos] = useState("fecha_desc");
+
+  const [searchDocs, setSearchDocs] = useState("");
+  const [sortDocs, setSortDocs] = useState("fecha_desc");
+
+  const [searchRadicados, setSearchRadicados] = useState("");
+  const [sortRadicados, setSortRadicados] = useState("fecha_desc");
+
+  const [searchTareas, setSearchTareas] = useState("");
+  const [sortTareas, setSortTareas] = useState("fecha_desc");
+
   // ── Flujo de tareas del radicado ──
   const [tareasFlujo, setTareasFlujo] = useState([]);
 
@@ -1933,12 +1946,95 @@ export default function ProcesosLogistica() {
     </div>
   );
 
-  const renderCorreos = () => (
+  const getFilteredCorreos = () => {
+    let result = [...correos];
+    if (searchCorreos) {
+      const q = searchCorreos.toLowerCase();
+      result = result.filter(c => 
+        (c.asunto && c.asunto.toLowerCase().includes(q)) || 
+        (c.remitente && c.remitente.toLowerCase().includes(q))
+      );
+    }
+    result.sort((a, b) => {
+      if (sortCorreos === 'fecha_desc') return new Date(b.fecha_recepcion) - new Date(a.fecha_recepcion);
+      if (sortCorreos === 'fecha_asc') return new Date(a.fecha_recepcion) - new Date(b.fecha_recepcion);
+      if (sortCorreos === 'estado') return (a.estado_correo?.nombre || '').localeCompare(b.estado_correo?.nombre || '');
+      return 0;
+    });
+    return result;
+  };
+
+  const getFilteredDocs = () => {
+    let result = [...documentos];
+    if (searchDocs) {
+      const q = searchDocs.toLowerCase();
+      result = result.filter(d => 
+        (d.numero_documento && d.numero_documento.toLowerCase().includes(q)) || 
+        (d.proveedor?.razon_social && d.proveedor.razon_social.toLowerCase().includes(q))
+      );
+    }
+    result.sort((a, b) => {
+      if (sortDocs === 'fecha_desc') return new Date(b.created_at) - new Date(a.created_at);
+      if (sortDocs === 'fecha_asc') return new Date(a.created_at) - new Date(b.created_at);
+      if (sortDocs === 'estado') return a.activo === b.activo ? 0 : (a.activo ? -1 : 1);
+      return 0;
+    });
+    return result;
+  };
+
+  const getFilteredRadicados = () => {
+    let result = [...radicados];
+    if (searchRadicados) {
+      const q = searchRadicados.toLowerCase();
+      result = result.filter(r => 
+        (r.numero_radicado && r.numero_radicado.toLowerCase().includes(q)) ||
+        (r.documento_comercial?.numero_documento && r.documento_comercial.numero_documento.toLowerCase().includes(q)) ||
+        (r.documento_comercial?.proveedor?.razon_social && r.documento_comercial.proveedor.razon_social.toLowerCase().includes(q))
+      );
+    }
+    result.sort((a, b) => {
+      if (sortRadicados === 'fecha_desc') return new Date(b.fecha_radicacion) - new Date(a.fecha_radicacion);
+      if (sortRadicados === 'fecha_asc') return new Date(a.fecha_radicacion) - new Date(b.fecha_radicacion);
+      if (sortRadicados === 'estado') return (a.estado_posesion || '').localeCompare(b.estado_posesion || '');
+      return 0;
+    });
+    return result;
+  };
+
+  const getFilteredTareas = (baseList) => {
+    let result = [...baseList];
+    if (searchTareas) {
+      const q = searchTareas.toLowerCase();
+      result = result.filter(t => 
+        (t.numero_radicado && t.numero_radicado.toLowerCase().includes(q)) ||
+        (t.documento_comercial?.numero_documento && t.documento_comercial.numero_documento.toLowerCase().includes(q))
+      );
+    }
+    result.sort((a, b) => {
+      if (sortTareas === 'fecha_desc') return new Date(b.fecha_creacion) - new Date(a.fecha_creacion);
+      if (sortTareas === 'fecha_asc') return new Date(a.fecha_creacion) - new Date(b.fecha_creacion);
+      if (sortTareas === 'estado') return (a.estado_posesion || '').localeCompare(b.estado_posesion || '');
+      return 0;
+    });
+    return result;
+  };
+
+  const renderCorreos = () => {
+    const filteredList = getFilteredCorreos();
+    return (
     <div className="correos-container">
       <div className="correos-list">
-        <h3>Bandeja de Entrada</h3>
-        {loading ? <p>Cargando correos...</p> : correos.length === 0 ? <p>No hay correos registrados.</p> : (
-          correos.map((c) => (
+        <h3>Bandeja de Entrada ({filteredList.length})</h3>
+        <div className="list-controls">
+          <input type="text" placeholder="Buscar asunto o remitente..." value={searchCorreos} onChange={e => setSearchCorreos(e.target.value)} />
+          <select value={sortCorreos} onChange={e => setSortCorreos(e.target.value)}>
+            <option value="fecha_desc">Más recientes</option>
+            <option value="fecha_asc">Más antiguos</option>
+            <option value="estado">Por Estado</option>
+          </select>
+        </div>
+        {loading ? <p>Cargando correos...</p> : filteredList.length === 0 ? <p>No hay correos registrados.</p> : (
+          filteredList.map((c) => (
             <div key={c.id} className={`correo-item ${selectedCorreoId === c.id ? "active" : ""}`} onClick={() => setSelectedCorreoId(c.id)}>
               <div className="correo-item-header"><strong>{c.de}</strong><span className="correo-date">{new Date(c.fecha_recepcion).toLocaleDateString()}</span></div>
               <div className="correo-item-subject">{c.asunto}</div>
@@ -1978,23 +2074,34 @@ export default function ProcesosLogistica() {
         )}
       </div>
     </div>
-  );
+    );
+  };
 
-  const renderDocumentos = () => (
+  const renderDocumentos = () => {
+    const filteredList = getFilteredDocs();
+    return (
     <div className="correos-container">
       <div className="correos-list">
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "0 15px" }}>
-          <h3>Pendientes de Revisión ({documentos.length})</h3>
+          <h3>Pendientes de Revisión ({filteredList.length})</h3>
           {esAdmin && (
             <button className="doc-btn doc-btn-primary" onClick={openCrearDocModal}>
               <i className="fa-solid fa-plus"></i> Crear Documento Manual
             </button>
           )}
         </div>
-        {loadingDocs ? <p style={{ padding: "15px" }}>Cargando documentos...</p> : documentos.length === 0 ? (
+        <div className="list-controls">
+          <input type="text" placeholder="Buscar factura o proveedor..." value={searchDocs} onChange={e => setSearchDocs(e.target.value)} />
+          <select value={sortDocs} onChange={e => setSortDocs(e.target.value)}>
+            <option value="fecha_desc">Más recientes</option>
+            <option value="fecha_asc">Más antiguos</option>
+            <option value="estado">Por Estado</option>
+          </select>
+        </div>
+        {loadingDocs ? <p style={{ padding: "15px" }}>Cargando documentos...</p> : filteredList.length === 0 ? (
           <p style={{ padding: "15px", color: "#6b7280" }}>No hay documentos pendientes.</p>
         ) : (
-          documentos.map((doc) => (
+          filteredList.map((doc) => (
             <div key={doc.id} className={`correo-item ${selectedDocId === doc.id ? "active" : ""}`} onClick={() => setSelectedDocId(doc.id)}>
               <div className="correo-item-header"><strong>{doc.proveedor?.razon_social || "Sin proveedor"}</strong><span className="correo-date">{new Date(doc.fecha_documento).toLocaleDateString()}</span></div>
               <div className="correo-item-subject">{doc.tipo} - {doc.numero_documento}</div>
@@ -2248,16 +2355,27 @@ export default function ProcesosLogistica() {
       )}
 
     </div>
-  );
+    );
+  };
 
-  const renderRadicados = () => (
+  const renderRadicados = () => {
+    const filteredList = getFilteredRadicados();
+    return (
     <div className="correos-container">
       <div className="correos-list">
-        <h3>Documentos Radicados ({radicados.length})</h3>
-        {loadingRadicados ? <p style={{ padding: "15px" }}>Cargando...</p> : radicados.length === 0 ? (
+        <h3>Documentos Radicados ({filteredList.length})</h3>
+        <div className="list-controls">
+          <input type="text" placeholder="Buscar radicado, doc, proveedor..." value={searchRadicados} onChange={e => setSearchRadicados(e.target.value)} />
+          <select value={sortRadicados} onChange={e => setSortRadicados(e.target.value)}>
+            <option value="fecha_desc">Más recientes</option>
+            <option value="fecha_asc">Más antiguos</option>
+            <option value="estado">Por Estado</option>
+          </select>
+        </div>
+        {loadingRadicados ? <p style={{ padding: "15px" }}>Cargando...</p> : filteredList.length === 0 ? (
           <p style={{ padding: "15px", color: "#6b7280" }}>No hay documentos radicados.</p>
         ) : (
-          radicados.map((rad) => (
+          filteredList.map((rad) => (
             <div key={rad.id} className={`correo-item ${selectedRadicadoId === rad.id ? "active" : ""}`} onClick={() => setSelectedRadicadoId(rad.id)}>
               <div className="correo-item-header">
                 <strong>{rad.documento_comercial?.numero_documento || "—"}</strong>
@@ -2503,11 +2621,12 @@ export default function ProcesosLogistica() {
         )}
       </div>
     </div>
-  );
+    );
+  };
 
   // ── NUEVO: Panel de Mis Tareas (solo para aprobadores) ──
   const renderTareas = () => {
-    const tareasMostradas = tareasSubTab === "activas" ? misTareas : misTareasCompletadas;
+    const tareasMostradas = getFilteredTareas(tareasSubTab === "activas" ? misTareas : misTareasCompletadas);
 
     return (
       <div className="correos-container">
@@ -2550,6 +2669,15 @@ export default function ProcesosLogistica() {
               <i className="fa-solid fa-check-circle" style={{ marginRight: 6 }}></i>
               Completadas ({misTareasCompletadas.length})
             </button>
+          </div>
+          
+          <div className="list-controls">
+            <input type="text" placeholder="Buscar radicado, doc, proveedor..." value={searchTareas} onChange={e => setSearchTareas(e.target.value)} />
+            <select value={sortTareas} onChange={e => setSortTareas(e.target.value)}>
+              <option value="fecha_desc">Más recientes</option>
+              <option value="fecha_asc">Más antiguos</option>
+              <option value="estado">Por Estado</option>
+            </select>
           </div>
 
           {loadingTareas ? (
