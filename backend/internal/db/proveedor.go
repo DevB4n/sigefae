@@ -25,8 +25,9 @@ type Proveedor struct {
 	Direccion             *Direccion              `gorm:"foreignKey:DireccionID;references:ID" json:"direccion,omitempty"`
 	Contactos             []Contacto              `gorm:"foreignKey:ProveedorID" json:"contactos,omitempty"`
 	Responsabilidades     []ResponsabilidadFiscal `gorm:"foreignKey:IDProveedor" json:"responsabilidades,omitempty"`
-	DocumentosComerciales []DocumentoComercial    `gorm:"foreignKey:IDProveedor" json:"documentos_comerciales,omitempty"`
-	Activo                bool                    `gorm:"column:activo;default:true" json:"activo"`
+	DocumentosComerciales []DocumentoComercial      `gorm:"foreignKey:IDProveedor" json:"documentos_comerciales,omitempty"`
+	NormasPredeterminadas []ProveedorNormaReparto   `gorm:"foreignKey:ProveedorID" json:"normas_predeterminadas,omitempty"`
+	Activo                bool                      `gorm:"column:activo;default:true" json:"activo"`
 	CreatedAt             time.Time               `gorm:"column:created_at" json:"created_at"`
 	UpdatedAt             time.Time               `gorm:"column:updated_at" json:"updated_at"`
 }
@@ -55,3 +56,16 @@ type Contacto struct {
 }
 
 func (Contacto) TableName() string { return "contacto" }
+
+type ProveedorNormaReparto struct {
+	ID             uint          `gorm:"primaryKey;column:id" json:"id"`
+	ProveedorID    uint          `gorm:"column:proveedor_id;not null;index:idx_pnr_proveedor_ruta" json:"proveedor_id"`
+	RutaID         uint          `gorm:"column:ruta_id;not null;index:idx_pnr_proveedor_ruta" json:"ruta_id"`
+	NormaRepartoID uint          `gorm:"column:norma_reparto_id;not null;index:idx_pnr_norma" json:"norma_reparto_id"`
+	Porcentaje     float64       `gorm:"column:porcentaje;type:decimal(5,2);not null" json:"porcentaje"`
+	Proveedor      *Proveedor    `gorm:"foreignKey:ProveedorID;references:ID" json:"proveedor,omitempty"`
+	Ruta           *Ruta         `gorm:"foreignKey:RutaID;references:ID" json:"ruta,omitempty"`
+	NormaReparto   *NormaReparto `gorm:"foreignKey:NormaRepartoID;references:ID" json:"norma_reparto,omitempty"`
+}
+
+func (ProveedorNormaReparto) TableName() string { return "proveedor_norma_reparto" }

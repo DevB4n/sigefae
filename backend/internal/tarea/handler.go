@@ -11,6 +11,7 @@ import (
 	"gorm.io/gorm"
 
 	"sigefae/internal/db"
+	"sigefae/internal/documento_radicado"
 	"sigefae/internal/notificacion"
 )
 
@@ -190,6 +191,10 @@ func (h *Handler) Completar(c *gin.Context) {
 		h.db.Model(&db.DocumentoRadicado{}).Where("id = ?", tarea.DocumentoRadicadoID).Updates(map[string]any{
 			"estado_posesion": "Completado",
 		})
+		
+		// ── AUTO-APRENDIZAJE DE NORMAS DE REPARTO ──
+		docSvc := documento_radicado.New(h.db)
+		_ = docSvc.MemorizarNormasProveedorRuta(tarea.DocumentoRadicadoID)
 	}
 
 	// ═══════════════════════════════════════════════════════════════

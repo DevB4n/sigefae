@@ -494,6 +494,9 @@ func (h *Handler) MarcarCompletado(c *gin.Context) {
 		return
 	}
 
+	// ── AUTO-APRENDIZAJE DE NORMAS DE REPARTO ──
+	_ = h.service.MemorizarNormasProveedorRuta(radicado.ID)
+
 	// Registrar trazabilidad
 	h.db.Create(&db.Trazabilidad{
 		DocumentoRadicadoID: radicado.ID,

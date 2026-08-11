@@ -18,18 +18,18 @@ export default function ProcesosLogistica() {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const userRol = obtenerRol();
   const userId = obtenerUserId();
-   const esAdmin = userRol === "Superadministrador";
+  const esAdmin = userRol === "Superadministrador";
   const esUsuario = !esAdmin;
   const showDebug = localStorage.getItem('show_debug') === '1';
   const isFinalState = (s) => (s === "Completado" || s === "Devuelto" || s === "Rechazado");
- 
-  
-  const handleSubirAnexo = async (e, radicadoId) => {
-  const file = e.target.files[0];
-  if (!file) return;
 
-  const formData = new FormData();
-  formData.append("file", file);
+
+  const handleSubirAnexo = async (e, radicadoId) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    const formData = new FormData();
+    formData.append("file", file);
 
     try {
       const res = await fetch(`${API}/documentoradicado/${radicadoId}/anexos`, {
@@ -61,12 +61,12 @@ export default function ProcesosLogistica() {
   };
 
   // Si es aprobador, arranca directo en "tareas"
-  const [activeTab, setActiveTab] = useState(esAdmin? "welcome" : "tareas");
+  const [activeTab, setActiveTab] = useState(esAdmin ? "welcome" : "tareas");
 
   //pdf
   const [pdfEditor, setPdfEditor] = useState({ open: false, archivoId: null, radicadoId: null });
 
-    // ── Crear Documento Manual ──
+  // ── Crear Documento Manual ──
   const [showCrearDocModal, setShowCrearDocModal] = useState(false);
   const [docForm, setDocForm] = useState({
     tipo: "FACTURA_FISICA",
@@ -87,7 +87,7 @@ export default function ProcesosLogistica() {
   const [receptoresCatalogo, setReceptoresCatalogo] = useState([]);
   const [creandoDoc, setCreandoDoc] = useState(false);
 
-    // ── Crear Proveedor Rápido ──
+  // ── Crear Proveedor Rápido ──
   const [showCrearProveedorModal, setShowCrearProveedorModal] = useState(false);
   const [proveedorForm, setProveedorForm] = useState({
     razon_social: "",
@@ -101,7 +101,8 @@ export default function ProcesosLogistica() {
   const [creandoProveedor, setCreandoProveedor] = useState(false);
   const [tareasPorRadicado, setTareasPorRadicado] = useState({});
 
-    // ── Modal de Normas de Reparto en detalle ──
+
+  // ── Modal de Normas de Reparto en detalle ──
   const [showNormaModal, setShowNormaModal] = useState(false);
   const [normaEditandoId, setNormaEditandoId] = useState(null);
   const [normaFormDetalle, setNormaFormDetalle] = useState({ norma_reparto_id: "", porcentaje: "" });
@@ -109,7 +110,7 @@ export default function ProcesosLogistica() {
   const [completandoTarea, setCompletandoTarea] = useState(false);
 
   //normas de reparto
-    // ── Filtros jerárquicos para normas en el modal de radicación ──
+  // ── Filtros jerárquicos para normas en el modal de radicación ──
   const [normaFiltroSede, setNormaFiltroSede] = useState("");
   const [normaFiltroArea, setNormaFiltroArea] = useState("");
   const [normaSeleccionadaId, setNormaSeleccionadaId] = useState("");
@@ -188,7 +189,7 @@ export default function ProcesosLogistica() {
   const [tareasSubTab, setTareasSubTab] = useState("activas"); // "activas" | "completadas"
   const [misTareasCompletadas, setMisTareasCompletadas] = useState([]);
 
-    // ── Flujo de tareas del radicado ──
+  // ── Flujo de tareas del radicado ──
   const [tareasFlujo, setTareasFlujo] = useState([]);
 
   // ── Devolución de Tareas ──
@@ -212,8 +213,8 @@ export default function ProcesosLogistica() {
   // Solicitudes de rechazo
   const [solicitudes, setSolicitudes] = useState([]);
   const [loadingSolicitudes, setLoadingSolicitudes] = useState(false);
-  
-  
+
+
   const totalPorcentajeNormas = (radicarForm.normas_reparto || []).reduce(
     (sum, n) => sum + (parseFloat(n.porcentaje) || 0), 0
   );
@@ -238,58 +239,58 @@ export default function ProcesosLogistica() {
         .then(r => r.json())
         .then(data => setHistorialTrazabilidad(Array.isArray(data) ? data : []))
         .catch(err => console.error(err));
-            // ── CARGAR NORMAS DE REPARTO ──
+      // ── CARGAR NORMAS DE REPARTO ──
       fetch(`${API}/documentoradicado/${radicadoId}/normas-reparto`, {
         headers: { Authorization: `Bearer ${obtenerToken()}` }
       })
         .then(r => r.json())
         .then(data => setNormasRepartoRadicado(Array.isArray(data) ? data : []))
         .catch(() => setNormasRepartoRadicado([]));
-      }
-     else {
+    }
+    else {
       setTareasFlujo([]);
       setHistorialTrazabilidad([]);
-      setNormasRepartoRadicado([]); 
+      setNormasRepartoRadicado([]);
     }
   }, [selectedRadicadoId, selectedTareaId]);
 
   useEffect(() => {
-  if (activeTab === "radicados") {
-    setLoadingRadicados(true);
-    fetch(`${API}/documentoradicado`, { headers: { Authorization: `Bearer ${obtenerToken()}` } })
-      .then((res) => res.json())
-      .then(async (data) => {
-        if (Array.isArray(data)) {
-          setRadicados(data);
+    if (activeTab === "radicados") {
+      setLoadingRadicados(true);
+      fetch(`${API}/documentoradicado`, { headers: { Authorization: `Bearer ${obtenerToken()}` } })
+        .then((res) => res.json())
+        .then(async (data) => {
+          if (Array.isArray(data)) {
+            setRadicados(data);
 
-          // ── Cargar la tarea activa real de cada radicado ──
-          const tareasMap = {};
-          await Promise.all(
-            data.map(async (rad) => {
-              if (rad.estado_posesion === "Completado" || rad.estado_posesion === "Devuelto" || rad.estado_posesion === "Rechazado") return;
-              try {
-                const res = await fetch(`${API}/documentoradicado/${rad.id}/tareas`, {
-                  headers: { Authorization: `Bearer ${obtenerToken()}` }
-                });
-                const tareas = await res.json();
-                const tareaActiva = (Array.isArray(tareas) ? tareas : []).find(
-                  (t) => t.estado?.nombre === "En Proceso"
-                );
-                if (tareaActiva) {
-                  tareasMap[rad.id] = tareaActiva;
+            // ── Cargar la tarea activa real de cada radicado ──
+            const tareasMap = {};
+            await Promise.all(
+              data.map(async (rad) => {
+                if (rad.estado_posesion === "Completado" || rad.estado_posesion === "Devuelto" || rad.estado_posesion === "Rechazado") return;
+                try {
+                  const res = await fetch(`${API}/documentoradicado/${rad.id}/tareas`, {
+                    headers: { Authorization: `Bearer ${obtenerToken()}` }
+                  });
+                  const tareas = await res.json();
+                  const tareaActiva = (Array.isArray(tareas) ? tareas : []).find(
+                    (t) => t.estado?.nombre === "En Proceso"
+                  );
+                  if (tareaActiva) {
+                    tareasMap[rad.id] = tareaActiva;
+                  }
+                } catch (e) {
+                  // silencioso
                 }
-              } catch (e) {
-                // silencioso
-              }
-            })
-          );
-          setTareasPorRadicado(tareasMap);
-        }
-      })
-      .catch((err) => console.error(err))
-      .finally(() => setLoadingRadicados(false));
-  }
-}, [activeTab]);
+              })
+            );
+            setTareasPorRadicado(tareasMap);
+          }
+        })
+        .catch((err) => console.error(err))
+        .finally(() => setLoadingRadicados(false));
+    }
+  }, [activeTab]);
 
   const handleDescargarExpediente = async (radicado) => {
     if (!radicado) return;
@@ -299,7 +300,7 @@ export default function ProcesosLogistica() {
       const anexosUrls = (radicado.archivos || [])
         .filter(a => a.extension?.toLowerCase() === 'pdf' || a.nombre?.toLowerCase().endsWith('.pdf'))
         .map(a => `${API}/archivo/${a.id}/download?download=1`);
-      
+
       await generarExpedientePDF(radicado, tareasFlujo, historialTrazabilidad, anexosUrls);
     } catch (err) {
       console.error("Error al generar expediente", err);
@@ -309,7 +310,8 @@ export default function ProcesosLogistica() {
     }
   };
 
-     // Cargar catálogos necesarios para crear documento manual
+
+  // Cargar catálogos necesarios para crear documento manual
   useEffect(() => {
     if (activeTab !== "documentos") return;
     const headers = { Authorization: `Bearer ${obtenerToken()}` };
@@ -328,13 +330,13 @@ export default function ProcesosLogistica() {
       fetch(`${API}/areas`, { headers })
         .then(r => r.json())
         .then(d => setAreasCatalogo(Array.isArray(d) ? d : []))
-        .catch(() => {});
+        .catch(() => { });
     }
     if (monedasCatalogo.length === 0) {
       fetch(`${API}/monedas`, { headers })
         .then(r => r.json())
         .then(d => setMonedasCatalogo(Array.isArray(d) ? d : []))
-        .catch(() => {});
+        .catch(() => { });
     }
 
     // Tipos de documento (para crear proveedor rápido)
@@ -346,7 +348,7 @@ export default function ProcesosLogistica() {
 
   useEffect(() => {
     const radicadoId = activeTab === "tareas" ? selectedTareaId :
-                       activeTab === "radicados" ? selectedRadicadoId : null;
+      activeTab === "radicados" ? selectedRadicadoId : null;
     if (!radicadoId) {
       setComentarios([]);
       return;
@@ -385,7 +387,7 @@ export default function ProcesosLogistica() {
   }, [activeTab, esAdmin]);
 
 
-      const openCrearDocModal = () => {
+  const openCrearDocModal = () => {
     setSelectedDocId(null);
     setDocDetail(null);
     setDocForm({
@@ -406,7 +408,7 @@ export default function ProcesosLogistica() {
     setShowCrearDocModal(true);
   };
 
-    const openCrearProveedorModal = () => {
+  const openCrearProveedorModal = () => {
     setProveedorForm({
       razon_social: "",
       numero_documento: "",
@@ -417,153 +419,153 @@ export default function ProcesosLogistica() {
     setShowCrearProveedorModal(true);
   };
 
-    const openNormaModal = (radicadoId, normaExistente = null) => {
-  setNormaModalRadicadoId(radicadoId); // ← NUEVO
+  const openNormaModal = (radicadoId, normaExistente = null) => {
+    setNormaModalRadicadoId(radicadoId); // ← NUEVO
 
-  if (normaExistente) {
-    setNormaEditandoId(normaExistente.id);
-    setNormaFormDetalle({
-      norma_reparto_id: String(normaExistente.norma_reparto_id || normaExistente.norma_reparto?.id || ""),
-      porcentaje: String(normaExistente.porcentaje || "")
-    });
-    // Pre-llenar filtros si conocemos la norma
-    const norma = normasRepartoCatalogo.find(n => n.id === (normaExistente.norma_reparto_id || normaExistente.norma_reparto?.id));
-    if (norma) {
-      setNormaFiltroSede(norma.sucursal || "");
-      setNormaFiltroArea(norma.departamento || "");
-    }
-  } else {
-    setNormaEditandoId(null);
-    setNormaFormDetalle({ norma_reparto_id: "", porcentaje: "" });
-    setNormaFiltroSede("");
-    setNormaFiltroArea("");
-  }
-
-  if (normasRepartoCatalogo.length === 0) {
-    fetch(`${API}/normas-reparto?activo=true`, { headers: { Authorization: `Bearer ${obtenerToken()}` } })
-      .then(r => r.json())
-      .then(d => setNormasRepartoCatalogo(Array.isArray(d) ? d : []));
-  }
-  setShowNormaModal(true);
-};
-
-  const handleGuardarNormaDetalle = async (radicadoId) => {
-  if (!normaFormDetalle.norma_reparto_id || normaFormDetalle.porcentaje === "") {
-    alert("Seleccione una norma y el porcentaje");
-    return;
-  }
-
-  try {
-    // 1. Tomar las normas actuales y mapearlas al formato del backend
-    let nuevasNormas = normasRepartoRadicado.map(n => ({
-      norma_reparto_id: n.norma_reparto_id || n.norma_reparto?.id,
-      porcentaje: parseFloat(n.porcentaje)
-    }));
-
-    const payloadNorma = {
-      norma_reparto_id: parseInt(normaFormDetalle.norma_reparto_id),
-      porcentaje: parseFloat(normaFormDetalle.porcentaje)
-    };
-
-    if (normaEditandoId) {
-      // Editar: reemplazar la que tiene ese ID de asignación
-      const idx = normasRepartoRadicado.findIndex(n => n.id === normaEditandoId);
-      if (idx !== -1) {
-        nuevasNormas[idx] = payloadNorma;
-      } else {
-        // Fallback por si no encuentra el id
-        const idx2 = nuevasNormas.findIndex(n => n.norma_reparto_id === payloadNorma.norma_reparto_id);
-        if (idx2 !== -1) nuevasNormas[idx2] = payloadNorma;
-        else nuevasNormas.push(payloadNorma);
+    if (normaExistente) {
+      setNormaEditandoId(normaExistente.id);
+      setNormaFormDetalle({
+        norma_reparto_id: String(normaExistente.norma_reparto_id || normaExistente.norma_reparto?.id || ""),
+        porcentaje: String(normaExistente.porcentaje || "")
+      });
+      // Pre-llenar filtros si conocemos la norma
+      const norma = normasRepartoCatalogo.find(n => n.id === (normaExistente.norma_reparto_id || normaExistente.norma_reparto?.id));
+      if (norma) {
+        setNormaFiltroSede(norma.sucursal || "");
+        setNormaFiltroArea(norma.departamento || "");
       }
     } else {
-      // Crear: verificar duplicado por norma_reparto_id
-      const yaExiste = nuevasNormas.find(n => n.norma_reparto_id === payloadNorma.norma_reparto_id);
-      if (yaExiste) {
-        alert("Esta norma ya fue agregada");
-        return;
-      }
-      nuevasNormas.push(payloadNorma);
+      setNormaEditandoId(null);
+      setNormaFormDetalle({ norma_reparto_id: "", porcentaje: "" });
+      setNormaFiltroSede("");
+      setNormaFiltroArea("");
     }
 
-    // 2. Enviar SIEMPRE como array al endpoint que reemplaza todo
-    const res = await fetch(`${API}/documentoradicado/${radicadoId}/normas-reparto`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${obtenerToken()}`
-      },
-      body: JSON.stringify({ normas: nuevasNormas })
-    });
+    if (normasRepartoCatalogo.length === 0) {
+      fetch(`${API}/normas-reparto?activo=true`, { headers: { Authorization: `Bearer ${obtenerToken()}` } })
+        .then(r => r.json())
+        .then(d => setNormasRepartoCatalogo(Array.isArray(d) ? d : []));
+    }
+    setShowNormaModal(true);
+  };
 
-    if (!res.ok) {
-      const err = await res.json();
-      throw new Error(err.error || "Error guardando norma");
+  const handleGuardarNormaDetalle = async (radicadoId) => {
+    if (!normaFormDetalle.norma_reparto_id || normaFormDetalle.porcentaje === "") {
+      alert("Seleccione una norma y el porcentaje");
+      return;
     }
 
-    alert(normaEditandoId ? "Norma actualizada correctamente" : "Norma agregada correctamente");
-    setShowNormaModal(false);
-    setNormaEditandoId(null);
-
-    // 3. Refrescar
-    const nrRes = await fetch(`${API}/documentoradicado/${radicadoId}/normas-reparto`, {
-      headers: { Authorization: `Bearer ${obtenerToken()}` }
-    });
-    const nrData = await nrRes.json();
-    setNormasRepartoRadicado(Array.isArray(nrData) ? nrData : []);
-
-  } catch (err) {
-    alert("Error: " + err.message);
-  }
-};
-
-const handleEliminarNorma = async (asignacionId, radicadoId) => {
-  if (!confirm("¿Está seguro de eliminar esta norma de reparto?")) return;
-
-  try {
-    // 1. Construir array sin la norma eliminada
-    const normasRestantes = normasRepartoRadicado
-      .filter(n => n.id !== asignacionId)
-      .map(n => ({
+    try {
+      // 1. Tomar las normas actuales y mapearlas al formato del backend
+      let nuevasNormas = normasRepartoRadicado.map(n => ({
         norma_reparto_id: n.norma_reparto_id || n.norma_reparto?.id,
         porcentaje: parseFloat(n.porcentaje)
       }));
 
-    // 2. Enviar array actualizado (reemplaza todo en el backend)
-    const res = await fetch(`${API}/documentoradicado/${radicadoId}/normas-reparto`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${obtenerToken()}`
-      },
-      body: JSON.stringify({ normas: normasRestantes })
-    });
+      const payloadNorma = {
+        norma_reparto_id: parseInt(normaFormDetalle.norma_reparto_id),
+        porcentaje: parseFloat(normaFormDetalle.porcentaje)
+      };
 
-    if (!res.ok) {
-      const err = await res.json();
-      throw new Error(err.error || "Error eliminando norma");
+      if (normaEditandoId) {
+        // Editar: reemplazar la que tiene ese ID de asignación
+        const idx = normasRepartoRadicado.findIndex(n => n.id === normaEditandoId);
+        if (idx !== -1) {
+          nuevasNormas[idx] = payloadNorma;
+        } else {
+          // Fallback por si no encuentra el id
+          const idx2 = nuevasNormas.findIndex(n => n.norma_reparto_id === payloadNorma.norma_reparto_id);
+          if (idx2 !== -1) nuevasNormas[idx2] = payloadNorma;
+          else nuevasNormas.push(payloadNorma);
+        }
+      } else {
+        // Crear: verificar duplicado por norma_reparto_id
+        const yaExiste = nuevasNormas.find(n => n.norma_reparto_id === payloadNorma.norma_reparto_id);
+        if (yaExiste) {
+          alert("Esta norma ya fue agregada");
+          return;
+        }
+        nuevasNormas.push(payloadNorma);
+      }
+
+      // 2. Enviar SIEMPRE como array al endpoint que reemplaza todo
+      const res = await fetch(`${API}/documentoradicado/${radicadoId}/normas-reparto`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${obtenerToken()}`
+        },
+        body: JSON.stringify({ normas: nuevasNormas })
+      });
+
+      if (!res.ok) {
+        const err = await res.json();
+        throw new Error(err.error || "Error guardando norma");
+      }
+
+      alert(normaEditandoId ? "Norma actualizada correctamente" : "Norma agregada correctamente");
+      setShowNormaModal(false);
+      setNormaEditandoId(null);
+
+      // 3. Refrescar
+      const nrRes = await fetch(`${API}/documentoradicado/${radicadoId}/normas-reparto`, {
+        headers: { Authorization: `Bearer ${obtenerToken()}` }
+      });
+      const nrData = await nrRes.json();
+      setNormasRepartoRadicado(Array.isArray(nrData) ? nrData : []);
+
+    } catch (err) {
+      alert("Error: " + err.message);
     }
+  };
 
-    alert("Norma eliminada");
+  const handleEliminarNorma = async (asignacionId, radicadoId) => {
+    if (!confirm("¿Está seguro de eliminar esta norma de reparto?")) return;
 
-    // 3. Refrescar
-    const nrRes = await fetch(`${API}/documentoradicado/${radicadoId}/normas-reparto`, {
-      headers: { Authorization: `Bearer ${obtenerToken()}` }
-    });
-    const nrData = await nrRes.json();
-    setNormasRepartoRadicado(Array.isArray(nrData) ? nrData : []);
+    try {
+      // 1. Construir array sin la norma eliminada
+      const normasRestantes = normasRepartoRadicado
+        .filter(n => n.id !== asignacionId)
+        .map(n => ({
+          norma_reparto_id: n.norma_reparto_id || n.norma_reparto?.id,
+          porcentaje: parseFloat(n.porcentaje)
+        }));
 
-  } catch (err) {
-    alert("Error: " + err.message);
-  }
-};
+      // 2. Enviar array actualizado (reemplaza todo en el backend)
+      const res = await fetch(`${API}/documentoradicado/${radicadoId}/normas-reparto`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${obtenerToken()}`
+        },
+        body: JSON.stringify({ normas: normasRestantes })
+      });
+
+      if (!res.ok) {
+        const err = await res.json();
+        throw new Error(err.error || "Error eliminando norma");
+      }
+
+      alert("Norma eliminada");
+
+      // 3. Refrescar
+      const nrRes = await fetch(`${API}/documentoradicado/${radicadoId}/normas-reparto`, {
+        headers: { Authorization: `Bearer ${obtenerToken()}` }
+      });
+      const nrData = await nrRes.json();
+      setNormasRepartoRadicado(Array.isArray(nrData) ? nrData : []);
+
+    } catch (err) {
+      alert("Error: " + err.message);
+    }
+  };
 
   const handleProveedorFormChange = (e) => {
     const { name, value } = e.target;
     setProveedorForm(prev => ({ ...prev, [name]: value }));
   };
 
-    const handleCrearProveedorSubmit = async () => {
+  const handleCrearProveedorSubmit = async () => {
     if (!proveedorForm.razon_social.trim() || !proveedorForm.numero_documento.trim() || !proveedorForm.tipo_documento_id) {
       alert("Complete Razón Social, Número de Documento y Tipo de Documento");
       return;
@@ -749,11 +751,10 @@ const handleEliminarNorma = async (asignacionId, radicadoId) => {
                 <td>{t.usuario_asignado?.email || "—"}</td>
                 <td>{t.descripcion}</td>
                 <td>
-                  <span className={`status-badge ${
-                    t.estado?.nombre === "Completada" ? "radicado" :
-                    t.estado?.nombre === "En Proceso" ? "doc-pendiente" :
-                    t.estado?.nombre === "Devuelta" ? "doc-rechazado" : ""
-                  }`}>
+                  <span className={`status-badge ${t.estado?.nombre === "Completada" ? "radicado" :
+                      t.estado?.nombre === "En Proceso" ? "doc-pendiente" :
+                        t.estado?.nombre === "Devuelta" ? "doc-rechazado" : ""
+                    }`}>
                     {t.estado?.nombre || "Pendiente"}
                   </span>
                 </td>
@@ -767,7 +768,7 @@ const handleEliminarNorma = async (asignacionId, radicadoId) => {
   );
 
   //normas para modal normas de reparto
-    const sedesDisponibles = ["BUCARAMANGA", "MALAMBO", "CUCUTA", "CB", "CIENAGA DE ORO", "GENERAL"];
+  const sedesDisponibles = ["BUCARAMANGA", "MALAMBO", "CUCUTA", "CB", "CIENAGA DE ORO", "GENERAL"];
   const areasDisponibles = ["ADMON", "VENTAS", "PRODUCCION"];
 
   const normasFiltradas = normasRepartoCatalogo.filter(n => {
@@ -801,7 +802,7 @@ const handleEliminarNorma = async (asignacionId, radicadoId) => {
     setNormaSeleccionadaId("");
     setNormaPorcentajeInput("");
   };
-    const handleNormaRepartoChange = (index, field, value) => {
+  const handleNormaRepartoChange = (index, field, value) => {
     setRadicarForm(prev => {
       const updated = [...prev.normas_reparto];
       updated[index] = { ...updated[index], [field]: value };
@@ -869,277 +870,277 @@ const handleEliminarNorma = async (asignacionId, radicadoId) => {
 
   // ── Render comentarios ──
   const renderComentarios = (radicadoId, readOnly = false) => (
-  <div className="doc-section">
-    <h4>
-      <i className="fa-solid fa-comments"></i>{" "}
-      Comentarios ({comentarios.length})
-    </h4>
+    <div className="doc-section">
+      <h4>
+        <i className="fa-solid fa-comments"></i>{" "}
+        Comentarios ({comentarios.length})
+      </h4>
 
-    <div
-      style={{
-        maxHeight: 320,
-        overflowY: "auto",
-        marginBottom: 12,
-        paddingRight: 4
-      }}
-    >
-      {comentarios.length === 0 ? (
-        <p style={{ color: "#6b7280", fontSize: "0.9em" }}>
-          No hay comentarios.
-        </p>
-      ) : (
-        comentarios.map((c) => (
-          <div
-            key={c.id}
-            style={{
-              background: "#f3f4f6",
-              borderRadius: 8,
-              padding: "10px 12px",
-              marginBottom: 8
-            }}
-          >
-            <div
-              style={{
-                display: "flex",
-                justifyContent: "space-between",
-                alignItems: "center",
-                marginBottom: 4
-              }}
-            >
-              <strong style={{ fontSize: "0.85em", color: "#1f2937" }}>
-                {c.usuario_nombre || `Usuario #${c.usuario_id}`}
-              </strong>
-
-              <span style={{ fontSize: "0.75em", color: "#6b7280" }}>
-                {new Date(c.fecha).toLocaleString()}
-              </span>
-            </div>
-
-            <p
-              style={{
-                margin: 0,
-                fontSize: "0.9em",
-                color: "#374151",
-                whiteSpace: "pre-wrap"
-              }}
-            >
-              {c.descripcion}
-            </p>
-          </div>
-        ))
-      )}
-    </div>
-
-    {readOnly ? (
       <div
         style={{
-          padding: "10px 12px",
-          borderRadius: 6,
-          background: "#f3f4f6",
-          color: "#6b7280",
-          fontSize: "0.9em"
+          maxHeight: 320,
+          overflowY: "auto",
+          marginBottom: 12,
+          paddingRight: 4
         }}
       >
-        <i className="fa-solid fa-lock"></i>{" "}
-        El documento está finalizado. No se pueden agregar más comentarios.
+        {comentarios.length === 0 ? (
+          <p style={{ color: "#6b7280", fontSize: "0.9em" }}>
+            No hay comentarios.
+          </p>
+        ) : (
+          comentarios.map((c) => (
+            <div
+              key={c.id}
+              style={{
+                background: "#f3f4f6",
+                borderRadius: 8,
+                padding: "10px 12px",
+                marginBottom: 8
+              }}
+            >
+              <div
+                style={{
+                  display: "flex",
+                  justifyContent: "space-between",
+                  alignItems: "center",
+                  marginBottom: 4
+                }}
+              >
+                <strong style={{ fontSize: "0.85em", color: "#1f2937" }}>
+                  {c.usuario_nombre || `Usuario #${c.usuario_id}`}
+                </strong>
+
+                <span style={{ fontSize: "0.75em", color: "#6b7280" }}>
+                  {new Date(c.fecha).toLocaleString()}
+                </span>
+              </div>
+
+              <p
+                style={{
+                  margin: 0,
+                  fontSize: "0.9em",
+                  color: "#374151",
+                  whiteSpace: "pre-wrap"
+                }}
+              >
+                {c.descripcion}
+              </p>
+            </div>
+          ))
+        )}
       </div>
-    ) : (
-      <div style={{ display: "flex", gap: 8, alignItems: "flex-start" }}>
-        <textarea
-          value={nuevoComentario}
-          onChange={(e) => setNuevoComentario(e.target.value)}
-          placeholder="Escribe un comentario..."
-          rows={2}
+
+      {readOnly ? (
+        <div
           style={{
-            flex: 1,
-            padding: 8,
+            padding: "10px 12px",
             borderRadius: 6,
-            border: "1px solid #d1d5db",
-            resize: "vertical",
-            fontFamily: "inherit",
+            background: "#f3f4f6",
+            color: "#6b7280",
             fontSize: "0.9em"
           }}
-        />
-
-        <button
-          className="doc-btn doc-btn-primary"
-          onClick={() => handleEnviarComentario(radicadoId)}
-          disabled={enviandoComentario || !nuevoComentario.trim()}
-          style={{ marginTop: 2 }}
         >
-          <i className="fa-solid fa-paper-plane"></i>{" "}
-          {enviandoComentario ? "Enviando..." : "Enviar"}
-        </button>
-      </div>
-    )}
-  </div>
-);
+          <i className="fa-solid fa-lock"></i>{" "}
+          El documento está finalizado. No se pueden agregar más comentarios.
+        </div>
+      ) : (
+        <div style={{ display: "flex", gap: 8, alignItems: "flex-start" }}>
+          <textarea
+            value={nuevoComentario}
+            onChange={(e) => setNuevoComentario(e.target.value)}
+            placeholder="Escribe un comentario..."
+            rows={2}
+            style={{
+              flex: 1,
+              padding: 8,
+              borderRadius: 6,
+              border: "1px solid #d1d5db",
+              resize: "vertical",
+              fontFamily: "inherit",
+              fontSize: "0.9em"
+            }}
+          />
+
+          <button
+            className="doc-btn doc-btn-primary"
+            onClick={() => handleEnviarComentario(radicadoId)}
+            disabled={enviandoComentario || !nuevoComentario.trim()}
+            style={{ marginTop: 2 }}
+          >
+            <i className="fa-solid fa-paper-plane"></i>{" "}
+            {enviandoComentario ? "Enviando..." : "Enviar"}
+          </button>
+        </div>
+      )}
+    </div>
+  );
 
   // ── Completar tarea ──
   const handleCompletarTarea = async (tareaId, radicadoId) => {
-  if (completandoTarea) return; // ← evita doble clic
-  setCompletandoTarea(true);
+    if (completandoTarea) return; // ← evita doble clic
+    setCompletandoTarea(true);
 
-  try {
-    const res = await fetch(`${API}/tarea/${tareaId}/completar`, {
-      method: "PATCH",
-      headers: { Authorization: `Bearer ${obtenerToken()}` }
-    });
+    try {
+      const res = await fetch(`${API}/tarea/${tareaId}/completar`, {
+        method: "PATCH",
+        headers: { Authorization: `Bearer ${obtenerToken()}` }
+      });
 
-    // Si devuelve error porque YA está completada, no lanzamos excepción,
-    // solo recargamos para sincronizar la vista
-    let errMsg = null;
-    if (!res.ok) {
-      try {
+      // Si devuelve error porque YA está completada, no lanzamos excepción,
+      // solo recargamos para sincronizar la vista
+      let errMsg = null;
+      if (!res.ok) {
+        try {
+          const errData = await res.json();
+          errMsg = errData.error || "";
+        } catch (e) {
+          errMsg = "Error completando tarea";
+        }
+      }
+
+      if (errMsg && !errMsg.toLowerCase().includes("ya está completada")) {
+        throw new Error(errMsg);
+      }
+
+      if (!errMsg) {
+        alert("Tarea completada correctamente");
+      }
+
+      // ── Recargar flujo ──
+      const flujoRes = await fetch(`${API}/documentoradicado/${radicadoId}/tareas`, {
+        headers: { Authorization: `Bearer ${obtenerToken()}` }
+      });
+      const flujoData = await flujoRes.json();
+      setTareasFlujo(Array.isArray(flujoData) ? flujoData : []);
+
+      // ── Recargar detalle del radicado ──
+      const detalleRes = await fetch(`${API}/documentoradicado/${radicadoId}`, {
+        headers: { Authorization: `Bearer ${obtenerToken()}` }
+      });
+      const detalleData = await detalleRes.json();
+      if (detalleData && detalleData.id) {
+        if (activeTab === "tareas") setTareaDetail(detalleData);
+        if (activeTab === "radicados") setRadicadoDetail(detalleData);
+      }
+
+      // ── Recargar lista ──
+      const listaRes = await fetch(`${API}/documentoradicado`, {
+        headers: { Authorization: `Bearer ${obtenerToken()}` }
+      });
+      const listaData = await listaRes.json();
+      if (Array.isArray(listaData)) {
+        if (activeTab === "tareas") {
+          setMisTareas(listaData.filter(r => r.usuario_actual_id === userId && !isFinalState(r.estado_posesion)));
+          setMisTareasCompletadas(listaData.filter(r => r.estado_posesion === "Completado" || r.estado_posesion === "Devuelto" || r.estado_posesion === "Rechazado"));
+        } else if (activeTab === "radicados") {
+          setRadicados(listaData);
+        }
+      }
+
+      // ── Notificar al siguiente SOLO si no hubo error previo ──
+      if (!errMsg) {
+        const siguiente = (Array.isArray(flujoData) ? flujoData : []).find(
+          t => t.estado?.nombre === "En Proceso"
+        );
+        if (siguiente?.usuario_asignado?.id && siguiente.usuario_asignado.id !== userId) {
+          await fetch(`${API}/notificacion`, {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${obtenerToken()}`
+            },
+            body: JSON.stringify({
+              usuario_id: siguiente.usuario_asignado.id,
+              documento_radicado_id: radicadoId,
+              mensaje: `Te asignaron el radicado #${detalleData?.numero_radicado || radicadoId} — Paso: ${siguiente.descripcion || 'revisar'}`,
+              estado: "Pendiente",
+              tipo: "Asignacion",
+              fecha_creacion: new Date().toISOString(),
+            })
+          });
+        }
+      }
+
+    } catch (err) {
+      alert("Error: " + err.message);
+    } finally {
+      setCompletandoTarea(false);
+    }
+  };
+
+
+
+  // ── Devolver Tarea ──
+  const handleDevolverTarea = async (tareaId, radicadoId) => {
+    if (!devolverForm.tarea_destino_id || !devolverForm.observacion.trim()) {
+      alert("Debe seleccionar un paso de destino y escribir un motivo de devolución.");
+      return;
+    }
+    setDevolviendo(true);
+    try {
+      const res = await fetch(`${API}/tarea/${tareaId}/devolver`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${obtenerToken()}`
+        },
+        body: JSON.stringify({
+          tarea_destino_id: parseInt(devolverForm.tarea_destino_id),
+          observacion: devolverForm.observacion.trim(),
+          retorno_directo: devolverForm.retorno_directo
+        })
+      });
+
+      if (!res.ok) {
         const errData = await res.json();
-        errMsg = errData.error || "";
-      } catch (e) {
-        errMsg = "Error completando tarea";
+        throw new Error(errData.error || "Error al devolver la tarea");
       }
-    }
 
-    if (errMsg && !errMsg.toLowerCase().includes("ya está completada")) {
-      throw new Error(errMsg);
-    }
+      // 1. Cerrar modal y limpiar formulario
+      setShowDevolverModal(false);
+      setDevolverForm({ tarea_destino_id: "", observacion: "", retorno_directo: true });
 
-    if (!errMsg) {
-      alert("Tarea completada correctamente");
-    }
-
-    // ── Recargar flujo ──
-    const flujoRes = await fetch(`${API}/documentoradicado/${radicadoId}/tareas`, {
-      headers: { Authorization: `Bearer ${obtenerToken()}` }
-    });
-    const flujoData = await flujoRes.json();
-    setTareasFlujo(Array.isArray(flujoData) ? flujoData : []);
-
-    // ── Recargar detalle del radicado ──
-    const detalleRes = await fetch(`${API}/documentoradicado/${radicadoId}`, {
-      headers: { Authorization: `Bearer ${obtenerToken()}` }
-    });
-    const detalleData = await detalleRes.json();
-    if (detalleData && detalleData.id) {
-      if (activeTab === "tareas") setTareaDetail(detalleData);
-      if (activeTab === "radicados") setRadicadoDetail(detalleData);
-    }
-
-    // ── Recargar lista ──
-    const listaRes = await fetch(`${API}/documentoradicado`, {
-      headers: { Authorization: `Bearer ${obtenerToken()}` }
-    });
-    const listaData = await listaRes.json();
-    if (Array.isArray(listaData)) {
+      // 2. Limpiar selección para que el usuario ya no vea el detalle del documento devuelto
       if (activeTab === "tareas") {
-        setMisTareas(listaData.filter(r => r.usuario_actual_id === userId && !isFinalState(r.estado_posesion)));
-        setMisTareasCompletadas(listaData.filter(r => r.estado_posesion === "Completado" || r.estado_posesion === "Devuelto" || r.estado_posesion === "Rechazado"));
-      } else if (activeTab === "radicados") {
-        setRadicados(listaData);
+        setSelectedTareaId(null);
+        setTareaDetail(null);
+      } else {
+        setSelectedRadicadoId(null);
+        setRadicadoDetail(null);
       }
-    }
+      setTareasFlujo([]);
+      setHistorialTrazabilidad([]);
+      setComentarios([]);
 
-    // ── Notificar al siguiente SOLO si no hubo error previo ──
-    if (!errMsg) {
-      const siguiente = (Array.isArray(flujoData) ? flujoData : []).find(
-        t => t.estado?.nombre === "En Proceso"
-      );
-      if (siguiente?.usuario_asignado?.id && siguiente.usuario_asignado.id !== userId) {
-        await fetch(`${API}/notificacion`, {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${obtenerToken()}`
-          },
-          body: JSON.stringify({
-            usuario_id: siguiente.usuario_asignado.id,
-            documento_radicado_id: radicadoId,
-            mensaje: `Te asignaron el radicado #${detalleData?.numero_radicado || radicadoId} — Paso: ${siguiente.descripcion || 'revisar'}`,
-            estado: "Pendiente",
-            tipo: "Asignacion",
-            fecha_creacion: new Date().toISOString(),
-          })
-        });
+      // 3. Recargar la lista según la pestaña activa
+      const listaRes = await fetch(`${API}/documentoradicado`, {
+        headers: { Authorization: `Bearer ${obtenerToken()}` }
+      });
+      const listaData = await listaRes.json();
+
+      if (Array.isArray(listaData)) {
+        if (activeTab === "tareas") {
+          const activas = listaData.filter(r => r.usuario_actual_id === userId && !isFinalState(r.estado_posesion));
+          const completadas = listaData.filter(r => r.estado_posesion === "Completado" || r.estado_posesion === "Devuelto" || r.estado_posesion === "Rechazado");
+          setMisTareas(activas);
+          setMisTareasCompletadas(completadas);
+        } else if (activeTab === "radicados") {
+          setRadicados(listaData);
+        }
       }
+
+      alert("Tarea devuelta correctamente");
+
+    } catch (err) {
+      alert("Error: " + err.message);
+    } finally {
+      setDevolviendo(false);
     }
-
-  } catch (err) {
-    alert("Error: " + err.message);
-  } finally {
-    setCompletandoTarea(false);
-  }
-};
-
-  
-  
-      // ── Devolver Tarea ──
-const handleDevolverTarea = async (tareaId, radicadoId) => {
-  if (!devolverForm.tarea_destino_id || !devolverForm.observacion.trim()) {
-    alert("Debe seleccionar un paso de destino y escribir un motivo de devolución.");
-    return;
-  }
-  setDevolviendo(true);
-  try {
-    const res = await fetch(`${API}/tarea/${tareaId}/devolver`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${obtenerToken()}`
-      },
-      body: JSON.stringify({
-        tarea_destino_id: parseInt(devolverForm.tarea_destino_id),
-        observacion: devolverForm.observacion.trim(),
-        retorno_directo: devolverForm.retorno_directo
-      })
-    });
-
-    if (!res.ok) {
-      const errData = await res.json();
-      throw new Error(errData.error || "Error al devolver la tarea");
-    }
-
-    // 1. Cerrar modal y limpiar formulario
-    setShowDevolverModal(false);
-    setDevolverForm({ tarea_destino_id: "", observacion: "", retorno_directo: true });
-
-    // 2. Limpiar selección para que el usuario ya no vea el detalle del documento devuelto
-    if (activeTab === "tareas") {
-      setSelectedTareaId(null);
-      setTareaDetail(null);
-    } else {
-      setSelectedRadicadoId(null);
-      setRadicadoDetail(null);
-    }
-    setTareasFlujo([]);
-    setHistorialTrazabilidad([]);
-    setComentarios([]);
-
-    // 3. Recargar la lista según la pestaña activa
-    const listaRes = await fetch(`${API}/documentoradicado`, {
-      headers: { Authorization: `Bearer ${obtenerToken()}` }
-    });
-    const listaData = await listaRes.json();
-
-    if (Array.isArray(listaData)) {
-      if (activeTab === "tareas") {
-        const activas = listaData.filter(r => r.usuario_actual_id === userId && !isFinalState(r.estado_posesion));
-        const completadas = listaData.filter(r => r.estado_posesion === "Completado" || r.estado_posesion === "Devuelto" || r.estado_posesion === "Rechazado");
-        setMisTareas(activas);
-        setMisTareasCompletadas(completadas);
-      } else if (activeTab === "radicados") {
-        setRadicados(listaData);
-      }
-    }
-
-    alert("Tarea devuelta correctamente");
-
-  } catch (err) {
-    alert("Error: " + err.message);
-  } finally {
-    setDevolviendo(false);
-  }
-};
+  };
 
   // ── Enviar comentario ──
-    const handleEnviarComentario = async (radicadoId) => {
+  const handleEnviarComentario = async (radicadoId) => {
     if (!nuevoComentario.trim()) return;
     setEnviandoComentario(true);
     try {
@@ -1177,13 +1178,13 @@ const handleDevolverTarea = async (tareaId, radicadoId) => {
 
   const catalogoConfig = {
     "tipo-radicacion": { endpoint: "tipo-radicacion", label: "Tipo de Radicación", method: "PUT", fields: ["nombre"] },
-    "tipos-pago":      { endpoint: "tipos-pago",      label: "Tipo de Pago",      method: "PATCH", fields: ["nombre"] },
-    "metodos-pago":    { endpoint: "metodos-pago",    label: "Método de Pago",    method: "PATCH", fields: ["nombre", "tipo_pago_id"] },
-    "areas":           { endpoint: "areas",           label: "Área",              method: "PATCH", fields: ["nombre"] },
-    "rutas":           { endpoint: "rutas",           label: "Ruta",              method: "PUT",   fields: ["nombre", "area_id"] },
-    "pasos-ruta":      { endpoint: "pasos-ruta",      label: "Paso de Ruta",      method: "PUT",   fields: ["ruta_id", "orden", "nombre", "usuario_id"] },
-    "reglas-monto":    { endpoint: "regla-monto-ruta",label: "Regla de Monto", method: "PUT", fields: ["monto_minimo", "moneda_id", "posicion_insercion", "usuario_aprobador_id"] },
-    "normas-reparto":  {endpoint: "normas-reparto",label: "Norma de Reparto",method: "PUT",fields: ["codigo", "nombre", "sucursal", "departamento", "tipo", "tarifa_iva"]},
+    "tipos-pago": { endpoint: "tipos-pago", label: "Tipo de Pago", method: "PATCH", fields: ["nombre"] },
+    "metodos-pago": { endpoint: "metodos-pago", label: "Método de Pago", method: "PATCH", fields: ["nombre", "tipo_pago_id"] },
+    "areas": { endpoint: "areas", label: "Área", method: "PATCH", fields: ["nombre"] },
+    "rutas": { endpoint: "rutas", label: "Ruta", method: "PUT", fields: ["nombre", "area_id"] },
+    "pasos-ruta": { endpoint: "pasos-ruta", label: "Paso de Ruta", method: "PUT", fields: ["ruta_id", "orden", "nombre", "usuario_id"] },
+    "reglas-monto": { endpoint: "regla-monto-ruta", label: "Regla de Monto", method: "PUT", fields: ["monto_minimo", "moneda_id", "posicion_insercion", "usuario_aprobador_id"] },
+    "normas-reparto": { endpoint: "normas-reparto", label: "Norma de Reparto", method: "PUT", fields: ["codigo", "nombre", "sucursal", "departamento", "tipo", "tarifa_iva"] },
   };
 
   const loadCatalogo = async (tipo) => {
@@ -1312,7 +1313,7 @@ const handleDevolverTarea = async (tareaId, radicadoId) => {
   }, [activeTab, catalogoActivo]);
 
   // Cargar catálogos auxiliares según la pestaña activa
-    useEffect(() => {
+  useEffect(() => {
     if (activeTab !== "catalogos") return;
     const headers = { Authorization: `Bearer ${obtenerToken()}` };
 
@@ -1322,7 +1323,7 @@ const handleDevolverTarea = async (tareaId, radicadoId) => {
         .then(d => setMonedasCatalogo(Array.isArray(d) ? d : []))
         .catch(() => setMonedasCatalogo([]));
     }
-    
+
     if (catalogoActivo === "metodos-pago") {
       fetch(`${API}/tipos-pago`, { headers }).then(r => r.json()).then(d => setTiposPagoCatalogo(Array.isArray(d) ? d : []));
     }
@@ -1339,7 +1340,7 @@ const handleDevolverTarea = async (tareaId, radicadoId) => {
       fetch(`${API}/usuarios`, { headers }).then(r => r.json()).then(d => setUsuariosCatalogo(Array.isArray(d) ? d : []));
     }
   }, [activeTab, catalogoActivo]);
-  
+
   // Cargar tipos de pago cuando se necesiten (para métodos de pago)
   useEffect(() => {
     if (activeTab === "catalogos" && catalogoActivo === "metodos-pago") {
@@ -1373,7 +1374,7 @@ const handleDevolverTarea = async (tareaId, radicadoId) => {
     }
   }, [activeTab]);
 
-    // Cargar detalle del documento
+  // Cargar detalle del documento
   useEffect(() => {
     if (selectedDocId) {
       setDocDetail(null);
@@ -1421,7 +1422,7 @@ const handleDevolverTarea = async (tareaId, radicadoId) => {
     }
   }, [activeTab]);
 
-    // Cargar detalle de radicado (con área completa de la ruta)
+  // Cargar detalle de radicado (con área completa de la ruta)
   useEffect(() => {
     if (selectedRadicadoId) {
       setRadicadoDetail(null);
@@ -1437,7 +1438,7 @@ const handleDevolverTarea = async (tareaId, radicadoId) => {
                 if (rutaCompleta) {
                   data.ruta.area = rutaCompleta.area;
                 }
-              } catch (e) {}
+              } catch (e) { }
             }
             setRadicadoDetail(data);
           }
@@ -1459,7 +1460,7 @@ const handleDevolverTarea = async (tareaId, radicadoId) => {
   }, [radicadoDetail, tareaDetail]);
 
   // ── Cargar MIS TAREAS (filtradas por usuario logueado) ──
-      useEffect(() => {
+  useEffect(() => {
     if (activeTab === "tareas") {
       setLoadingTareas(true);
       fetch(`${API}/documentoradicado`, { headers: { Authorization: `Bearer ${obtenerToken()}` } })
@@ -1477,8 +1478,8 @@ const handleDevolverTarea = async (tareaId, radicadoId) => {
     }
   }, [activeTab, userId]);
 
- 
-    // Cargar detalle de una tarea (con área completa de la ruta)
+
+  // Cargar detalle de una tarea (con área completa de la ruta)
   useEffect(() => {
     if (selectedTareaId) {
       setTareaDetail(null);
@@ -1494,7 +1495,7 @@ const handleDevolverTarea = async (tareaId, radicadoId) => {
                 if (rutaCompleta) {
                   data.ruta.area = rutaCompleta.area;
                 }
-              } catch (e) {}
+              } catch (e) { }
             }
             setTareaDetail(data);
           }
@@ -1535,7 +1536,7 @@ const handleDevolverTarea = async (tareaId, radicadoId) => {
     setRadicarForm(prev => ({ ...prev, [name]: value }));
   };
 
-    const handleRadicarSubmit = async () => {
+  const handleRadicarSubmit = async () => {
     if (!radicarDocId) return;
 
     if (!radicarForm.tipo_radicacion_id || !radicarForm.ruta_id || !radicarForm.metodo_pago_id) {
@@ -1544,7 +1545,7 @@ const handleDevolverTarea = async (tareaId, radicadoId) => {
     }
 
     setRadicando(true);
-        const payload = {
+    const payload = {
       documento_comercial_id: radicarDocId,
       tipo_radicacion_id: parseInt(radicarForm.tipo_radicacion_id),
       ruta_id: parseInt(radicarForm.ruta_id),
@@ -1674,7 +1675,7 @@ const handleDevolverTarea = async (tareaId, radicadoId) => {
   };
 
 
-      const renderNormasReparto = (radicadoId, readOnly = false) => {
+  const renderNormasReparto = (radicadoId, readOnly = false) => {
     const totalPct = normasRepartoRadicado.reduce((s, n) => s + (parseFloat(n.porcentaje) || 0), 0);
     const estaCompleto = Math.abs(totalPct - 100) < 0.01;
 
@@ -1751,7 +1752,7 @@ const handleDevolverTarea = async (tareaId, radicadoId) => {
     );
   };
 
-    // ── Ver anexo en nueva pestaña (preview) ──
+  // ── Ver anexo en nueva pestaña (preview) ──
   const handleVerAnexo = async (archivoId, nombre) => {
     try {
       const res = await fetch(`${API}/archivo/${archivoId}/download`, {
@@ -1819,7 +1820,7 @@ const handleDevolverTarea = async (tareaId, radicadoId) => {
     }
   };
 
-    const crearNotificacion = async ({ usuario_id, mensaje, tipo = "Sistema", documento_radicado_id = null }) => {
+  const crearNotificacion = async ({ usuario_id, mensaje, tipo = "Sistema", documento_radicado_id = null }) => {
     try {
       await fetch(`${API}/notificacion`, {
         method: "POST",
@@ -2112,14 +2113,14 @@ const handleDevolverTarea = async (tareaId, radicadoId) => {
                 <label>Número de Radicado <small>(opcional, se autogenera si está vacío)</small></label>
                 <input type="text" name="numero_radicado" value={radicarForm.numero_radicado} onChange={handleRadicarChange} className="doc-input" placeholder="Ej: RAD-2026-00001" />
               </div>
-                            {/* ── NORMAS DE REPARTO JERÁRQUICAS ── */}
+              {/* ── NORMAS DE REPARTO JERÁRQUICAS ── */}
               <div className="modal-field">
                 <label style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                   <span><i className="fa-solid fa-chart-pie"></i> Normas de Reparto</span>
-                  <span style={{ 
-                    fontSize: "0.8em", 
+                  <span style={{
+                    fontSize: "0.8em",
                     color: totalPorcentajeNormas === 100 ? "#059669" : totalPorcentajeNormas > 0 ? "#dc2626" : "#6b7280",
-                    fontWeight: 700 
+                    fontWeight: 700
                   }}>
                     Total: {totalPorcentajeNormas.toFixed(2)}%
                   </span>
@@ -2193,12 +2194,12 @@ const handleDevolverTarea = async (tareaId, radicadoId) => {
                     {radicarForm.normas_reparto.map((norma, idx) => {
                       const info = normasRepartoCatalogo.find(n => String(n.id) === norma.norma_reparto_id);
                       return (
-                        <div key={idx} style={{ 
-                          display: "flex", 
-                          gap: 8, 
-                          alignItems: "center", 
-                          padding: "8px 10px", 
-                          background: "#f9fafb", 
+                        <div key={idx} style={{
+                          display: "flex",
+                          gap: 8,
+                          alignItems: "center",
+                          padding: "8px 10px",
+                          background: "#f9fafb",
                           borderRadius: 6,
                           border: "1px solid #e5e7eb"
                         }}>
@@ -2250,31 +2251,30 @@ const handleDevolverTarea = async (tareaId, radicadoId) => {
   );
 
   const renderRadicados = () => (
-  <div className="correos-container">
-    <div className="correos-list">
-      <h3>Documentos Radicados ({radicados.length})</h3>
-      {loadingRadicados ? <p style={{ padding: "15px" }}>Cargando...</p> : radicados.length === 0 ? (
-        <p style={{ padding: "15px", color: "#6b7280" }}>No hay documentos radicados.</p>
-      ) : (
-        radicados.map((rad) => (
-          <div key={rad.id} className={`correo-item ${selectedRadicadoId === rad.id ? "active" : ""}`} onClick={() => setSelectedRadicadoId(rad.id)}>
-            <div className="correo-item-header">
-              <strong>{rad.documento_comercial?.numero_documento || "—"}</strong>
-              <span className="correo-date">{new Date(rad.fecha_radicacion).toLocaleDateString()}</span>
-            </div>
-            <div className="correo-item-subject">{rad.documento_comercial?.tipo || "—"} — {rad.numero_radicado}</div>
+    <div className="correos-container">
+      <div className="correos-list">
+        <h3>Documentos Radicados ({radicados.length})</h3>
+        {loadingRadicados ? <p style={{ padding: "15px" }}>Cargando...</p> : radicados.length === 0 ? (
+          <p style={{ padding: "15px", color: "#6b7280" }}>No hay documentos radicados.</p>
+        ) : (
+          radicados.map((rad) => (
+            <div key={rad.id} className={`correo-item ${selectedRadicadoId === rad.id ? "active" : ""}`} onClick={() => setSelectedRadicadoId(rad.id)}>
+              <div className="correo-item-header">
+                <strong>{rad.documento_comercial?.numero_documento || "—"}</strong>
+                <span className="correo-date">{new Date(rad.fecha_radicacion).toLocaleDateString()}</span>
+              </div>
+              <div className="correo-item-subject">{rad.documento_comercial?.tipo || "—"} — {rad.numero_radicado}</div>
               <div className="correo-item-status">
-              <span className={`status-badge ${
-                rad.estado_posesion === "Completado" ? "radicado" :
-                rad.estado_posesion === "EnProceso" ? "doc-pendiente" :
-                (rad.estado_posesion === "Devuelto" || rad.estado_posesion === "Rechazado") ? "doc-rechazado" : ""
-              }`}>
-                {rad.estado_posesion === "Completado" ? "Finalizado" :
-                 rad.estado_posesion === "EnProceso" ? "En Proceso" :
-                 (rad.estado_posesion === "Devuelto" || rad.estado_posesion === "Rechazado") ? "Rechazado" :
-                 rad.estado_posesion === "Libre" ? "Libre" : "En espera"}
-              </span>
-                
+                <span className={`status-badge ${rad.estado_posesion === "Completado" ? "radicado" :
+                    rad.estado_posesion === "EnProceso" ? "doc-pendiente" :
+                      (rad.estado_posesion === "Devuelto" || rad.estado_posesion === "Rechazado") ? "doc-rechazado" : ""
+                  }`}>
+                  {rad.estado_posesion === "Completado" ? "Finalizado" :
+                    rad.estado_posesion === "EnProceso" ? "En Proceso" :
+                      (rad.estado_posesion === "Devuelto" || rad.estado_posesion === "Rechazado") ? "Rechazado" :
+                        rad.estado_posesion === "Libre" ? "Libre" : "En espera"}
+                </span>
+
                 {(!isFinalState(rad.estado_posesion)) && rad.usuario_actual?.nombre && (
                   <span
                     className="item-asignado"
@@ -2289,224 +2289,224 @@ const handleDevolverTarea = async (tareaId, radicadoId) => {
                     })()}
                   </span>
                 )}
+              </div>
             </div>
-          </div>
-        ))
-      )}
-    </div>
+          ))
+        )}
+      </div>
 
-    <div className="correo-detail">
-      {!selectedRadicadoId ? (
-        <div className="correo-empty"><i className="fa-solid fa-stamp"></i><p>Selecciona un radicado para ver su detalle</p></div>
-      ) : !radicadoDetail ? <p style={{ padding: "20px" }}>Cargando detalle...</p> : (
-        <div className="doc-detail-content">
-          <div className="doc-header">
-            <div className="doc-header-top">
-              <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                <h2>Radicado #{radicadoDetail.numero_radicado}</h2>
-                <span className={`status-badge ${
-                  radicadoDetail.estado_posesion === "Completado" ? "radicado" :
-                  radicadoDetail.estado_posesion === "EnProceso" ? "doc-pendiente" :
-                  (radicadoDetail.estado_posesion === "Devuelto" || radicadoDetail.estado_posesion === "Rechazado") ? "doc-rechazado" : ""
-                }`}>
+      <div className="correo-detail">
+        {!selectedRadicadoId ? (
+          <div className="correo-empty"><i className="fa-solid fa-stamp"></i><p>Selecciona un radicado para ver su detalle</p></div>
+        ) : !radicadoDetail ? <p style={{ padding: "20px" }}>Cargando detalle...</p> : (
+          <div className="doc-detail-content">
+            <div className="doc-header">
+              <div className="doc-header-top">
+                <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                  <h2>Radicado #{radicadoDetail.numero_radicado}</h2>
+                  <span className={`status-badge ${radicadoDetail.estado_posesion === "Completado" ? "radicado" :
+                      radicadoDetail.estado_posesion === "EnProceso" ? "doc-pendiente" :
+                        (radicadoDetail.estado_posesion === "Devuelto" || radicadoDetail.estado_posesion === "Rechazado") ? "doc-rechazado" : ""
+                    }`}>
                     {radicadoDetail.estado_posesion === "Completado" ? "Finalizado" :
                       radicadoDetail.estado_posesion === "EnProceso" ? "En Proceso" :
-                      (radicadoDetail.estado_posesion === "Devuelto" || radicadoDetail.estado_posesion === "Rechazado") ? "Rechazado" : "Pendiente"}
-                </span>
-              </div>
-              <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
-                <span className="doc-total">{
-                radicadoDetail.estado_posesion === "Completado" ? "Finalizado" :
-                radicadoDetail.estado_posesion === "EnProceso" ? "En Proceso" :
-                radicadoDetail.estado_posesion === "Libre" ? "Libre" : "En espera"}
-                </span>
-                <button 
-                  className="doc-btn doc-btn-secondary" 
-                  onClick={() => handleDescargarExpediente(radicadoDetail)}
-                  disabled={generandoPdf}
-                >
-                  <i className={`fa-solid ${generandoPdf ? 'fa-spinner fa-spin' : 'fa-file-pdf'}`}></i>
-                  {generandoPdf ? " Generando..." : " Expediente"}
-                </button>
-                {!isFinalState(radicadoDetail.estado_posesion) && esAdmin && (
-                  <>
-                    <button className="doc-btn doc-btn-primary" style={{ marginLeft: 8 }} onClick={() => marcarCompletado(radicadoDetail.id)}>
-                      <i className="fa-solid fa-check"></i> Marcar como Completado
-                    </button>
-                    <button className="doc-btn doc-btn-danger" style={{ marginLeft: 8 }} onClick={() => adminRechazar(radicadoDetail.id)}>
-                      <i className="fa-solid fa-ban"></i> Rechazar (final)
-                    </button>
-                  </>
-                )}
-                {esUsuario && !isFinalState(radicadoDetail.estado_posesion) && (
-                  <button className="doc-btn doc-btn-secondary" style={{ marginLeft: 8 }} onClick={() => solicitarRechazo(radicadoDetail.id)}>
-                    <i className="fa-solid fa-ban"></i> Solicitar Rechazo
+                        (radicadoDetail.estado_posesion === "Devuelto" || radicadoDetail.estado_posesion === "Rechazado") ? "Rechazado" : "Pendiente"}
+                  </span>
+                </div>
+                <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
+                  <span className="doc-total">{
+                    radicadoDetail.estado_posesion === "Completado" ? "Finalizado" :
+                      radicadoDetail.estado_posesion === "EnProceso" ? "En Proceso" :
+                        radicadoDetail.estado_posesion === "Libre" ? "Libre" : "En espera"}
+                  </span>
+                  <button
+                    className="doc-btn doc-btn-secondary"
+                    onClick={() => handleDescargarExpediente(radicadoDetail)}
+                    disabled={generandoPdf}
+                  >
+                    <i className={`fa-solid ${generandoPdf ? 'fa-spinner fa-spin' : 'fa-file-pdf'}`}></i>
+                    {generandoPdf ? " Generando..." : " Expediente"}
                   </button>
-                )}
-              </div>
-            </div>
-            <p className="doc-cufe"><strong>Documento:</strong> {radicadoDetail.documento_comercial?.tipo} {radicadoDetail.documento_comercial?.numero_documento}</p>
-          </div>
 
-          <div className="doc-body">
-            {/* ── Anexos (CORREGIDO: radicadoDetail en vez de tareaDetail) ── */}
-            {radicadoDetail.archivos && radicadoDetail.archivos.length > 0 && (
-  <div className="doc-section">
-    <h4><i className="fa-solid fa-paperclip"></i> Anexos ({radicadoDetail.archivos.length})</h4>
-    <div className="attachments-grid">
-      {radicadoDetail.archivos.map((arch) => {
-        const ext = arch.extension?.toLowerCase() || "";
-        const esPreview = ["pdf", "jpg", "jpeg", "png", "gif", "txt"].includes(ext);
-        return (
-          <div key={arch.id} className="attachment-card" style={{ position: "relative" }}>
-            <i className={`fa-solid fa-file${ext === 'pdf' ? '-pdf' : ext === 'xml' ? '-code' : ''}`}></i>
-            <span className="attachment-name" title={arch.nombre}>{arch.nombre}</span>
-
-                  <div style={{ display: "flex", gap: 6, flexWrap: "wrap", justifyContent: "center" }}>
-                    {esPreview && (
-                    radicadoDetail.estado_posesion === "Completado" ? (
-                      <button
-                        className="attachment-btn btn-pdf"
-                        onClick={() => handleVerAnexo(arch.id, arch.nombre)}
-                      >
-                        <i className="fa-solid fa-eye"></i> Ver
+                  {!isFinalState(radicadoDetail.estado_posesion) && esAdmin && (
+                    <>
+                      <button className="doc-btn doc-btn-primary" style={{ marginLeft: 8 }} onClick={() => marcarCompletado(radicadoDetail.id)}>
+                        <i className="fa-solid fa-check"></i> Marcar como Completado
                       </button>
-                    ) : (
-                      <button
-                        className="attachment-btn btn-pdf"
-                        onClick={() =>setPdfEditor({open: true,archivoId: arch.id,radicadoId: radicadoDetail.id})}>
-                        <i className="fa-solid fa-pen-to-square"></i> Abrir editor
+                      <button className="doc-btn doc-btn-danger" style={{ marginLeft: 8 }} onClick={() => adminRechazar(radicadoDetail.id)}>
+                        <i className="fa-solid fa-ban"></i> Rechazar (final)
                       </button>
-                    )
+                    </>
                   )}
-                    <button className="attachment-btn btn-default" onClick={() => handleDescargarAnexo(arch.id, arch.nombre)}>
-                      <i className="fa-solid fa-download"></i> Descargar
+                  {esUsuario && !isFinalState(radicadoDetail.estado_posesion) && (
+                    <button className="doc-btn doc-btn-secondary" style={{ marginLeft: 8 }} onClick={() => solicitarRechazo(radicadoDetail.id)}>
+                      <i className="fa-solid fa-ban"></i> Solicitar Rechazo
                     </button>
-                    {userRol === "Superadministrador" && (
-                      <button
-                        className="attachment-btn btn-toggle"
-                        onClick={() => handleBorrarAnexo(arch.id, radicadoDetail.id)}
-                        title="Eliminar"
-                      >
-                        <i className="fa-solid fa-xmark"></i>
-                      </button>
-                    )}
-                  </div>
+                  )}
                 </div>
-              );
-            })}
-          </div>
-        </div>
-      )}
-
-            {/* ── Subir nuevo anexo (CORREGIDO: radicadoDetail.id en vez de tareaDetail.id) ── */}
-            <div className="doc-section">
-              <h4><i className="fa-solid fa-cloud-arrow-up"></i> Adjuntar archivo</h4>
-              <input 
-                type="file" 
-                id="anexo-input-radicado"
-                onChange={(e) => handleSubirAnexo(e, radicadoDetail.id)} 
-                style={{ display: 'none' }}
-              />
-              <button 
-                className="doc-btn doc-btn-secondary" 
-                onClick={() => document.getElementById('anexo-input-radicado').click()}
-              >
-                <i className="fa-solid fa-upload"></i> Seleccionar archivo
-              </button>
-            </div>
-
-            {renderFlujoAprobacion()}
-
-            {renderTrazabilidad()}
-            
-            {renderNormasReparto(radicadoDetail.id, isFinalState(radicadoDetail.estado_posesion))}
-            
-            {/* ── Comentarios ── */}
-            {renderComentarios(radicadoDetail.id, isFinalState(radicadoDetail.estado_posesion))}
-
-            <div className="doc-section">
-              <h4><i className="fa-solid fa-circle-info"></i> Información del Radicado</h4>
-              <div className="doc-grid">
-                <div className="doc-field"><label>Número Radicado</label><span>{radicadoDetail.numero_radicado}</span></div>
-                <div className="doc-field"><label>Fecha Radicación</label><span>{new Date(radicadoDetail.fecha_radicacion).toLocaleString()}</span></div>
-                <div className="doc-field"><label>Tipo Radicación</label><span>{radicadoDetail.tipo_radicacion?.nombre || "—"}</span></div>
-                <div className="doc-field"><label>Ruta</label><span>{radicadoDetail.ruta?.nombre || "—"}</span></div>
-                <div className="doc-field"><label>Área</label><span>{typeof radicadoDetail.ruta?.area === 'string' ? radicadoDetail.ruta.area : (radicadoDetail.ruta?.area?.nombre || "—")}</span></div>
-                <div className="doc-field"><label>Método de Pago</label><span>{radicadoDetail.metodo_pago?.nombre || "—"}</span></div>
-                <div className="doc-field"><label>Estado Posesión</label><span>{radicadoDetail.estado_posesion || "—"}</span></div>
-                <div className="doc-field"><label>Paso Actual</label><span>{radicadoDetail.paso_actual?.nombre || "Inicio"}</span></div>
-                <div className="doc-field"><label>Responsable</label><span>{radicadoDetail.usuario_actual?.nombre || "—"}</span></div>
               </div>
+              <p className="doc-cufe"><strong>Documento:</strong> {radicadoDetail.documento_comercial?.tipo} {radicadoDetail.documento_comercial?.numero_documento}</p>
             </div>
 
-            {radicadoDetail.documento_comercial && (
-              <>
+            <div className="doc-body">
+              {/* ── Anexos (CORREGIDO: radicadoDetail en vez de tareaDetail) ── */}
+              {radicadoDetail.archivos && radicadoDetail.archivos.length > 0 && (
                 <div className="doc-section">
-                  <h4><i className="fa-solid fa-file-invoice"></i> Documento Comercial</h4>
-                  <div className="doc-grid">
-                    <div className="doc-field"><label>Tipo</label><span>{radicadoDetail.documento_comercial.tipo}</span></div>
-                    <div className="doc-field"><label>Número</label><span>{radicadoDetail.documento_comercial.numero_documento}</span></div>
-                    <div className="doc-field"><label>Proveedor</label><span>{radicadoDetail.documento_comercial.proveedor?.razon_social || "—"}</span></div>
-                    <div className="doc-field"><label>Receptor</label><span>{radicadoDetail.documento_comercial.receptor?.nombre || "—"}</span></div>
-                  </div>
-                </div>
-                        
-                <div className="doc-section">
-                  <h4><i className="fa-solid fa-calculator"></i> Valores</h4>
-                  <div className="doc-totals">
-                    <div className="doc-total-row"><span>Subtotal</span><span>{formatCurrency(radicadoDetail.documento_comercial.subtotal)}</span></div>
-                    <div className="doc-total-row"><span>IVA</span><span>{formatCurrency(radicadoDetail.documento_comercial.iva)}</span></div>
-                    <div className="doc-total-row total-final"><span>Total</span><span>{formatCurrency(radicadoDetail.documento_comercial.total)}</span></div>
-                  </div>
-                </div>
-                        
-                {/* ← NUEVO: Detalle de ítems */}
-                {radicadoDetail.documento_comercial.detalles && radicadoDetail.documento_comercial.detalles.length > 0 && (
-                  <div className="doc-section">
-                    <h4><i className="fa-solid fa-list"></i> Detalle de Ítems ({radicadoDetail.documento_comercial.detalles.length})</h4>
-                    <table className="doc-items-table">
-                      <thead>
-                        <tr><th>Descripción</th><th>Cantidad</th><th>Valor Unit.</th><th>Total</th></tr>
-                      </thead>
-                      <tbody>
-                        {radicadoDetail.documento_comercial.detalles.map((item) => (
-                          <tr key={item.id}>
-                            <td>{item.descripcion}</td>
-                            <td>{item.cantidad}</td>
-                            <td>{formatCurrency(item.valor_unitario)}</td>
-                            <td>{formatCurrency(item.total)}</td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
-                )}
-              </>
-            )}
+                  <h4><i className="fa-solid fa-paperclip"></i> Anexos ({radicadoDetail.archivos.length})</h4>
+                  <div className="attachments-grid">
+                    {radicadoDetail.archivos.map((arch) => {
+                      const ext = arch.extension?.toLowerCase() || "";
+                      const esPreview = ["pdf", "jpg", "jpeg", "png", "gif", "txt"].includes(ext);
+                      return (
+                        <div key={arch.id} className="attachment-card" style={{ position: "relative" }}>
+                          <i className={`fa-solid fa-file${ext === 'pdf' ? '-pdf' : ext === 'xml' ? '-code' : ''}`}></i>
+                          <span className="attachment-name" title={arch.nombre}>{arch.nombre}</span>
 
-            {radicadoDetail.qr?.url && (
-              <div className="doc-section" style={{ textAlign: "center" }}>
-                <h4><i className="fa-solid fa-qrcode"></i> Código QR del Expediente</h4>
-                <img
-                  src={`https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=${encodeURIComponent(radicadoDetail.qr.url)}`}
-                  alt="Código QR"
-                  style={{ margin: "12px auto", display: "block", borderRadius: 8, border: "1px solid #e5e7eb" }}
+                          <div style={{ display: "flex", gap: 6, flexWrap: "wrap", justifyContent: "center" }}>
+                            {esPreview && (
+                              radicadoDetail.estado_posesion === "Completado" ? (
+                                <button
+                                  className="attachment-btn btn-pdf"
+                                  onClick={() => handleVerAnexo(arch.id, arch.nombre)}
+                                >
+                                  <i className="fa-solid fa-eye"></i> Ver
+                                </button>
+                              ) : (
+                                <button
+                                  className="attachment-btn btn-pdf"
+                                  onClick={() => setPdfEditor({ open: true, archivoId: arch.id, radicadoId: radicadoDetail.id })}>
+                                  <i className="fa-solid fa-pen-to-square"></i> Abrir editor
+                                </button>
+                              )
+                            )}
+                            <button className="attachment-btn btn-default" onClick={() => handleDescargarAnexo(arch.id, arch.nombre)}>
+                              <i className="fa-solid fa-download"></i> Descargar
+                            </button>
+                            {userRol === "Superadministrador" && (
+                              <button
+                                className="attachment-btn btn-toggle"
+                                onClick={() => handleBorrarAnexo(arch.id, radicadoDetail.id)}
+                                title="Eliminar"
+                              >
+                                <i className="fa-solid fa-xmark"></i>
+                              </button>
+                            )}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+
+              {/* ── Subir nuevo anexo (CORREGIDO: radicadoDetail.id en vez de tareaDetail.id) ── */}
+              <div className="doc-section">
+                <h4><i className="fa-solid fa-cloud-arrow-up"></i> Adjuntar archivo</h4>
+                <input
+                  type="file"
+                  id="anexo-input-radicado"
+                  onChange={(e) => handleSubirAnexo(e, radicadoDetail.id)}
+                  style={{ display: 'none' }}
                 />
-                <p style={{ fontSize: "0.75em", color: "#6b7280", wordBreak: "break-all", marginTop: 8 }}>
-                  {radicadoDetail.qr.url}
-                </p>
+                <button
+                  className="doc-btn doc-btn-secondary"
+                  onClick={() => document.getElementById('anexo-input-radicado').click()}
+                >
+                  <i className="fa-solid fa-upload"></i> Seleccionar archivo
+                </button>
               </div>
-            )}
+
+              {renderFlujoAprobacion()}
+
+              {renderTrazabilidad()}
+
+              {renderNormasReparto(radicadoDetail.id, isFinalState(radicadoDetail.estado_posesion))}
+
+              {/* ── Comentarios ── */}
+              {renderComentarios(radicadoDetail.id, isFinalState(radicadoDetail.estado_posesion))}
+
+              <div className="doc-section">
+                <h4><i className="fa-solid fa-circle-info"></i> Información del Radicado</h4>
+                <div className="doc-grid">
+                  <div className="doc-field"><label>Número Radicado</label><span>{radicadoDetail.numero_radicado}</span></div>
+                  <div className="doc-field"><label>Fecha Radicación</label><span>{new Date(radicadoDetail.fecha_radicacion).toLocaleString()}</span></div>
+                  <div className="doc-field"><label>Tipo Radicación</label><span>{radicadoDetail.tipo_radicacion?.nombre || "—"}</span></div>
+                  <div className="doc-field"><label>Ruta</label><span>{radicadoDetail.ruta?.nombre || "—"}</span></div>
+                  <div className="doc-field"><label>Área</label><span>{typeof radicadoDetail.ruta?.area === 'string' ? radicadoDetail.ruta.area : (radicadoDetail.ruta?.area?.nombre || "—")}</span></div>
+                  <div className="doc-field"><label>Método de Pago</label><span>{radicadoDetail.metodo_pago?.nombre || "—"}</span></div>
+                  <div className="doc-field"><label>Estado Posesión</label><span>{radicadoDetail.estado_posesion || "—"}</span></div>
+                  <div className="doc-field"><label>Paso Actual</label><span>{radicadoDetail.paso_actual?.nombre || "Inicio"}</span></div>
+                  <div className="doc-field"><label>Responsable</label><span>{radicadoDetail.usuario_actual?.nombre || "—"}</span></div>
+                </div>
+              </div>
+
+              {radicadoDetail.documento_comercial && (
+                <>
+                  <div className="doc-section">
+                    <h4><i className="fa-solid fa-file-invoice"></i> Documento Comercial</h4>
+                    <div className="doc-grid">
+                      <div className="doc-field"><label>Tipo</label><span>{radicadoDetail.documento_comercial.tipo}</span></div>
+                      <div className="doc-field"><label>Número</label><span>{radicadoDetail.documento_comercial.numero_documento}</span></div>
+                      <div className="doc-field"><label>Proveedor</label><span>{radicadoDetail.documento_comercial.proveedor?.razon_social || "—"}</span></div>
+                      <div className="doc-field"><label>Receptor</label><span>{radicadoDetail.documento_comercial.receptor?.nombre || "—"}</span></div>
+                    </div>
+                  </div>
+
+                  <div className="doc-section">
+                    <h4><i className="fa-solid fa-calculator"></i> Valores</h4>
+                    <div className="doc-totals">
+                      <div className="doc-total-row"><span>Subtotal</span><span>{formatCurrency(radicadoDetail.documento_comercial.subtotal)}</span></div>
+                      <div className="doc-total-row"><span>IVA</span><span>{formatCurrency(radicadoDetail.documento_comercial.iva)}</span></div>
+                      <div className="doc-total-row total-final"><span>Total</span><span>{formatCurrency(radicadoDetail.documento_comercial.total)}</span></div>
+                    </div>
+                  </div>
+
+                  {/* ← NUEVO: Detalle de ítems */}
+                  {radicadoDetail.documento_comercial.detalles && radicadoDetail.documento_comercial.detalles.length > 0 && (
+                    <div className="doc-section">
+                      <h4><i className="fa-solid fa-list"></i> Detalle de Ítems ({radicadoDetail.documento_comercial.detalles.length})</h4>
+                      <table className="doc-items-table">
+                        <thead>
+                          <tr><th>Descripción</th><th>Cantidad</th><th>Valor Unit.</th><th>Total</th></tr>
+                        </thead>
+                        <tbody>
+                          {radicadoDetail.documento_comercial.detalles.map((item) => (
+                            <tr key={item.id}>
+                              <td>{item.descripcion}</td>
+                              <td>{item.cantidad}</td>
+                              <td>{formatCurrency(item.valor_unitario)}</td>
+                              <td>{formatCurrency(item.total)}</td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  )}
+                </>
+              )}
+
+              {radicadoDetail.qr?.url && (
+                <div className="doc-section" style={{ textAlign: "center" }}>
+                  <h4><i className="fa-solid fa-qrcode"></i> Código QR del Expediente</h4>
+                  <img
+                    src={`https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=${encodeURIComponent(radicadoDetail.qr.url)}`}
+                    alt="Código QR"
+                    style={{ margin: "12px auto", display: "block", borderRadius: 8, border: "1px solid #e5e7eb" }}
+                  />
+                  <p style={{ fontSize: "0.75em", color: "#6b7280", wordBreak: "break-all", marginTop: 8 }}>
+                    {radicadoDetail.qr.url}
+                  </p>
+                </div>
+              )}
+            </div>
           </div>
-        </div>
-      )}
+        )}
+      </div>
     </div>
-  </div>
-);
+  );
 
   // ── NUEVO: Panel de Mis Tareas (solo para aprobadores) ──
-    const renderTareas = () => {
+  const renderTareas = () => {
     const tareasMostradas = tareasSubTab === "activas" ? misTareas : misTareasCompletadas;
 
     return (
@@ -2569,14 +2569,13 @@ const handleDevolverTarea = async (tareaId, radicadoId) => {
                 </div>
                 <div className="correo-item-subject">{rad.documento_comercial?.tipo || "—"} — {rad.numero_radicado}</div>
                 <div className="correo-item-status">
-                  <span className={`status-badge ${
-                    rad.estado_posesion === "Completado" ? "radicado" :
-                    rad.estado_posesion === "EnProceso" ? "doc-pendiente" :
-                    (rad.estado_posesion === "Devuelto" || rad.estado_posesion === "Rechazado") ? "doc-rechazado" : ""
-                  }`}>
+                  <span className={`status-badge ${rad.estado_posesion === "Completado" ? "radicado" :
+                      rad.estado_posesion === "EnProceso" ? "doc-pendiente" :
+                        (rad.estado_posesion === "Devuelto" || rad.estado_posesion === "Rechazado") ? "doc-rechazado" : ""
+                    }`}>
                     {rad.estado_posesion === "Completado" ? "Finalizado" :
-                     rad.estado_posesion === "EnProceso" ? "En Proceso" :
-                     (rad.estado_posesion === "Devuelto" || rad.estado_posesion === "Rechazado") ? "Rechazado" : "Sin estado"}
+                      rad.estado_posesion === "EnProceso" ? "En Proceso" :
+                        (rad.estado_posesion === "Devuelto" || rad.estado_posesion === "Rechazado") ? "Rechazado" : "Sin estado"}
                   </span>
                 </div>
               </div>
@@ -2595,30 +2594,30 @@ const handleDevolverTarea = async (tareaId, radicadoId) => {
                 <div className="doc-header-top">
                   <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
                     <h2>Radicado #{tareaDetail.numero_radicado}</h2>
-                    <span className={`status-badge ${
-                      tareaDetail.estado_posesion === "Completado" ? "radicado" :
-                      tareaDetail.estado_posesion === "EnProceso" ? "doc-pendiente" :
-                      (tareaDetail.estado_posesion === "Devuelto" || tareaDetail.estado_posesion === "Rechazado") ? "doc-rechazado" : ""
-                    }`}>
+                    <span className={`status-badge ${tareaDetail.estado_posesion === "Completado" ? "radicado" :
+                        tareaDetail.estado_posesion === "EnProceso" ? "doc-pendiente" :
+                          (tareaDetail.estado_posesion === "Devuelto" || tareaDetail.estado_posesion === "Rechazado") ? "doc-rechazado" : ""
+                      }`}>
                       {tareaDetail.estado_posesion === "Completado" ? "Finalizado" :
-                       tareaDetail.estado_posesion === "EnProceso" ? "En Proceso" :
-                       (tareaDetail.estado_posesion === "Devuelto" || tareaDetail.estado_posesion === "Rechazado") ? "Rechazado" : "Pendiente"}
+                        tareaDetail.estado_posesion === "EnProceso" ? "En Proceso" :
+                          (tareaDetail.estado_posesion === "Devuelto" || tareaDetail.estado_posesion === "Rechazado") ? "Rechazado" : "Pendiente"}
                     </span>
                   </div>
                   <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
                     <span className="doc-total">{
-                    tareaDetail.estado_posesion === "Completado" ? "Finalizado" :
-                    tareaDetail.estado_posesion === "EnProceso" ? "En Proceso" :
-                    tareaDetail.estado_posesion === "Libre" ? "Libre" : "En espera"}
+                      tareaDetail.estado_posesion === "Completado" ? "Finalizado" :
+                        tareaDetail.estado_posesion === "EnProceso" ? "En Proceso" :
+                          tareaDetail.estado_posesion === "Libre" ? "Libre" : "En espera"}
                     </span>
-                    <button 
-                      className="doc-btn doc-btn-secondary" 
+                    <button
+                      className="doc-btn doc-btn-secondary"
                       onClick={() => handleDescargarExpediente(tareaDetail)}
                       disabled={generandoPdf}
                     >
-                      <i className={`fa-solid ${generandoPdf ? 'fa-spinner fa-spin' : 'fa-file-pdf'}`}></i> 
+                      <i className={`fa-solid ${generandoPdf ? 'fa-spinner fa-spin' : 'fa-file-pdf'}`}></i>
                       {generandoPdf ? " Generando..." : " Expediente"}
                     </button>
+
                   </div>
                 </div>
                 <p className="doc-cufe"><strong>Documento:</strong> {tareaDetail.documento_comercial?.tipo} {tareaDetail.documento_comercial?.numero_documento}</p>
@@ -2639,19 +2638,19 @@ const handleDevolverTarea = async (tareaId, radicadoId) => {
                             <span className="attachment-name" title={arch.nombre}>{arch.nombre}</span>
                             <div style={{ display: "flex", gap: 6, flexWrap: "wrap", justifyContent: "center" }}>
                               {esPreview && (
-                              tareaDetail.estado_posesion === "Completado" ? (
-                                <button
-                                  className="attachment-btn btn-pdf"
-                                  onClick={() => handleVerAnexo(arch.id, arch.nombre)}
-                                >
-                                  <i className="fa-solid fa-eye"></i> Ver
-                                </button>
-                              ) : (
-                                <button
-                                  className="attachment-btn btn-pdf"
-                                  onClick={() =>
-                                    setPdfEditor({open: true,archivoId: arch.id,radicadoId: tareaDetail.id})}>
-                                  <i className="fa-solid fa-pen-to-square"></i> Abrir editor
+                                tareaDetail.estado_posesion === "Completado" ? (
+                                  <button
+                                    className="attachment-btn btn-pdf"
+                                    onClick={() => handleVerAnexo(arch.id, arch.nombre)}
+                                  >
+                                    <i className="fa-solid fa-eye"></i> Ver
+                                  </button>
+                                ) : (
+                                  <button
+                                    className="attachment-btn btn-pdf"
+                                    onClick={() =>
+                                      setPdfEditor({ open: true, archivoId: arch.id, radicadoId: tareaDetail.id })}>
+                                    <i className="fa-solid fa-pen-to-square"></i> Abrir editor
                                   </button>))}
                               <button className="attachment-btn btn-default" onClick={() => handleDescargarAnexo(arch.id, arch.nombre)}>
                                 <i className="fa-solid fa-download"></i> Descargar
@@ -2700,7 +2699,7 @@ const handleDevolverTarea = async (tareaId, radicadoId) => {
                   </div>
                 </div>
 
-                                {tareaDetail.documento_comercial && (
+                {tareaDetail.documento_comercial && (
                   <>
                     <div className="doc-section">
                       <h4><i className="fa-solid fa-file-invoice"></i> Documento Comercial</h4>
@@ -2768,7 +2767,7 @@ const handleDevolverTarea = async (tareaId, radicadoId) => {
                     <div>userRol: {userRol} userId: {String(userId)}</div>
                     <div>esAdmin: {String(esAdmin)} esUsuario: {String(esUsuario)}</div>
                     <div>tarea.usuario_actual.id: {String(tareaDetail.usuario_actual?.id)}</div>
-                    <div>tareaActiva.usuario_asignado_id: {String(tareasFlujo.find(t=>t.estado?.nombre === 'En Proceso')?.usuario_asignado_id)}</div>
+                    <div>tareaActiva.usuario_asignado_id: {String(tareasFlujo.find(t => t.estado?.nombre === 'En Proceso')?.usuario_asignado_id)}</div>
                     <div>estado_posesion: {String(tareaDetail.estado_posesion)}</div>
                   </div>
                 )}
@@ -2930,7 +2929,7 @@ const handleDevolverTarea = async (tareaId, radicadoId) => {
           </div>
         );
       }
-            if (field === "codigo") {
+      if (field === "codigo") {
         return (
           <div className="modal-field" key={field} style={{ flex: 1 }}>
             <label>Código <span className="required">*</span></label>
@@ -2938,7 +2937,7 @@ const handleDevolverTarea = async (tareaId, radicadoId) => {
           </div>
         );
       }
-            if (field === "sucursal") {
+      if (field === "sucursal") {
         const sucursales = ["BUCARAMANGA", "MALAMBO", "CUCUTA", "CB", "CIENAGA DE ORO", "GENERAL"];
         return (
           <div className="modal-field" key={field}>
@@ -2995,19 +2994,19 @@ const handleDevolverTarea = async (tareaId, radicadoId) => {
       );
     };
 
-        const getColumnLabel = (field) => {
-      const map = { 
-        nombre: "Nombre", 
+    const getColumnLabel = (field) => {
+      const map = {
+        nombre: "Nombre",
         codigo: "Código",
         sucursal: "Sucursal",
         departamento: "Depto",
         tipo: "Tipo",
         tarifa_iva: "Tarifa IVA",
-        tipo_pago: "Tipo de Pago", 
-        area: "Área", 
-        ruta: "Ruta", 
-        orden: "Orden", 
-        usuario: "Usuario" 
+        tipo_pago: "Tipo de Pago",
+        area: "Área",
+        ruta: "Ruta",
+        orden: "Orden",
+        usuario: "Usuario"
       };
       return map[field] || field;
     };
@@ -3114,14 +3113,14 @@ const handleDevolverTarea = async (tareaId, radicadoId) => {
     }
   };
   const detalleRadicadoActual =
-  activeTab === "tareas" ? tareaDetail : radicadoDetail;
+    activeTab === "tareas" ? tareaDetail : radicadoDetail;
 
-const editorPermitido =
-  detalleRadicadoActual?.estado_posesion && !isFinalState(detalleRadicadoActual.estado_posesion);
+  const editorPermitido =
+    detalleRadicadoActual?.estado_posesion && !isFinalState(detalleRadicadoActual.estado_posesion);
 
   return (
     <>
-        <header className="top-header">
+      <header className="top-header">
         <div className="header-left">
           <button className="menu-toggle" title="Menú" onClick={() => setIsSidebarOpen(!isSidebarOpen)}><i className="fas fa-bars" /></button>
           <img src={logo} alt="Logo" className="logo" />
@@ -3138,7 +3137,7 @@ const editorPermitido =
       </header>
 
       <div className="main-container">
-                <aside className={`sidebar ${isSidebarOpen ? "open" : ""}`}>
+        <aside className={`sidebar ${isSidebarOpen ? "open" : ""}`}>
           <div className="sidebar-header">
             <div className="sidebar-title"><i className="fa-solid fa-gear"></i></div>
           </div>
@@ -3201,37 +3200,37 @@ const editorPermitido =
         </main>
       </div>
       {pdfEditor.open && editorPermitido && (
-      <PdfEditor
-        archivoId={pdfEditor.archivoId}
-        radicadoId={pdfEditor.radicadoId}
-        onClose={() =>
-          setPdfEditor({
-            open: false,
-            archivoId: null,
-            radicadoId: null
-          })
-        }
-        onSaved={() => {
-          const radicadoId = pdfEditor.radicadoId;
-        
-          setPdfEditor({
-            open: false,
-            archivoId: null,
-            radicadoId: null
-          });
-        
-          if (activeTab === "tareas") {
-            setSelectedTareaId(null);
-            setTimeout(() => setSelectedTareaId(radicadoId), 10);
-          } else {
-            setSelectedRadicadoId(null);
-            setTimeout(() => setSelectedRadicadoId(radicadoId), 10);
+        <PdfEditor
+          archivoId={pdfEditor.archivoId}
+          radicadoId={pdfEditor.radicadoId}
+          onClose={() =>
+            setPdfEditor({
+              open: false,
+              archivoId: null,
+              radicadoId: null
+            })
           }
-        }}
-      />
+          onSaved={() => {
+            const radicadoId = pdfEditor.radicadoId;
+
+            setPdfEditor({
+              open: false,
+              archivoId: null,
+              radicadoId: null
+            });
+
+            if (activeTab === "tareas") {
+              setSelectedTareaId(null);
+              setTimeout(() => setSelectedTareaId(radicadoId), 10);
+            } else {
+              setSelectedRadicadoId(null);
+              setTimeout(() => setSelectedRadicadoId(radicadoId), 10);
+            }
+          }}
+        />
       )}
 
-            {/* ── Modal Crear Documento Manual ── */}
+      {/* ── Modal Crear Documento Manual ── */}
       {showCrearDocModal && (
         <div className="modal-overlay" onClick={() => setShowCrearDocModal(false)}>
           <div className="modal-content" onClick={(e) => e.stopPropagation()} style={{ maxWidth: 800, maxHeight: "90vh", overflowY: "auto" }}>
@@ -3254,12 +3253,12 @@ const editorPermitido =
                   <label>Número Documento <span className="required">*</span></label>
                   <input type="text" name="numero_documento" value={docForm.numero_documento} onChange={handleDocFormChange} className="doc-input" placeholder="Ej: F001-1234" />
                 </div>
-                  <div className="modal-field">
+                <div className="modal-field">
                   <label style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                     <span>Proveedor <span className="required">*</span></span>
-                    <button 
+                    <button
                       type="button"
-                      className="btn-icon btn-edit" 
+                      className="btn-icon btn-edit"
                       onClick={openCrearProveedorModal}
                       title="Nuevo Proveedor"
                       style={{ width: 24, height: 24, fontSize: "0.8em" }}
@@ -3353,7 +3352,7 @@ const editorPermitido =
                 )}
               </div>
 
-              
+
 
               {/* ── Totales ── */}
               <div className="doc-section" style={{ marginTop: 16, background: "#f9fafb", padding: 12, borderRadius: 8 }}>
@@ -3374,7 +3373,7 @@ const editorPermitido =
         </div>
       )}
 
-            {/* ── Modal Crear Proveedor Rápido ── */}
+      {/* ── Modal Crear Proveedor Rápido ── */}
       {showCrearProveedorModal && (
         <div className="modal-overlay" onClick={() => setShowCrearProveedorModal(false)}>
           <div className="modal-content" onClick={(e) => e.stopPropagation()} style={{ maxWidth: 500 }}>
@@ -3499,77 +3498,79 @@ const editorPermitido =
         </div>
       )}
       {/* ── Modal Agregar/Editar Norma de Reparto ── */}
-{showNormaModal && (
-  <div className="modal-overlay" onClick={() => setShowNormaModal(false)}>
-    <div className="modal-content" onClick={(e) => e.stopPropagation()}>
-      <div className="modal-header">
-        <h3><i className="fa-solid fa-chart-pie"></i> {normaEditandoId ? "Editar" : "Agregar"} Norma de Reparto</h3>
-        <button className="modal-close" onClick={() => setShowNormaModal(false)}><i className="fa-solid fa-xmark"></i></button>
-      </div>
-      <div className="modal-body">
-        <div style={{ display: "flex", gap: 8, marginBottom: 10 }}>
-          <select
-            className="doc-input"
-            style={{ flex: 1 }}
-            value={normaFiltroSede}
-            onChange={(e) => { setNormaFiltroSede(e.target.value); setNormaFiltroArea(""); }}
-          >
-            <option value="">Todas las sedes</option>
-            {sedesDisponibles.map(s => <option key={s} value={s}>{s}</option>)}
-          </select>
-          <select
-            className="doc-input"
-            style={{ flex: 1 }}
-            value={normaFiltroArea}
-            onChange={(e) => setNormaFiltroArea(e.target.value)}
-          >
-            <option value="">Todas las áreas</option>
-            {areasDisponibles.map(a => <option key={a} value={a}>{a}</option>)}
-          </select>
-        </div>
+      {showNormaModal && (
+        <div className="modal-overlay" onClick={() => setShowNormaModal(false)}>
+          <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+            <div className="modal-header">
+              <h3><i className="fa-solid fa-chart-pie"></i> {normaEditandoId ? "Editar" : "Agregar"} Norma de Reparto</h3>
+              <button className="modal-close" onClick={() => setShowNormaModal(false)}><i className="fa-solid fa-xmark"></i></button>
+            </div>
+            <div className="modal-body">
+              <div style={{ display: "flex", gap: 8, marginBottom: 10 }}>
+                <select
+                  className="doc-input"
+                  style={{ flex: 1 }}
+                  value={normaFiltroSede}
+                  onChange={(e) => { setNormaFiltroSede(e.target.value); setNormaFiltroArea(""); }}
+                >
+                  <option value="">Todas las sedes</option>
+                  {sedesDisponibles.map(s => <option key={s} value={s}>{s}</option>)}
+                </select>
+                <select
+                  className="doc-input"
+                  style={{ flex: 1 }}
+                  value={normaFiltroArea}
+                  onChange={(e) => setNormaFiltroArea(e.target.value)}
+                >
+                  <option value="">Todas las áreas</option>
+                  {areasDisponibles.map(a => <option key={a} value={a}>{a}</option>)}
+                </select>
+              </div>
 
-        <div className="modal-field">
-          <label>Norma <span className="required">*</span></label>
-          <select
-            className="doc-input"
-            value={normaFormDetalle.norma_reparto_id}
-            onChange={(e) => setNormaFormDetalle(prev => ({ ...prev, norma_reparto_id: e.target.value }))}
-          >
-            <option value="">Seleccione norma...</option>
-            {normasFiltradas.map(n => (
-              <option key={n.id} value={String(n.id)}>
-                {n.codigo} — {n.nombre} ({n.sucursal} / {n.departamento})
-              </option>
-            ))}
-          </select>
-        </div>
+              <div className="modal-field">
+                <label>Norma <span className="required">*</span></label>
+                <select
+                  className="doc-input"
+                  value={normaFormDetalle.norma_reparto_id}
+                  onChange={(e) => setNormaFormDetalle(prev => ({ ...prev, norma_reparto_id: e.target.value }))}
+                >
+                  <option value="">Seleccione norma...</option>
+                  {normasFiltradas.map(n => (
+                    <option key={n.id} value={String(n.id)}>
+                      {n.codigo} — {n.nombre} ({n.sucursal} / {n.departamento})
+                    </option>
+                  ))}
+                </select>
+              </div>
 
-        <div className="modal-field">
-          <label>Porcentaje <span className="required">*</span></label>
-          <input
-            type="number"
-            min="0"
-            max="100"
-            step="0.01"
-            className="doc-input"
-            value={normaFormDetalle.porcentaje}
-            onChange={(e) => setNormaFormDetalle(prev => ({ ...prev, porcentaje: e.target.value }))}
-            placeholder="%"
-          />
+              <div className="modal-field">
+                <label>Porcentaje <span className="required">*</span></label>
+                <input
+                  type="number"
+                  min="0"
+                  max="100"
+                  step="0.01"
+                  className="doc-input"
+                  value={normaFormDetalle.porcentaje}
+                  onChange={(e) => setNormaFormDetalle(prev => ({ ...prev, porcentaje: e.target.value }))}
+                  placeholder="%"
+                />
+              </div>
+            </div>
+            <div className="modal-footer">
+              <button className="doc-btn doc-btn-secondary" onClick={() => setShowNormaModal(false)}>Cancelar</button>
+              <button
+                className="doc-btn doc-btn-primary"
+                onClick={() => handleGuardarNormaDetalle(normaModalRadicadoId)}
+              >
+                <i className="fa-solid fa-floppy-disk"></i> {normaEditandoId ? "Actualizar" : "Agregar"}
+              </button>
+            </div>
+          </div>
         </div>
-      </div>
-      <div className="modal-footer">
-        <button className="doc-btn doc-btn-secondary" onClick={() => setShowNormaModal(false)}>Cancelar</button>
-        <button
-          className="doc-btn doc-btn-primary"
-          onClick={() => handleGuardarNormaDetalle(normaModalRadicadoId)}
-        >
-          <i className="fa-solid fa-floppy-disk"></i> {normaEditandoId ? "Actualizar" : "Agregar"}
-        </button>
-      </div>
-    </div>
-  </div>
-)}
+      )}
+
+
     </>
   );
 }

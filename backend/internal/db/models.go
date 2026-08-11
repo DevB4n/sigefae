@@ -27,5 +27,6 @@ func CircularModels() []any {
 		&Comentario{}, &Trazabilidad{}, &RegistroAprobacion{},
 		&Notificacion{}, &ReglaMontoRuta{},
 		&RadicadoNormaReparto{},
+		&ProveedorNormaReparto{},
 	}
 }

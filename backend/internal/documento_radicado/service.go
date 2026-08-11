@@ -142,15 +142,34 @@ func (s *Service) Create(dto CreateDTO, usuarioID uint) (*db.DocumentoRadicado, 
 			fmt.Printf("[RADICADO %s] info: documento comercial %d no tiene correo_id\n", radicado.NumeroRadicado, dto.DocumentoComercialID)
 		}
 
-		// Crear normas de reparto
-		for _, n := range dto.NormasReparto {
-			nr := db.RadicadoNormaReparto{
-				DocumentoRadicadoID: radicado.ID,
-				NormaRepartoID:      n.NormaRepartoID,
-				Porcentaje:          n.Porcentaje,
+		// ── 11. Crear normas de reparto (priorizar DTO, si no, buscar en proveedor) ──
+		if len(dto.NormasReparto) > 0 {
+			for _, n := range dto.NormasReparto {
+				nr := db.RadicadoNormaReparto{
+					DocumentoRadicadoID: radicado.ID,
+					NormaRepartoID:      n.NormaRepartoID,
+					Porcentaje:          n.Porcentaje,
+				}
+				if err := tx.Create(&nr).Error; err != nil {
+					return err
+				}
 			}
-			if err := tx.Create(&nr).Error; err != nil {
-				return err
+		} else {
+			// Buscar normas por defecto del proveedor para esta ruta
+			if docCom.IDProveedor != 0 {
+				var proveedorNormas []db.ProveedorNormaReparto
+				if err := tx.Where("proveedor_id = ? AND ruta_id = ?", docCom.IDProveedor, dto.RutaID).Find(&proveedorNormas).Error; err == nil && len(proveedorNormas) > 0 {
+					for _, pn := range proveedorNormas {
+						nr := db.RadicadoNormaReparto{
+							DocumentoRadicadoID: radicado.ID,
+							NormaRepartoID:      pn.NormaRepartoID,
+							Porcentaje:          pn.Porcentaje,
+						}
+						if err := tx.Create(&nr).Error; err != nil {
+							return err
+						}
+					}
+				}
 			}
 		}
 
@@ -613,3 +632,43 @@ func (s *Service) AsignarNormasReparto(radicadoID uint, dtos []NormaRepartoInput
 		return nil
 	})
 }
+
+// ─────────────────────────────────────────────────────────────
+// MemorizarNormasProveedorRuta
+// ─────────────────────────────────────────────────────────────
+// Auto-aprendizaje: Lee las normas finales de un documento y reemplaza la plantilla del proveedor + ruta
+func (s *Service) MemorizarNormasProveedorRuta(radicadoID uint) error {
+	var radicado db.DocumentoRadicado
+	if err := s.db.Preload("DocumentoComercial").Preload("NormasReparto").First(&radicado, radicadoID).Error; err != nil {
+		return err
+	}
+
+	proveedorID := radicado.DocumentoComercial.IDProveedor
+	rutaID := radicado.RutaID
+
+	if proveedorID == 0 || rutaID == 0 {
+		return nil // No se puede memorizar sin proveedor o ruta
+	}
+
+	return s.db.Transaction(func(tx *gorm.DB) error {
+		// 1. Eliminar la plantilla anterior para ese proveedor y ruta
+		if err := tx.Where("proveedor_id = ? AND ruta_id = ?", proveedorID, rutaID).Delete(&db.ProveedorNormaReparto{}).Error; err != nil {
+			return err
+		}
+
+		// 2. Insertar las normas actuales del documento como la nueva plantilla
+		for _, nr := range radicado.NormasReparto {
+			pnr := db.ProveedorNormaReparto{
+				ProveedorID:    proveedorID,
+				RutaID:         rutaID,
+				NormaRepartoID: nr.NormaRepartoID,
+				Porcentaje:     nr.Porcentaje,
+			}
+			if err := tx.Create(&pnr).Error; err != nil {
+				return err
+			}
+		}
+		return nil
+	})
+}
+
