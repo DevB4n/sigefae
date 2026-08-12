@@ -259,6 +259,7 @@ func New(database *gorm.DB) *gin.Engine {
 		protected.GET("/trazabilidad", trazabilidadHandler.List)
 
 		protected.GET("/rutas", rutaHandler.List)
+		protected.GET("/proveedor/:id/normas-reparto", proveedorHandler.ListNormasReparto)
 		protected.GET("/normas-reparto", normaRepartoHandler.List)
 		protected.GET("/normas-reparto/:id", normaRepartoHandler.GetByID)
 		// =========================

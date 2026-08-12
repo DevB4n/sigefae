@@ -61,6 +61,28 @@ func (h *Handler) List(c *gin.Context) {
 	c.JSON(http.StatusOK, response)
 }
 
+func (h *Handler) ListNormasReparto(c *gin.Context) {
+	proveedorID, err := strconv.ParseUint(c.Param("id"), 10, 64)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "id de proveedor inválido"})
+		return
+	}
+
+	rutaID, err := strconv.ParseUint(c.Query("ruta_id"), 10, 64)
+	if err != nil || rutaID == 0 {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "ruta_id inválido"})
+		return
+	}
+
+	normas, err := h.service.ListNormasReparto(uint(proveedorID), uint(rutaID))
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, normas)
+}
+
 func (h *Handler) Update(c *gin.Context) {
 
 	id, err := strconv.ParseUint(

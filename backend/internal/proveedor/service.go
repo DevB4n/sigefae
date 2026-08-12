@@ -233,6 +233,19 @@ func (s *Service) List() ([]Response, error) {
 	return response, nil
 }
 
+func (s *Service) ListNormasReparto(proveedorID, rutaID uint) ([]db.ProveedorNormaReparto, error) {
+	var normas []db.ProveedorNormaReparto
+
+	if err := s.db.
+		Preload("NormaReparto").
+		Where("proveedor_id = ? AND ruta_id = ?", proveedorID, rutaID).
+		Find(&normas).Error; err != nil {
+		return nil, err
+	}
+
+	return normas, nil
+}
+
 func (s *Service) UpdateStatus(id uint, activo bool) error {
 
 	var proveedor db.Proveedor

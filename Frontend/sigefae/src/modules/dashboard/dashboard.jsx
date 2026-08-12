@@ -174,6 +174,7 @@ export default function ProcesosLogistica() {
     normas_reparto: [],
   });
   const [radicando, setRadicando] = useState(false);
+  const [normasRepartoAutoMsg, setNormasRepartoAutoMsg] = useState("");
 
   // ── Radicados ──
   const [radicados, setRadicados] = useState([]);
@@ -1447,6 +1448,59 @@ export default function ProcesosLogistica() {
     }
   }, [showRadicarModal]);
 
+  useEffect(() => {
+    if (!showRadicarModal) return;
+
+    const proveedorId = docDetail?.proveedor?.id || docDetail?.id_proveedor || docDetail?.proveedor_id;
+    const rutaId = radicarForm.ruta_id;
+
+    if (!proveedorId || !rutaId) {
+      setNormasRepartoAutoMsg("");
+      return;
+    }
+
+    let cancelled = false;
+
+    const verificarNormasPredeterminadas = async () => {
+      try {
+        const res = await fetch(
+          `${API}/proveedor/${proveedorId}/normas-reparto?ruta_id=${rutaId}`,
+          { headers: { Authorization: `Bearer ${obtenerToken()}` } }
+        );
+
+        if (!res.ok) {
+          throw new Error("No fue posible verificar las normas de reparto predeterminadas");
+        }
+
+        const data = await res.json();
+        if (cancelled) return;
+
+        if (Array.isArray(data) && data.length > 0) {
+          setNormasRepartoAutoMsg(
+            "Se encontraron normas de reparto ya asignadas a ese proveedor-ruta, deja en blanco las normas de reparto si quieres asignarlas automaticamente"
+          );
+          setRadicarForm(prev => ({ ...prev, normas_reparto: [] }));
+          setNormaFiltroSede("");
+          setNormaFiltroArea("");
+          setNormaSeleccionadaId("");
+          setNormaPorcentajeInput("");
+        } else {
+          setNormasRepartoAutoMsg("");
+        }
+      } catch (err) {
+        if (!cancelled) {
+          setNormasRepartoAutoMsg("");
+        }
+      }
+    };
+
+    verificarNormasPredeterminadas();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [showRadicarModal, radicarForm.ruta_id, docDetail]);
+
   // Cargar radicados
   useEffect(() => {
     if (activeTab === "radicados") {
@@ -1560,6 +1614,11 @@ export default function ProcesosLogistica() {
       numero_radicado: "",
       normas_reparto: []   // ← FALTABA ESTO
     });
+    setNormasRepartoAutoMsg("");
+    setNormaFiltroSede("");
+    setNormaFiltroArea("");
+    setNormaSeleccionadaId("");
+    setNormaPorcentajeInput("");
     setShowRadicarModal(true);
   };
 
@@ -2348,6 +2407,11 @@ export default function ProcesosLogistica() {
                   {metodosPago.map(mp => <option key={mp.id} value={mp.id}>{mp.nombre}</option>)}
                 </select>
               </div>
+              {normasRepartoAutoMsg && (
+                <div className="modal-field" style={{ padding: "10px 12px", borderRadius: 8, background: "#fef3c7", border: "1px solid #f59e0b", color: "#92400e", fontSize: "0.92em", fontWeight: 600 }}>
+                  {normasRepartoAutoMsg}
+                </div>
+              )}
               <div className="modal-field">
                 <label>Número de Radicado <small>(opcional, se autogenera si está vacío)</small></label>
                 <input type="text" name="numero_radicado" value={radicarForm.numero_radicado} onChange={handleRadicarChange} className="doc-input" placeholder="Ej: RAD-2026-00001" />
