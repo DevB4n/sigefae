@@ -272,6 +272,8 @@ func New(database *gorm.DB) *gin.Engine {
 		protected.POST("/documentoradicado/:id/normas-reparto", documentoRadicadoHandler.AsignarNormasReparto)
 		protected.POST("/documentoradicado/:id/solicitar-rechazo", documentoRadicadoHandler.SolicitarRechazo)
 		protected.GET("/solicitud-rechazo/mias", documentoRadicadoHandler.ListMySolicitudes)
+		protected.POST("/documentoradicado/:id/solicitar-cambio-norma", documentoRadicadoHandler.SolicitarCambioNormaReparto)
+		protected.GET("/solicitud-cambio-norma/mias", documentoRadicadoHandler.ListMisSolicitudesCambioNorma)
 
 		//documento comercial
 		protected.GET("/documentocomercial/:id", documentoComercialHandler.GetByID)
@@ -299,6 +301,8 @@ func New(database *gorm.DB) *gin.Engine {
 			admin.POST("/documentoradicado/:id/completar", documentoRadicadoHandler.MarcarCompletado)
 			admin.GET("/solicitud-rechazo", documentoRadicadoHandler.ListSolicitudes)
 			admin.POST("/solicitud-rechazo/:id/decidir", documentoRadicadoHandler.DecidirSolicitud)
+			admin.GET("/solicitud-cambio-norma", documentoRadicadoHandler.ListSolicitudesCambioNorma)
+			admin.POST("/solicitud-cambio-norma/:id/decidir", documentoRadicadoHandler.DecidirSolicitudCambioNorma)
 			// =========================
 			// Usuarios
 			// =========================

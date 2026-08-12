@@ -227,6 +227,22 @@ export default function ProcesosLogistica() {
   const [solicitudes, setSolicitudes] = useState([]);
   const [loadingSolicitudes, setLoadingSolicitudes] = useState(false);
 
+  // Solicitudes de cambio de norma
+  const [solicitudesCambioNorma, setSolicitudesCambioNorma] = useState([]);
+  const [loadingSolicitudesCambio, setLoadingSolicitudesCambio] = useState(false);
+  const [solicitudesTab, setSolicitudesTab] = useState("rechazo"); // "rechazo" | "norma"
+  const [showSolicitarCambioNormaModal, setShowSolicitarCambioNormaModal] = useState(false);
+  const [solicitarCambioNormaForm, setSolicitarCambioNormaForm] = useState({
+    radicado_norma_reparto_id: "",
+    norma_reparto_id: "",
+    nuevo_porcentaje: "",
+    justificacion: "",
+    codigo: "",
+    nombre: "",
+    porcentaje_actual: ""
+  });
+  const [solicitandoCambioNorma, setSolicitandoCambioNorma] = useState(false);
+
 
   const totalPorcentajeNormas = (radicarForm.normas_reparto || []).reduce(
     (sum, n) => sum + (parseFloat(n.porcentaje) || 0), 0
@@ -397,6 +413,14 @@ export default function ProcesosLogistica() {
       .then(data => setSolicitudes(Array.isArray(data) ? data : []))
       .catch(err => { console.error("Error cargando solicitudes:", err); setSolicitudes([]); })
       .finally(() => setLoadingSolicitudes(false));
+
+    setLoadingSolicitudesCambio(true);
+    const endpointCambio = esAdmin ? `${API}/solicitud-cambio-norma` : `${API}/solicitud-cambio-norma/mias`;
+    fetch(endpointCambio, { headers: { Authorization: `Bearer ${obtenerToken()}` } })
+      .then(r => r.json())
+      .then(data => setSolicitudesCambioNorma(Array.isArray(data) ? data : []))
+      .catch(err => { console.error("Error cargando solicitudes cambio norma:", err); setSolicitudesCambioNorma([]); })
+      .finally(() => setLoadingSolicitudesCambio(false));
   }, [activeTab, esAdmin]);
 
 
@@ -1715,7 +1739,7 @@ export default function ProcesosLogistica() {
                   <th>Sede</th>
                   <th>Área</th>
                   <th style={{ textAlign: "right" }}>%</th>
-                  {esAdmin && !readOnly && <th style={{ width: 90, textAlign: "center" }}>Acciones</th>}
+                  {!readOnly && <th style={{ width: 90, textAlign: "center" }}>Acciones</th>}
                 </tr>
               </thead>
               <tbody>
@@ -1726,16 +1750,36 @@ export default function ProcesosLogistica() {
                     <td>{n.norma_reparto?.sucursal || n.sucursal}</td>
                     <td>{n.norma_reparto?.departamento || n.departamento}</td>
                     <td style={{ textAlign: "right", fontWeight: 700 }}>{parseFloat(n.porcentaje).toFixed(2)}%</td>
-                    {esAdmin && !readOnly && (
+                    {!readOnly && (
                       <td style={{ textAlign: "center" }}>
-                        <div style={{ display: "flex", gap: 6, justifyContent: "center" }}>
-                          <button className="btn-icon btn-edit" onClick={() => openNormaModal(radicadoId, n)} title="Editar">
-                            <i className="fa-solid fa-pen"></i>
-                          </button>
-                          <button className="btn-icon btn-toggle" onClick={() => handleEliminarNorma(n.id, radicadoId)} title="Eliminar">
-                            <i className="fa-solid fa-xmark"></i>
-                          </button>
-                        </div>
+                        {esAdmin ? (
+                          <div style={{ display: "flex", gap: 6, justifyContent: "center" }}>
+                            <button className="btn-icon btn-edit" onClick={() => openNormaModal(radicadoId, n)} title="Editar">
+                              <i className="fa-solid fa-pen"></i>
+                            </button>
+                            <button className="btn-icon btn-toggle" onClick={() => handleEliminarNorma(n.id, radicadoId)} title="Eliminar">
+                              <i className="fa-solid fa-xmark"></i>
+                            </button>
+                          </div>
+                        ) : (
+                          <div style={{ display: "flex", gap: 6, justifyContent: "center" }}>
+                            <button className="btn-icon btn-edit" onClick={() => {
+                              setSolicitarCambioNormaForm({
+                                radicado_norma_reparto_id: n.id,
+                                norma_reparto_id: n.norma_reparto_id || n.norma_reparto?.id,
+                                nuevo_porcentaje: "",
+                                justificacion: "",
+                                codigo: n.norma_reparto?.codigo || n.codigo,
+                                nombre: n.norma_reparto?.nombre || n.nombre,
+                                porcentaje_actual: n.porcentaje,
+                                radicadoId: radicadoId
+                              });
+                              setShowSolicitarCambioNormaModal(true);
+                            }} title="Solicitar Cambio">
+                              <i className="fa-solid fa-code-pull-request"></i>
+                            </button>
+                          </div>
+                        )}
                       </td>
                     )}
                   </tr>
@@ -1862,7 +1906,7 @@ export default function ProcesosLogistica() {
       case "radicados": return { icon: "fa-solid fa-stamp", title: "Documentos Radicados", subtitle: "Consulta el estado de los documentos radicados" };
       case "catalogos": return { icon: "fa-solid fa-sliders", title: "Catálogos del Sistema", subtitle: "Gestiona tipos de radicación, pagos y métodos" };
       case "tareas": return { icon: "fa-solid fa-clipboard-list", title: "Mis Tareas", subtitle: "Documentos radicados asignados a ti" };
-      case "solicitudes": return { icon: "fa-solid fa-circle-exclamation", title: "Solicitudes de Rechazo", subtitle: esAdmin ? "Solicitudes pendientes" : "Tus solicitudes de rechazo" };
+      case "solicitudes": return { icon: "fa-solid fa-circle-exclamation", title: "Gestión de Solicitudes", subtitle: esAdmin ? "Solicitudes pendientes" : "Tus solicitudes realizadas" };
       default: return { icon: "fa-solid fa-house", title: "Procesos administrativos", subtitle: "Selecciona un formato del menú lateral" };
     }
   };
@@ -1881,8 +1925,25 @@ export default function ProcesosLogistica() {
 
   const renderSolicitudes = () => (
     <div className="content-body">
-      <h3>Solicitudes de Rechazo</h3>
-      {loadingSolicitudes ? <p>Cargando solicitudes...</p> : solicitudes.length === 0 ? <p>No hay solicitudes.</p> : (
+      <div style={{ display: "flex", gap: 16, marginBottom: 16, borderBottom: "1px solid #e5e7eb", paddingBottom: 8 }}>
+        <button
+          className={`doc-btn ${solicitudesTab === "rechazo" ? "doc-btn-primary" : "doc-btn-secondary"}`}
+          onClick={() => setSolicitudesTab("rechazo")}
+        >
+          Rechazo de Documentos
+        </button>
+        <button
+          className={`doc-btn ${solicitudesTab === "norma" ? "doc-btn-primary" : "doc-btn-secondary"}`}
+          onClick={() => setSolicitudesTab("norma")}
+        >
+          Cambio de Norma de Reparto
+        </button>
+      </div>
+
+      {solicitudesTab === "rechazo" && (
+        <>
+          <h3>Solicitudes de Rechazo</h3>
+          {loadingSolicitudes ? <p>Cargando solicitudes...</p> : solicitudes.length === 0 ? <p>No hay solicitudes de rechazo.</p> : (
         <div className="solicitudes-list">
           {solicitudes.map((s) => (
             <div key={s.id} className="solicitud-card">
@@ -1942,6 +2003,77 @@ export default function ProcesosLogistica() {
             </div>
           ))}
         </div>
+      )}
+      </>
+      )}
+
+      {solicitudesTab === "norma" && (
+        <>
+          <h3>Solicitudes de Cambio de Norma de Reparto</h3>
+          {loadingSolicitudesCambio ? <p>Cargando solicitudes...</p> : solicitudesCambioNorma.length === 0 ? <p>No hay solicitudes de cambio de norma.</p> : (
+            <div className="solicitudes-list">
+              {solicitudesCambioNorma.map((s) => (
+                <div key={s.id} className="solicitud-card" style={{ borderLeft: "4px solid #3b82f6" }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <div>
+                      <strong>Radicado #{s.documento_radicado?.numero_radicado || s.documento_radicado_id}</strong> — Solicitado por: {s.usuario?.nombre || "Usuario"}
+                      <div style={{ marginTop: 4, fontSize: '0.9em' }}>
+                        Norma: <strong>{s.norma_reparto?.codigo}</strong> ({s.norma_reparto?.nombre})
+                      </div>
+                      <div style={{ display: "flex", gap: 8, alignItems: "center", marginTop: 4 }}>
+                        <span style={{ textDecoration: "line-through", color: "#6b7280" }}>{parseFloat(s.porcentaje_anterior).toFixed(2)}%</span>
+                        <i className="fa-solid fa-arrow-right" style={{ color: "#9ca3af", fontSize: "0.8em" }}></i>
+                        <span style={{ fontWeight: 600, color: "#10b981" }}>{parseFloat(s.nuevo_porcentaje).toFixed(2)}%</span>
+                      </div>
+                      {s.justificacion && (
+                        <div style={{ fontSize: '0.85em', color: '#6b7280', marginTop: 4, fontStyle: "italic" }}>
+                          "{s.justificacion}"
+                        </div>
+                      )}
+                    </div>
+                    <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                      <span className={`status-badge ${s.estado === 'Pendiente' ? 'doc-pendiente' : s.estado === 'Aprobada' ? 'radicado' : 'doc-rechazado'}`}>{s.estado}</span>
+                      {esAdmin && s.estado === 'Pendiente' && (
+                        <>
+                          <button className="doc-btn doc-btn-primary" onClick={async () => {
+                            if (!confirm('¿Aprobar el cambio de norma de reparto?')) return;
+                            try {
+                              const res = await fetch(`${API}/solicitud-cambio-norma/${s.id}/decidir`, {
+                                method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${obtenerToken()}` },
+                                body: JSON.stringify({ accept: true, mensaje: 'Cambio aprobado por el administrador.' })
+                              });
+                              if (!res.ok) throw new Error((await res.json()).error || 'Error al aprobar');
+                              alert('Solicitud de cambio de norma aprobada');
+                              
+                              // Actualizar lista local
+                              setSolicitudesCambioNorma(solicitudesCambioNorma.filter(x => x.id !== s.id));
+                            } catch (err) { alert('Error: ' + err.message); }
+                          }}>Aprobar</button>
+                          
+                          <button className="doc-btn doc-btn-danger" onClick={async () => {
+                            const razon = prompt('Indique el motivo del rechazo (opcional):');
+                            if (razon === null) return;
+                            try {
+                              const res = await fetch(`${API}/solicitud-cambio-norma/${s.id}/decidir`, {
+                                method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${obtenerToken()}` },
+                                body: JSON.stringify({ accept: false, mensaje: razon || 'Rechazado por el administrador.' })
+                              });
+                              if (!res.ok) throw new Error((await res.json()).error || 'Error al rechazar');
+                              alert('Solicitud de cambio de norma rechazada');
+                              
+                              // Actualizar lista local
+                              setSolicitudesCambioNorma(solicitudesCambioNorma.filter(x => x.id !== s.id));
+                            } catch (err) { alert('Error: ' + err.message); }
+                          }}>Rechazar</button>
+                        </>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </>
       )}
     </div>
   );
@@ -3625,6 +3757,80 @@ export default function ProcesosLogistica() {
           </div>
         </div>
       )}
+      {/* ── Modal Solicitar Cambio de Norma de Reparto ── */}
+      {showSolicitarCambioNormaModal && (
+        <div className="modal-overlay" onClick={() => setShowSolicitarCambioNormaModal(false)}>
+          <div className="modal-content" onClick={(e) => e.stopPropagation()} style={{ maxWidth: 500 }}>
+            <div className="modal-header">
+              <h3><i className="fa-solid fa-code-pull-request"></i> Solicitar Cambio de Norma</h3>
+              <button className="modal-close" onClick={() => setShowSolicitarCambioNormaModal(false)}><i className="fa-solid fa-xmark"></i></button>
+            </div>
+            <div className="modal-body">
+              <div style={{ marginBottom: 15, padding: 12, background: "#f3f4f6", borderRadius: 6, fontSize: "0.9em" }}>
+                <strong>Norma:</strong> {solicitarCambioNormaForm.codigo} - {solicitarCambioNormaForm.nombre}<br/>
+                <strong>Porcentaje Actual:</strong> <span style={{ color: "#d97706", fontWeight: "bold" }}>{solicitarCambioNormaForm.porcentaje_actual}%</span>
+              </div>
+              <div className="form-group">
+                <label>Nuevo Porcentaje Solicitado (%)</label>
+                <input
+                  type="number"
+                  step="0.01"
+                  min="0"
+                  max="100"
+                  className="doc-input"
+                  value={solicitarCambioNormaForm.nuevo_porcentaje}
+                  onChange={(e) => setSolicitarCambioNormaForm({ ...solicitarCambioNormaForm, nuevo_porcentaje: e.target.value })}
+                  placeholder="Ej: 75.5"
+                />
+              </div>
+              <div className="form-group">
+                <label>Justificación del Cambio (Opcional)</label>
+                <textarea
+                  className="doc-input"
+                  rows={3}
+                  value={solicitarCambioNormaForm.justificacion}
+                  onChange={(e) => setSolicitarCambioNormaForm({ ...solicitarCambioNormaForm, justificacion: e.target.value })}
+                  placeholder="Explique por qué requiere este cambio..."
+                />
+              </div>
+            </div>
+            <div className="modal-footer" style={{ display: 'flex', justifyContent: 'flex-end', gap: 10, marginTop: 20 }}>
+              <button className="doc-btn doc-btn-secondary" onClick={() => setShowSolicitarCambioNormaModal(false)}>
+                Cancelar
+              </button>
+              <button
+                className="doc-btn doc-btn-primary"
+                disabled={solicitandoCambioNorma || !solicitarCambioNormaForm.nuevo_porcentaje}
+                onClick={async () => {
+                  setSolicitandoCambioNorma(true);
+                  try {
+                    const res = await fetch(`${API}/documentoradicado/${solicitarCambioNormaForm.radicadoId}/solicitar-cambio-norma`, {
+                      method: 'POST',
+                      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${obtenerToken()}` },
+                      body: JSON.stringify({
+                        radicado_norma_reparto_id: solicitarCambioNormaForm.radicado_norma_reparto_id,
+                        norma_reparto_id: solicitarCambioNormaForm.norma_reparto_id,
+                        nuevo_porcentaje: parseFloat(solicitarCambioNormaForm.nuevo_porcentaje),
+                        justificacion: solicitarCambioNormaForm.justificacion
+                      })
+                    });
+                    if (!res.ok) throw new Error((await res.json()).error || "Error al enviar solicitud");
+                    alert("Solicitud enviada correctamente.");
+                    setShowSolicitarCambioNormaModal(false);
+                  } catch (err) {
+                    alert("Error: " + err.message);
+                  } finally {
+                    setSolicitandoCambioNorma(false);
+                  }
+                }}
+              >
+                {solicitandoCambioNorma ? "Enviando..." : "Enviar Solicitud"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* ── Modal Agregar/Editar Norma de Reparto ── */}
       {showNormaModal && (
         <div className="modal-overlay" onClick={() => setShowNormaModal(false)}>
