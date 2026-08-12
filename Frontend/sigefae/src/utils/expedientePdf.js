@@ -84,14 +84,35 @@ export async function generarExpedientePDF(radicado, flujo, trazabilidad, anexos
     }
   }
 
+    
     // ── NORMAS DE REPARTO ──
   if (radicado.normas_reparto && radicado.normas_reparto.length > 0) {
-    const normasData = radicado.normas_reparto.map(n => [
-      n.norma_reparto?.codigo || n.codigo || "",
-      n.norma_reparto?.nombre || n.nombre || "",
-      n.norma_reparto?.sucursal || n.sucursal || "",
-      n.norma_reparto?.departamento || n.departamento || "",
-      `${parseFloat(n.porcentaje).toFixed(2)}%`
+    
+    // 1. Obtener el subtotal de la factura
+    const subtotalFactura = parseFloat(radicado.documento_comercial?.subtotal) || 0;
+    
+    // 2. Preparar filas con el valor calculado
+    let totalCalculado = 0;
+    const normasData = radicado.normas_reparto.map(n => {
+      const pct = parseFloat(n.porcentaje) || 0;
+      const valorAplicado = subtotalFactura * (pct / 100);
+      totalCalculado += valorAplicado;
+      
+      return [
+        n.norma_reparto?.codigo || n.codigo || "",
+        n.norma_reparto?.nombre || n.nombre || "",
+        n.norma_reparto?.sucursal || n.sucursal || "",
+        n.norma_reparto?.departamento || n.departamento || "",
+        `${pct.toFixed(2)}%`,
+        formatCurrency(valorAplicado)   // ← NUEVA COLUMNA
+      ];
+    });
+
+    // 3. Agregar fila de totales (opcional pero recomendado)
+    normasData.push([
+      "", "", "", "", 
+      { content: "Total Distribuido", styles: { fontStyle: "bold", halign: "right" } },
+      { content: formatCurrency(totalCalculado), styles: { fontStyle: "bold", halign: "right" } }
     ]);
 
     docPortada.addPage();
@@ -100,12 +121,15 @@ export async function generarExpedientePDF(radicado, flujo, trazabilidad, anexos
     
     autoTable(docPortada, {
       startY: 30,
-      head: [["Código", "Nombre", "Sede", "Área", "%"]],
+      head: [["Código", "Nombre", "Sede", "Área", "%", "Valor Aplicado"]],  // ← NUEVA COLUMNA
       body: normasData,
       theme: 'grid',
       headStyles: { fillColor: [200, 160, 30] },
       styles: { fontSize: 9 },
-      columnStyles: { 4: { halign: 'right', fontStyle: 'bold' } }
+      columnStyles: { 
+        4: { halign: 'right', fontStyle: 'bold' },      // % 
+        5: { halign: 'right', fontStyle: 'bold' }       // Valor Aplicado
+      }
     });
   }
 
