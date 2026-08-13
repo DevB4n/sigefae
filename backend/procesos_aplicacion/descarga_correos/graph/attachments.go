@@ -87,26 +87,6 @@ func (c *Client) DownloadAttachments(message Message) error {
 		return err
 	}
 
-	metadata := MailMetadata{
-		ID:               message.ID,
-		Subject:          message.Subject,
-		ReceivedDateTime: message.ReceivedDateTime,
-		From:             message.From.EmailAddress.Address,
-	}
-
-	data, err := json.MarshalIndent(metadata, "", "  ")
-	if err != nil {
-		return err
-	}
-
-	if err := os.WriteFile(
-		filepath.Join(dir, "correo.json"),
-		data,
-		0644,
-	); err != nil {
-		return err
-	}
-
 	extractor := zipExtractor.NewExtractor()
 
 	for _, att := range attachments {
