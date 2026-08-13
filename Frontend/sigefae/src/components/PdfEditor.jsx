@@ -82,7 +82,7 @@ export default function PdfEditor({ archivoId, radicadoId, onClose, onSaved }) {
   const [tempPos, setTempPos] = useState(null);
 
   const [customStamp, setCustomStamp] = useState(loadStampFromStorage); // { dataUrl, bytes, mimeType }
-  const [customSignature, setCustomSignature] = useState(loadSignatureFromStorage); // NUEVO
+  const [customSignature, setCustomSignature] = useState(loadSignatureFromStorage); // { dataUrl, bytes, mimeType }
   const stampInputRef = useRef(null);
 
   const [dragging, setDragging] = useState(null);
@@ -280,22 +280,23 @@ export default function PdfEditor({ archivoId, radicadoId, onClose, onSaved }) {
       setTextColor("#000000");
       setShowTextModal(true);
     } else if (tool === "signature") {
+      setTempPos({ x, y });
       setShowSigModal(true);
-        } else if (tool === "stamp") {
-  let stampData = customStamp;
-  if (!stampData) stampData = generateStamp(); // { dataUrl, bytes, mimeType: "image/png" }
-  setAnnotations((prev) => [
-    ...prev,
-    {
-      ...base,
-      type: "stamp",
-      imageBytes: stampData.bytes,
-      imageDataUrl: stampData.dataUrl,
-      imageMime: stampData.mimeType || "image/png",
-    },
-  ]);
-  setTool(null);
-}
+    } else if (tool === "stamp") {
+      let stampData = customStamp;
+      if (!stampData) stampData = generateStamp(); // { dataUrl, bytes, mimeType: "image/png" }
+      setAnnotations((prev) => [
+        ...prev,
+        {
+          ...base,
+          type: "stamp",
+          imageBytes: stampData.bytes,
+          imageDataUrl: stampData.dataUrl,
+          imageMime: stampData.mimeType || "image/png",
+        },
+      ]);
+      setTool(null);
+    }
   };
 
   const confirmText = () => {
@@ -319,22 +320,27 @@ export default function PdfEditor({ archivoId, radicadoId, onClose, onSaved }) {
   };
 
   const confirmSignature = () => {
-  if (!sigCanvas.current || sigCanvas.current.isEmpty()) {
-    alert("Dibuja algo primero");
-    return;
-  }
-  const dataUrl = sigCanvas.current.toDataURL("image/png");
-  const base64 = dataUrl.split(",")[1];
-  const bytes = Uint8Array.from(atob(base64), (c) => c.charCodeAt(0));
-  const signatureData = { dataUrl, bytes, mimeType: "image/png" };
+    let signatureData = customSignature;
 
-  setCustomSignature(signatureData);
-  persistSignature(signatureData);
+    if (sigCanvas.current && !sigCanvas.current.isEmpty()) {
+      const dataUrl = sigCanvas.current.toDataURL("image/png");
+      const base64 = dataUrl.split(",")[1];
+      const bytes = Uint8Array.from(atob(base64), (c) => c.charCodeAt(0));
+      signatureData = { dataUrl, bytes, mimeType: "image/png" };
+    }
 
-  addSignatureWithDate(signatureData, tempPos);
+    if (!signatureData) {
+      alert("Dibuja algo primero o guarda una firma antes de continuar");
+      return;
+    }
 
-  setShowSigModal(false);
-  setTool(null);
+    setCustomSignature(signatureData);
+    persistSignature(signatureData);
+
+    addSignatureWithDate(signatureData, tempPos);
+
+    setShowSigModal(false);
+    setTool(null);
   };
 
   const removeAnnotation = (id, e) => {
@@ -455,6 +461,25 @@ export default function PdfEditor({ archivoId, radicadoId, onClose, onSaved }) {
   if (tool === "stamp") setTool(null);
 };
 
+  const handleRemoveSignature = () => {
+    setCustomSignature(null);
+    localStorage.removeItem(SIGNATURE_STORAGE_KEY);
+    if (tool === "signature") setTool(null);
+  };
+
+  useEffect(() => {
+    if (!showSigModal || !sigCanvas.current) return;
+
+    try {
+      sigCanvas.current.clear();
+      if (customSignature?.dataUrl) {
+        sigCanvas.current.fromDataURL(customSignature.dataUrl);
+      }
+    } catch {
+      // Si la imagen guardada no es válida, simplemente se deja el canvas vacío.
+    }
+  }, [showSigModal, customSignature]);
+
   return (
     <div className="pdf-editor-overlay">
       <div className="pdf-editor-box">
@@ -470,8 +495,13 @@ export default function PdfEditor({ archivoId, radicadoId, onClose, onSaved }) {
             className={tool === "signature" ? "active" : ""}
             onClick={() => setTool(tool === "signature" ? null : "signature")}
           >
-            <i className="fa-solid fa-signature"></i> Firma
+            <i className="fa-solid fa-signature"></i> {customSignature ? "Firma" : "Crear Firma"}
           </button>
+          {customSignature && (
+            <button onClick={handleRemoveSignature} title="Quitar firma guardada">
+              <i className="fa-solid fa-trash"></i>
+            </button>
+          )}
                     {/* Input oculto para subir sello personalizado */}
           <input
             type="file"
