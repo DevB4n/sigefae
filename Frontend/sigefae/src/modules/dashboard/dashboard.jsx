@@ -23,6 +23,45 @@ export default function ProcesosLogistica() {
   const showDebug = localStorage.getItem('show_debug') === '1';
   const isFinalState = (s) => (s === "Completado" || s === "Devuelto" || s === "Rechazado");
 
+  const puedeGestionarRecurso = (creadoPorId) => {
+    if (esAdmin) return true;
+    const propietario = Number(creadoPorId || 0);
+    return propietario > 0 && propietario === Number(userId);
+  };
+
+  const enviarSolicitudPermiso = async ({ tipo, objeto_id, accion, propietario_id, mensaje }) => {
+    const propietario = Number(propietario_id || 0);
+    if (!propietario) {
+      alert("No se pudo identificar al propietario de este recurso.");
+      return false;
+    }
+
+    try {
+      const res = await fetch(`${API}/solicitud-permiso`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${obtenerToken()}`
+        },
+        body: JSON.stringify({
+          tipo,
+          objeto_id,
+          accion,
+          propietario_id,
+          mensaje
+        })
+      });
+
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.error || "Error enviando solicitud");
+      alert("Solicitud de permiso enviada al propietario correctamente.");
+      return true;
+    } catch (err) {
+      alert("Error: " + err.message);
+      return false;
+    }
+  };
+
 
   const handleSubirAnexo = async (e, radicadoId) => {
     const file = e.target.files[0];
@@ -228,10 +267,14 @@ export default function ProcesosLogistica() {
   const [solicitudes, setSolicitudes] = useState([]);
   const [loadingSolicitudes, setLoadingSolicitudes] = useState(false);
 
+  // Solicitudes de permiso sobre recursos
+  const [solicitudesPermiso, setSolicitudesPermiso] = useState([]);
+  const [loadingSolicitudesPermiso, setLoadingSolicitudesPermiso] = useState(false);
+
   // Solicitudes de cambio de norma
   const [solicitudesCambioNorma, setSolicitudesCambioNorma] = useState([]);
   const [loadingSolicitudesCambio, setLoadingSolicitudesCambio] = useState(false);
-  const [solicitudesTab, setSolicitudesTab] = useState("rechazo"); // "rechazo" | "norma"
+  const [solicitudesTab, setSolicitudesTab] = useState("rechazo"); // "rechazo" | "norma" | "permiso"
   const [showSolicitarCambioNormaModal, setShowSolicitarCambioNormaModal] = useState(false);
   const [solicitarCambioNormaForm, setSolicitarCambioNormaForm] = useState({
     radicado_norma_reparto_id: "",
@@ -407,6 +450,7 @@ export default function ProcesosLogistica() {
   // Cargar solicitudes cuando se activa la pestaña
   useEffect(() => {
     if (activeTab !== "solicitudes") return;
+
     setLoadingSolicitudes(true);
     const endpoint = esAdmin ? `${API}/solicitud-rechazo` : `${API}/solicitud-rechazo/mias`;
     fetch(endpoint, { headers: { Authorization: `Bearer ${obtenerToken()}` } })
@@ -422,6 +466,14 @@ export default function ProcesosLogistica() {
       .then(data => setSolicitudesCambioNorma(Array.isArray(data) ? data : []))
       .catch(err => { console.error("Error cargando solicitudes cambio norma:", err); setSolicitudesCambioNorma([]); })
       .finally(() => setLoadingSolicitudesCambio(false));
+
+    setLoadingSolicitudesPermiso(true);
+    const endpointPermiso = esAdmin ? `${API}/solicitud-permiso` : `${API}/solicitud-permiso/mias`;
+    fetch(endpointPermiso, { headers: { Authorization: `Bearer ${obtenerToken()}` } })
+      .then(r => r.json())
+      .then(data => setSolicitudesPermiso(Array.isArray(data) ? data : []))
+      .catch(err => { console.error("Error cargando solicitudes permiso:", err); setSolicitudesPermiso([]); })
+      .finally(() => setLoadingSolicitudesPermiso(false));
   }, [activeTab, esAdmin]);
 
 
@@ -557,19 +609,25 @@ export default function ProcesosLogistica() {
     }
   };
 
-  const handleEliminarNorma = async (asignacionId, radicadoId) => {
+  const handleEliminarNorma = async (asignacion, radicadoId) => {
+    const norma = asignacion || {};
+    const creadorId = Number(norma.creado_por_id || norma.creado_por?.id || 0);
+
+    if (!esAdmin && !puedeGestionarRecurso(creadorId)) {
+      alert("No tienes permisos para eliminar esta norma de reparto.");
+      return;
+    }
+
     if (!confirm("¿Está seguro de eliminar esta norma de reparto?")) return;
 
     try {
-      // 1. Construir array sin la norma eliminada
       const normasRestantes = normasRepartoRadicado
-        .filter(n => n.id !== asignacionId)
+        .filter(n => n.id !== norma.id)
         .map(n => ({
           norma_reparto_id: n.norma_reparto_id || n.norma_reparto?.id,
           porcentaje: parseFloat(n.porcentaje)
         }));
 
-      // 2. Enviar array actualizado (reemplaza todo en el backend)
       const res = await fetch(`${API}/documentoradicado/${radicadoId}/normas-reparto`, {
         method: "POST",
         headers: {
@@ -586,7 +644,6 @@ export default function ProcesosLogistica() {
 
       alert("Norma eliminada");
 
-      // 3. Refrescar
       const nrRes = await fetch(`${API}/documentoradicado/${radicadoId}/normas-reparto`, {
         headers: { Authorization: `Bearer ${obtenerToken()}` }
       });
@@ -1811,34 +1868,16 @@ export default function ProcesosLogistica() {
                     <td style={{ textAlign: "right", fontWeight: 700 }}>{parseFloat(n.porcentaje).toFixed(2)}%</td>
                     {!readOnly && (
                       <td style={{ textAlign: "center" }}>
-                        {esAdmin ? (
+                        {esAdmin || puedeGestionarRecurso(n.creado_por_id || n.creado_por?.id) ? (
                           <div style={{ display: "flex", gap: 6, justifyContent: "center" }}>
                             <button className="btn-icon btn-edit" onClick={() => openNormaModal(radicadoId, n)} title="Editar">
                               <i className="fa-solid fa-pen"></i>
                             </button>
-                            <button className="btn-icon btn-toggle" onClick={() => handleEliminarNorma(n.id, radicadoId)} title="Eliminar">
+                            <button className="btn-icon btn-toggle" onClick={() => handleEliminarNorma(n, radicadoId)} title="Eliminar">
                               <i className="fa-solid fa-xmark"></i>
                             </button>
                           </div>
-                        ) : (
-                          <div style={{ display: "flex", gap: 6, justifyContent: "center" }}>
-                            <button className="btn-icon btn-edit" onClick={() => {
-                              setSolicitarCambioNormaForm({
-                                radicado_norma_reparto_id: n.id,
-                                norma_reparto_id: n.norma_reparto_id || n.norma_reparto?.id,
-                                nuevo_porcentaje: "",
-                                justificacion: "",
-                                codigo: n.norma_reparto?.codigo || n.codigo,
-                                nombre: n.norma_reparto?.nombre || n.nombre,
-                                porcentaje_actual: n.porcentaje,
-                                radicadoId: radicadoId
-                              });
-                              setShowSolicitarCambioNormaModal(true);
-                            }} title="Solicitar Cambio">
-                              <i className="fa-solid fa-code-pull-request"></i>
-                            </button>
-                          </div>
-                        )}
+                        ) : null}
                       </td>
                     )}
                   </tr>
@@ -1911,8 +1950,16 @@ export default function ProcesosLogistica() {
     }
   };
 
-  // ── Borrar anexo (solo admin) ──
-  const handleBorrarAnexo = async (archivoId, radicadoId) => {
+  // ── Borrar anexo: si no es propietario, solicita permiso ──
+  const handleBorrarAnexo = async (archivo, radicadoId) => {
+    const archivoId = archivo?.id || archivo;
+    const creadoPor = Number(archivo?.creado_por_id || archivo?.creado_por?.id || 0);
+
+    if (!esAdmin && !puedeGestionarRecurso(creadoPor)) {
+      alert("Solo el usuario que subió el anexo o el administrador pueden eliminarlo.");
+      return;
+    }
+
     if (!confirm("¿Está seguro de eliminar este archivo?")) return;
     try {
       const res = await fetch(`${API}/archivo/${archivoId}`, {
@@ -1923,7 +1970,6 @@ export default function ProcesosLogistica() {
 
       alert("Archivo eliminado");
 
-      // Refrescar detalle según pestaña activa
       if (activeTab === "tareas") {
         setSelectedTareaId(null);
         setTimeout(() => setSelectedTareaId(radicadoId), 10);
@@ -1984,7 +2030,7 @@ export default function ProcesosLogistica() {
 
   const renderSolicitudes = () => (
     <div className="content-body">
-      <div style={{ display: "flex", gap: 16, marginBottom: 16, borderBottom: "1px solid #e5e7eb", paddingBottom: 8 }}>
+      <div style={{ display: "flex", gap: 16, marginBottom: 16, borderBottom: "1px solid #e5e7eb", paddingBottom: 8, flexWrap: "wrap" }}>
         <button
           className={`doc-btn ${solicitudesTab === "rechazo" ? "doc-btn-primary" : "doc-btn-secondary"}`}
           onClick={() => setSolicitudesTab("rechazo")}
@@ -1996,6 +2042,12 @@ export default function ProcesosLogistica() {
           onClick={() => setSolicitudesTab("norma")}
         >
           Cambio de Norma de Reparto
+        </button>
+        <button
+          className={`doc-btn ${solicitudesTab === "permiso" ? "doc-btn-primary" : "doc-btn-secondary"}`}
+          onClick={() => setSolicitudesTab("permiso")}
+        >
+          Permisos de recursos
         </button>
       </div>
 
@@ -2122,6 +2174,60 @@ export default function ProcesosLogistica() {
                               
                               // Actualizar lista local
                               setSolicitudesCambioNorma(solicitudesCambioNorma.filter(x => x.id !== s.id));
+                            } catch (err) { alert('Error: ' + err.message); }
+                          }}>Rechazar</button>
+                        </>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </>
+      )}
+
+      {solicitudesTab === "permiso" && (
+        <>
+          <h3>Solicitudes de Permiso sobre Recursos</h3>
+          {loadingSolicitudesPermiso ? <p>Cargando solicitudes...</p> : solicitudesPermiso.length === 0 ? <p>No hay solicitudes de permiso.</p> : (
+            <div className="solicitudes-list">
+              {solicitudesPermiso.map((s) => (
+                <div key={s.id} className="solicitud-card" style={{ borderLeft: "4px solid #8b5cf6" }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12 }}>
+                    <div>
+                      <strong>{s.tipo === "archivo" ? "Anexo" : "Norma de reparto"}</strong> — <span style={{ color: '#374151' }}>{s.mensaje || 'Sin mensaje'}</span>
+                      <div style={{ fontSize: '0.85em', color: '#6b7280', marginTop: 4 }}>
+                        {esAdmin ? `Solicitante: ${s.solicitante?.nombre || s.solicitante_id}` : `Propietario: ${s.propietario?.nombre || s.propietario_id}`}
+                      </div>
+                      <div style={{ fontSize: '0.85em', color: '#6b7280', marginTop: 4 }}>
+                        Acción: {s.accion} — Objeto: #{s.objeto_id}
+                      </div>
+                    </div>
+                    <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap', justifyContent: 'flex-end' }}>
+                      <span className={`status-badge ${s.estado === 'Pendiente' ? 'doc-pendiente' : s.estado === 'Aprobada' ? 'radicado' : 'doc-rechazado'}`}>{s.estado}</span>
+                      {((esAdmin && s.estado === 'Pendiente') || (!esAdmin && s.estado === 'Pendiente' && Number(s.propietario_id) === Number(userId))) && (
+                        <>
+                          <button className="doc-btn doc-btn-primary" onClick={async () => {
+                            try {
+                              const res = await fetch(`${API}/solicitud-permiso/${s.id}/decidir`, {
+                                method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${obtenerToken()}` },
+                                body: JSON.stringify({ accept: true, mensaje: 'Solicitud aprobada.' })
+                              });
+                              if (!res.ok) throw new Error((await res.json()).error || 'Error al aprobar');
+                              alert('Solicitud de permiso aprobada');
+                              setSolicitudesPermiso(prev => prev.filter(x => x.id !== s.id));
+                            } catch (err) { alert('Error: ' + err.message); }
+                          }}>Aprobar</button>
+                          <button className="doc-btn doc-btn-danger" onClick={async () => {
+                            try {
+                              const res = await fetch(`${API}/solicitud-permiso/${s.id}/decidir`, {
+                                method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${obtenerToken()}` },
+                                body: JSON.stringify({ accept: false, mensaje: 'Solicitud rechazada.' })
+                              });
+                              if (!res.ok) throw new Error((await res.json()).error || 'Error al rechazar');
+                              alert('Solicitud de permiso rechazada');
+                              setSolicitudesPermiso(prev => prev.filter(x => x.id !== s.id));
                             } catch (err) { alert('Error: ' + err.message); }
                           }}>Rechazar</button>
                         </>
@@ -2696,15 +2802,15 @@ export default function ProcesosLogistica() {
                             <button className="attachment-btn btn-default" onClick={() => handleDescargarAnexo(arch.id, arch.nombre)}>
                               <i className="fa-solid fa-download"></i> Descargar
                             </button>
-                            {userRol === "Superadministrador" && (
+                            {esAdmin || puedeGestionarRecurso(arch.creado_por_id || arch.creado_por?.id) ? (
                               <button
                                 className="attachment-btn btn-toggle"
-                                onClick={() => handleBorrarAnexo(arch.id, radicadoDetail.id)}
+                                onClick={() => handleBorrarAnexo(arch, radicadoDetail.id)}
                                 title="Eliminar"
                               >
                                 <i className="fa-solid fa-xmark"></i>
                               </button>
-                            )}
+                            ) : null}
                           </div>
                         </div>
                       );
@@ -2979,8 +3085,8 @@ export default function ProcesosLogistica() {
                               <button className="attachment-btn btn-default" onClick={() => handleDescargarAnexo(arch.id, arch.nombre)}>
                                 <i className="fa-solid fa-download"></i> Descargar
                               </button>
-                              {userRol === "Superadministrador" && (
-                                <button className="attachment-btn btn-toggle" onClick={() => handleBorrarAnexo(arch.id, tareaDetail.id)} title="Eliminar">
+                              {(userRol === "Superadministrador" || puedeGestionarRecurso(arch.creado_por_id || arch.creado_por?.id)) && (
+                                <button className="attachment-btn btn-toggle" onClick={() => handleBorrarAnexo(arch, tareaDetail.id)} title="Eliminar">
                                   <i className="fa-solid fa-xmark"></i>
                                 </button>
                               )}
@@ -3496,13 +3602,11 @@ export default function ProcesosLogistica() {
               </a>
             )}
 
-            {/* ── Solicitudes: solo admin (usuarios usan Mis Tareas) ── */}
-            {esAdmin && (
-              <a href="#" className={`menu-item ${activeTab === "solicitudes" ? "active" : ""}`} onClick={(e) => { e.preventDefault(); setActiveTab("solicitudes"); setIsSidebarOpen(false); }}>
-                <div className="item-icon"><i className="fa-solid fa-circle-exclamation"></i></div>
-                <div className="item-text"><span className="item-nombre">Solicitudes</span></div>
-              </a>
-            )}
+            {/* ── Solicitudes: visibles para admin y usuarios para revisar permisos y tramitaciones ── */}
+            <a href="#" className={`menu-item ${activeTab === "solicitudes" ? "active" : ""}`} onClick={(e) => { e.preventDefault(); setActiveTab("solicitudes"); setIsSidebarOpen(false); }}>
+              <div className="item-icon"><i className="fa-solid fa-circle-exclamation"></i></div>
+              <div className="item-text"><span className="item-nombre">Solicitudes</span></div>
+            </a>
 
             {/* ── Catálogos: solo admin ── */}
             {esAdmin && (

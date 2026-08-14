@@ -175,6 +175,7 @@ func (h *Handler) GetNormasReparto(c *gin.Context) {
 }
 
 func (h *Handler) AsignarNormasReparto(c *gin.Context) {
+	user := c.MustGet("user").(db.Usuario)
 	id, err := strconv.ParseUint(c.Param("id"), 10, 64)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "id inválido"})
@@ -187,9 +188,19 @@ func (h *Handler) AsignarNormasReparto(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
-	if err := h.service.AsignarNormasReparto(uint(id), dto.Normas); err != nil {
+
+	if err := h.service.AsignarNormasReparto(uint(id), dto.Normas, user.ID, user.Rol != nil && user.Rol.Nombre == "Superadministrador"); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
+	}
+
+	for _, n := range dto.Normas {
+		if n.Porcentaje == 0 {
+			if err := h.db.Where("documento_radicado_id = ? AND norma_reparto_id = ?", id, n.NormaRepartoID).Delete(&db.RadicadoNormaReparto{}).Error; err != nil {
+				c.JSON(http.StatusBadRequest, gin.H{"error": "No se pudo eliminar la norma con valor 0"})
+				return
+			}
+		}
 	}
 	c.JSON(http.StatusOK, gin.H{"message": "normas asignadas correctamente"})
 }
@@ -544,91 +555,7 @@ func (h *Handler) MarcarCompletado(c *gin.Context) {
 // ─────────────────────────────────────────────────────────────────
 
 func (h *Handler) SolicitarCambioNormaReparto(c *gin.Context) {
-	user := c.MustGet("user").(db.Usuario)
-
-	id, err := strconv.ParseUint(c.Param("id"), 10, 64)
-	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "id inválido"})
-		return
-	}
-
-	var body struct {
-		RadicadoNormaRepartoID uint    `json:"radicado_norma_reparto_id"`
-		NormaRepartoID         uint    `json:"norma_reparto_id"`
-		NuevoPorcentaje        float64 `json:"nuevo_porcentaje"`
-		Justificacion          string  `json:"justificacion"`
-	}
-	if err := c.ShouldBindJSON(&body); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
-		return
-	}
-
-	// 1. Validar el documento radicado
-	var radicado db.DocumentoRadicado
-	if err := h.db.Preload("Estado").First(&radicado, uint(id)).Error; err != nil {
-		c.JSON(http.StatusNotFound, gin.H{"error": "documento no encontrado"})
-		return
-	}
-
-	if radicado.EstadoPosesion == "Completado" || radicado.EstadoPosesion == "Rechazado" || radicado.EstadoPosesion == "Devuelto" || (radicado.Estado != nil && radicado.Estado.Nombre == "Finalizado") {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "No se pueden solicitar cambios en normas de reparto para documentos finalizados, completados o rechazados."})
-		return
-	}
-
-	// 2. Validar que la norma de reparto asignada existe en este documento
-	var rnr db.RadicadoNormaReparto
-	if err := h.db.Where("id = ? AND documento_radicado_id = ?", body.RadicadoNormaRepartoID, radicado.ID).First(&rnr).Error; err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "La norma de reparto especificada no pertenece a este documento."})
-		return
-	}
-
-	// 3. Crear la solicitud
-	sol := db.SolicitudCambioNormaReparto{
-		DocumentoRadicadoID:    radicado.ID,
-		RadicadoNormaRepartoID: rnr.ID,
-		NormaRepartoID:         rnr.NormaRepartoID,
-		NuevoPorcentaje:        body.NuevoPorcentaje,
-		PorcentajeAnterior:     rnr.Porcentaje,
-		UsuarioID:              user.ID,
-		Justificacion:          body.Justificacion,
-		Estado:                 "Pendiente",
-		FechaCreacion:          time.Now(),
-	}
-
-	if err := h.db.Create(&sol).Error; err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
-		return
-	}
-
-	// 4. Notificar a administradores
-	var admins []db.Usuario
-	if err := h.db.Joins("Rol").Where("Rol.nombre = ?", "Superadministrador").Find(&admins).Error; err == nil {
-		docID := radicado.ID
-		for _, a := range admins {
-			msg := fmt.Sprintf("%s solicita cambiar el porcentaje de una norma (%.2f%% a %.2f%%). Justificación: %s", user.Nombre, rnr.Porcentaje, body.NuevoPorcentaje, body.Justificacion)
-			if h.notifSvc != nil {
-				_, _ = h.notifSvc.CreateFromEvent(notificacion.CreateDTO{
-					UsuarioID:           a.ID,
-					DocumentoRadicadoID: &docID,
-					Mensaje:             msg,
-					Estado:              "Pendiente",
-					Tipo:                "Revisión",
-					FechaCreacion:       time.Now(),
-				})
-			}
-		}
-	}
-
-	// 5. Trazabilidad
-	h.db.Create(&db.Trazabilidad{
-		DocumentoRadicadoID: radicado.ID,
-		UsuarioID:           user.ID,
-		Accion:              "Solicitud Cambio Norma",
-		Descripcion:         fmt.Sprintf("Solicitado cambio de porcentaje en norma (%.2f%% a %.2f%%).", rnr.Porcentaje, body.NuevoPorcentaje),
-		Fecha:               time.Now(),
-	})
-
-	c.JSON(http.StatusCreated, gin.H{"message": "Solicitud de cambio de norma creada", "solicitud_id": sol.ID})
+	c.JSON(http.StatusBadRequest, gin.H{"error": "La solicitud de cambio para normas de reparto está deshabilitada."})
 }
 
 func (h *Handler) ListMisSolicitudesCambioNorma(c *gin.Context) {
@@ -692,12 +619,14 @@ func (h *Handler) DecidirSolicitudCambioNorma(c *gin.Context) {
 		return
 	}
 
-	// Si aprobada, actualizar RadicadoNormaReparto
 	if body.Accept {
 		var rnr db.RadicadoNormaReparto
 		if err := h.db.First(&rnr, sol.RadicadoNormaRepartoID).Error; err == nil {
 			rnr.Porcentaje = sol.NuevoPorcentaje
 			h.db.Save(&rnr)
+			if rnr.Porcentaje == 0 {
+				h.db.Delete(&rnr)
+			}
 		}
 
 		h.db.Create(&db.Trazabilidad{
@@ -717,7 +646,6 @@ func (h *Handler) DecidirSolicitudCambioNorma(c *gin.Context) {
 		})
 	}
 
-	// Notificar al solicitante
 	if h.notifSvc != nil {
 		_, _ = h.notifSvc.CreateFromEvent(notificacion.CreateDTO{
 			UsuarioID:           sol.UsuarioID,
@@ -730,4 +658,136 @@ func (h *Handler) DecidirSolicitudCambioNorma(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, gin.H{"message": "Solicitud procesada", "estado": estado})
+}
+
+func (h *Handler) CrearSolicitudPermiso(c *gin.Context) {
+	user := c.MustGet("user").(db.Usuario)
+
+	var body struct {
+		Tipo        string `json:"tipo" binding:"required"`
+		ObjetoID    uint   `json:"objeto_id" binding:"required"`
+		Accion      string `json:"accion" binding:"required"`
+		Propietario uint   `json:"propietario_id" binding:"required"`
+		Mensaje     string `json:"mensaje"`
+	}
+	if err := c.ShouldBindJSON(&body); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	if body.Tipo == "norma_reparto" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "La solicitud de permiso para normas de reparto está deshabilitada."})
+		return
+	}
+	if body.Tipo != "archivo" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "tipo inválido"})
+		return
+	}
+	if body.Accion != "editar" && body.Accion != "eliminar" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "acción inválida"})
+		return
+	}
+
+	solicitud := db.SolicitudPermiso{
+		Tipo:          body.Tipo,
+		ObjetoID:      body.ObjetoID,
+		Accion:        body.Accion,
+		SolicitanteID: user.ID,
+		PropietarioID: body.Propietario,
+		Mensaje:       body.Mensaje,
+		Estado:        "Pendiente",
+		FechaCreacion: time.Now(),
+	}
+	if err := h.db.Create(&solicitud).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	if h.notifSvc != nil {
+		_, _ = h.notifSvc.CreateFromEvent(notificacion.CreateDTO{
+			UsuarioID:     body.Propietario,
+			Mensaje:       fmt.Sprintf("%s solicita permiso para %s un %s. %s", user.Nombre, body.Accion, body.Tipo, body.Mensaje),
+			Estado:        "Pendiente",
+			Tipo:          "Sistema",
+			FechaCreacion: time.Now(),
+		})
+	}
+
+	c.JSON(http.StatusCreated, gin.H{"message": "Solicitud enviada", "solicitud_id": solicitud.ID})
+}
+
+func (h *Handler) ListMisSolicitudesPermiso(c *gin.Context) {
+	user := c.MustGet("user").(db.Usuario)
+	var solicitudes []db.SolicitudPermiso
+	if err := h.db.Preload("Solicitante").Preload("Propietario").Where("solicitante_id = ?", user.ID).Order("fecha_creacion desc").Find(&solicitudes).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+	c.JSON(http.StatusOK, solicitudes)
+}
+
+func (h *Handler) ListSolicitudesPermiso(c *gin.Context) {
+	var solicitudes []db.SolicitudPermiso
+	if err := h.db.Preload("Solicitante").Preload("Propietario").Where("estado = ?", "Pendiente").Order("fecha_creacion desc").Find(&solicitudes).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+	c.JSON(http.StatusOK, solicitudes)
+}
+
+func (h *Handler) DecidirSolicitudPermiso(c *gin.Context) {
+	user := c.MustGet("user").(db.Usuario)
+	id, err := strconv.ParseUint(c.Param("id"), 10, 64)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "id inválido"})
+		return
+	}
+
+	var sol db.SolicitudPermiso
+	if err := h.db.First(&sol, uint(id)).Error; err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "solicitud no encontrada"})
+		return
+	}
+	if sol.PropietarioID != user.ID && user.Rol != nil && user.Rol.Nombre != "Superadministrador" {
+		c.JSON(http.StatusForbidden, gin.H{"error": "solo el propietario o el administrador puede decidir"})
+		return
+	}
+	if sol.Estado != "Pendiente" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "solicitud ya procesada"})
+		return
+	}
+
+	var body struct {
+		Accept  bool   `json:"accept"`
+		Mensaje string `json:"mensaje"`
+	}
+	if err := c.ShouldBindJSON(&body); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	now := time.Now()
+	sol.Estado = "Rechazada"
+	if body.Accept {
+		sol.Estado = "Aprobada"
+	}
+	sol.ResueltoPorID = &user.ID
+	sol.Respuesta = body.Mensaje
+	sol.FechaResolucion = &now
+	if err := h.db.Save(&sol).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	if h.notifSvc != nil {
+		_, _ = h.notifSvc.CreateFromEvent(notificacion.CreateDTO{
+			UsuarioID:     sol.SolicitanteID,
+			Mensaje:       fmt.Sprintf("Tu solicitud de permiso para %s fue %s. %s", sol.Tipo, sol.Estado, body.Mensaje),
+			Estado:        "Pendiente",
+			Tipo:          "Sistema",
+			FechaCreacion: time.Now(),
+		})
+	}
+
+	c.JSON(http.StatusOK, gin.H{"message": "Solicitd de permiso procesada", "estado": sol.Estado})
 }

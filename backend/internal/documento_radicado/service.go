@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"math"
 	"os"
 	"path/filepath"
 	"strings"
@@ -149,6 +150,7 @@ func (s *Service) Create(dto CreateDTO, usuarioID uint) (*db.DocumentoRadicado, 
 					DocumentoRadicadoID: radicado.ID,
 					NormaRepartoID:      n.NormaRepartoID,
 					Porcentaje:          n.Porcentaje,
+					CreadoPorID:         usuarioID,
 				}
 				if err := tx.Create(&nr).Error; err != nil {
 					return err
@@ -164,6 +166,7 @@ func (s *Service) Create(dto CreateDTO, usuarioID uint) (*db.DocumentoRadicado, 
 							DocumentoRadicadoID: radicado.ID,
 							NormaRepartoID:      pn.NormaRepartoID,
 							Porcentaje:          pn.Porcentaje,
+							CreadoPorID:         usuarioID,
 						}
 						if err := tx.Create(&nr).Error; err != nil {
 							return err
@@ -612,23 +615,71 @@ func (s *Service) GetNormasReparto(radicadoID uint) ([]db.RadicadoNormaReparto, 
 	return normas, nil
 }
 
-func (s *Service) AsignarNormasReparto(radicadoID uint, dtos []NormaRepartoInputDTO) error {
+func (s *Service) AsignarNormasReparto(radicadoID uint, dtos []NormaRepartoInputDTO, usuarioID uint, isAdmin bool) error {
 	return s.db.Transaction(func(tx *gorm.DB) error {
-
-		if err := tx.Where("documento_radicado_id = ?", radicadoID).Delete(&db.RadicadoNormaReparto{}).Error; err != nil {
+		var existentes []db.RadicadoNormaReparto
+		if err := tx.Where("documento_radicado_id = ?", radicadoID).Find(&existentes).Error; err != nil {
 			return err
 		}
 
+		porNorma := map[uint]db.RadicadoNormaReparto{}
+		for _, e := range existentes {
+			porNorma[e.NormaRepartoID] = e
+		}
+
+		dtoMap := map[uint]NormaRepartoInputDTO{}
 		for _, d := range dtos {
+			dtoMap[d.NormaRepartoID] = d
+		}
+
+		if !isAdmin {
+			for _, e := range existentes {
+				if e.CreadoPorID != 0 && e.CreadoPorID != usuarioID {
+					if dto, ok := dtoMap[e.NormaRepartoID]; ok && math.Abs(dto.Porcentaje-e.Porcentaje) > 0.0001 {
+						return errors.New("No puedes modificar una norma que no creaste. Solicita permiso al propietario.")
+					}
+				}
+			}
+		}
+
+		for _, d := range dtos {
+			existente, ok := porNorma[d.NormaRepartoID]
+			if ok {
+				if isAdmin || existente.CreadoPorID == 0 || existente.CreadoPorID == usuarioID {
+					existente.Porcentaje = d.Porcentaje
+					if existente.CreadoPorID == 0 {
+						existente.CreadoPorID = usuarioID
+					}
+					if err := tx.Save(&existente).Error; err != nil {
+						return err
+					}
+				}
+				continue
+			}
+
 			nr := db.RadicadoNormaReparto{
 				DocumentoRadicadoID: radicadoID,
 				NormaRepartoID:      d.NormaRepartoID,
 				Porcentaje:          d.Porcentaje,
+				CreadoPorID:         usuarioID,
 			}
 			if err := tx.Create(&nr).Error; err != nil {
 				return err
 			}
 		}
+
+		if !isAdmin {
+			for _, e := range existentes {
+				if e.CreadoPorID == 0 || e.CreadoPorID == usuarioID {
+					if _, exists := dtoMap[e.NormaRepartoID]; !exists {
+						if err := tx.Delete(&e).Error; err != nil {
+							return err
+						}
+					}
+				}
+			}
+		}
+
 		return nil
 	})
 }
@@ -671,4 +722,3 @@ func (s *Service) MemorizarNormasProveedorRuta(radicadoID uint) error {
 		return nil
 	})
 }
-

@@ -6,21 +6,25 @@ import (
 	"strconv"
 	"time"
 
+	"sigefae/internal/db"
+	"sigefae/internal/notificacion"
+
 	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
-	"sigefae/internal/db"
 )
 
 type Handler struct {
-	service *Service
-	db      *gorm.DB
+	service  *Service
+	db       *gorm.DB
+	notifSvc *notificacion.Service
 }
 
-func NewHandler(service *Service, database *gorm.DB) *Handler {
+func NewHandler(service *Service, database *gorm.DB, notifSvc *notificacion.Service) *Handler {
 
 	return &Handler{
-		service: service,
-		db:      database,
+		service:  service,
+		db:       database,
+		notifSvc: notifSvc,
 	}
 }
 
@@ -141,6 +145,21 @@ func (h *Handler) Delete(c *gin.Context) {
 		h.db.First(&archivo, uint(id))
 	}
 
+	var usuario db.Usuario
+	if hasUser {
+		usuario = user.(db.Usuario)
+	}
+
+	var archivoActual db.Archivo
+	if h.db != nil {
+		if err := h.db.First(&archivoActual, uint(id)).Error; err == nil {
+			if !hasUser || (usuario.ID != archivoActual.CreadoPorID && usuario.Rol != nil && usuario.Rol.Nombre != "Superadministrador") {
+				c.JSON(http.StatusForbidden, gin.H{"error": "Solo el usuario que subió el anexo o el administrador pueden eliminarlo."})
+				return
+			}
+		}
+	}
+
 	if err := h.service.Delete(uint(id)); err != nil {
 
 		c.JSON(http.StatusBadRequest, gin.H{
@@ -179,13 +198,18 @@ func (h *Handler) UploadAnexo(c *gin.Context) {
 
 	rutaBase := "storage"
 
-	response, err := h.service.UploadAnexo(uint(radicadoID), fileHeader, rutaBase)
+	user, hasUser := c.Get("user")
+	usuarioID := uint(0)
+	if hasUser {
+		usuarioID = user.(db.Usuario).ID
+	}
+
+	response, err := h.service.UploadAnexo(uint(radicadoID), fileHeader, rutaBase, usuarioID)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
 
-	user, hasUser := c.Get("user")
 	if hasUser {
 		h.db.Create(&db.Trazabilidad{
 			DocumentoRadicadoID: uint(radicadoID),
@@ -234,13 +258,19 @@ func (h *Handler) Reemplazar(c *gin.Context) {
 		return
 	}
 
-	response, err := h.service.Reemplazar(uint(id), fileHeader)
+	user, hasUser := c.Get("user")
+	usuarioID := uint(0)
+	if hasUser {
+		usuarioID = user.(db.Usuario).ID
+	}
+
+	response, err := h.service.Reemplazar(uint(id), fileHeader, usuarioID)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
 
-	user, hasUser := c.Get("user")
+	user, hasUser = c.Get("user")
 	if hasUser && response != nil && response.DocumentoRadicadoID != 0 {
 		h.db.Create(&db.Trazabilidad{
 			DocumentoRadicadoID: response.DocumentoRadicadoID,

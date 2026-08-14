@@ -20,6 +20,8 @@ type Archivo struct {
 	Ruta                string             `gorm:"column:ruta;type:varchar(500)" json:"ruta"`
 	OrigenID            uint               `gorm:"column:origen_id;index:idx_archivo_origen" json:"origen_id"`
 	Origen              *ArchivoOrigen     `gorm:"foreignKey:OrigenID;references:ID" json:"origen,omitempty"`
+	CreadoPorID         uint               `gorm:"column:creado_por_id;index:idx_archivo_creado_por" json:"creado_por_id"`
+	CreadoPor           *Usuario           `gorm:"foreignKey:CreadoPorID;references:ID" json:"creado_por,omitempty"`
 	CreatedAt           time.Time          `gorm:"column:created_at" json:"created_at"`
 	UpdatedAt           time.Time          `gorm:"column:updated_at" json:"updated_at"`
 }

@@ -209,7 +209,7 @@ func New(database *gorm.DB) *gin.Engine {
 	trazabilidadHandler := trazabilidad.NewHandler(trazabilidadService)
 
 	archivoService := archivo.New(database)
-	archivoHandler := archivo.NewHandler(archivoService, database)
+	archivoHandler := archivo.NewHandler(archivoService, database, notificacionService)
 
 	registroAprobacionService := registro_aprobacion.New(database)
 	registroAprobacionHandler := registro_aprobacion.NewHandler(registroAprobacionService)
@@ -275,6 +275,10 @@ func New(database *gorm.DB) *gin.Engine {
 		protected.GET("/solicitud-rechazo/mias", documentoRadicadoHandler.ListMySolicitudes)
 		protected.POST("/documentoradicado/:id/solicitar-cambio-norma", documentoRadicadoHandler.SolicitarCambioNormaReparto)
 		protected.GET("/solicitud-cambio-norma/mias", documentoRadicadoHandler.ListMisSolicitudesCambioNorma)
+		protected.POST("/solicitud-permiso", documentoRadicadoHandler.CrearSolicitudPermiso)
+		protected.GET("/solicitud-permiso/mias", documentoRadicadoHandler.ListMisSolicitudesPermiso)
+		protected.GET("/solicitud-permiso", documentoRadicadoHandler.ListSolicitudesPermiso)
+		protected.POST("/solicitud-permiso/:id/decidir", documentoRadicadoHandler.DecidirSolicitudPermiso)
 
 		//documento comercial
 		protected.GET("/documentocomercial/:id", documentoComercialHandler.GetByID)

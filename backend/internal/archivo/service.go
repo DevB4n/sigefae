@@ -226,7 +226,7 @@ func (s *Service) Delete(id uint) error {
 
 	return s.db.Delete(&archivo).Error
 }
-func (s *Service) UploadAnexo(documentoRadicadoID uint, fileHeader *multipart.FileHeader, rutaBase string) (*Response, error) {
+func (s *Service) UploadAnexo(documentoRadicadoID uint, fileHeader *multipart.FileHeader, rutaBase string, usuarioID uint) (*Response, error) {
 	// Crear carpeta si no existe
 	dir := filepath.Join(rutaBase, "anexos", fmt.Sprintf("%d", documentoRadicadoID))
 	if err := os.MkdirAll(dir, os.ModePerm); err != nil {
@@ -284,6 +284,7 @@ func (s *Service) UploadAnexo(documentoRadicadoID uint, fileHeader *multipart.Fi
 		Peso:                info.Size(),
 		Ruta:                rutaFinal,
 		OrigenID:            origen.ID,
+		CreadoPorID:         usuarioID,
 	}
 
 	if err := s.db.Create(&archivo).Error; err != nil {
@@ -304,7 +305,7 @@ func (s *Service) GetByID(id uint) (*db.Archivo, error) {
 	return &archivo, nil
 }
 
-func (s *Service) Reemplazar(id uint, fileHeader *multipart.FileHeader) (*Response, error) {
+func (s *Service) Reemplazar(id uint, fileHeader *multipart.FileHeader, usuarioID uint) (*Response, error) {
 	var archivo db.Archivo
 	if err := s.db.First(&archivo, id).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
@@ -362,6 +363,7 @@ func (s *Service) Reemplazar(id uint, fileHeader *multipart.FileHeader) (*Respon
 	}
 
 	// Actualizar registro (mismo ID, mismo radicado, mismo origen)
+	// El creador del anexo no debe cambiarse al reemplazarlo; se conserva la propiedad original.
 	archivo.Nombre = fileHeader.Filename
 	archivo.Extension = strings.TrimPrefix(ext, ".")
 	archivo.Peso = info.Size()
