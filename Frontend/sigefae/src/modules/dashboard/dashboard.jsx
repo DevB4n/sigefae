@@ -29,7 +29,7 @@ export default function ProcesosLogistica() {
     return propietario > 0 && propietario === Number(userId);
   };
 
-  const handleSubirAnexo = async (e, radicadoId) => {
+    const handleSubirAnexo = async (e, radicadoId) => {
     const file = e.target.files[0];
     if (!file) return;
 
@@ -50,7 +50,7 @@ export default function ProcesosLogistica() {
 
       alert("Archivo subido correctamente");
 
-      // Refrescar según la pestaña activa
+      // Refrescar panel principal
       if (activeTab === "tareas") {
         setSelectedTareaId(null);
         setTimeout(() => setSelectedTareaId(radicadoId), 10);
@@ -58,6 +58,18 @@ export default function ProcesosLogistica() {
         setSelectedRadicadoId(null);
         setTimeout(() => setSelectedRadicadoId(radicadoId), 10);
       }
+
+      // ← NUEVO: si el modal SAIA está abierto en ese radicado, recargar sus archivos
+      if (saiaModalOpen && saiaRadicado?.id === radicadoId) {
+        try {
+          const radRes = await fetch(`${API}/documentoradicado/${radicadoId}`, {
+            headers: { Authorization: `Bearer ${obtenerToken()}` }
+          });
+          const updated = await radRes.json();
+          if (updated?.id) setSaiaRadicado(updated);
+        } catch (e) { console.error(e); }
+      }
+
     } catch (err) {
       alert("Error: " + err.message);
     }
@@ -136,10 +148,12 @@ export default function ProcesosLogistica() {
   const [catalogoLoading, setCatalogoLoading] = useState(false);
 
   // Habilitar colapsado de secciones usando delegación de eventos (funciona con contenido dinámico)
-  useEffect(() => {
+    useEffect(() => {
     const handler = (e) => {
       const h = e.target.closest && e.target.closest('.doc-section > h4');
       if (!h) return;
+      // No colapsar la sección de comentarios dentro del modal SAIA
+      if (h.closest('.saia-comments-wrapper')) return;
       const parent = h.parentElement;
       if (!parent) return;
       parent.classList.toggle('collapsed');
@@ -329,7 +343,7 @@ export default function ProcesosLogistica() {
     }
   }, [selectedRadicadoId, selectedTareaId]);
 
-  useEffect(() => {
+  (() => {
     if (activeTab === "radicados") {
       setLoadingRadicados(true);
       fetch(`${API}/documentoradicado`, { headers: { Authorization: `Bearer ${obtenerToken()}` } })
@@ -514,37 +528,36 @@ export default function ProcesosLogistica() {
     setShowNormaModal(true);
   };
 
-  const handleGuardarNormaDetalle = async (radicadoId) => {
+    const handleGuardarNormaDetalle = async (radicadoId) => {
     if (!normaFormDetalle.norma_reparto_id || normaFormDetalle.porcentaje === "") {
       alert("Seleccione una norma y el porcentaje");
       return;
     }
 
     try {
-      // 1. Tomar las normas actuales y mapearlas al formato del backend
+      // ← preservar el ID de cada norma ya existente
       let nuevasNormas = normasRepartoRadicado.map(n => ({
+        id: n.id,                                          // ← NUEVO
         norma_reparto_id: n.norma_reparto_id || n.norma_reparto?.id,
         porcentaje: parseFloat(n.porcentaje)
       }));
 
       const payloadNorma = {
+        id: normaEditandoId || undefined,                  // ← NUEVO
         norma_reparto_id: parseInt(normaFormDetalle.norma_reparto_id),
         porcentaje: parseFloat(normaFormDetalle.porcentaje)
       };
 
       if (normaEditandoId) {
-        // Editar: reemplazar la que tiene ese ID de asignación
         const idx = normasRepartoRadicado.findIndex(n => n.id === normaEditandoId);
         if (idx !== -1) {
           nuevasNormas[idx] = payloadNorma;
         } else {
-          // Fallback por si no encuentra el id
           const idx2 = nuevasNormas.findIndex(n => n.norma_reparto_id === payloadNorma.norma_reparto_id);
           if (idx2 !== -1) nuevasNormas[idx2] = payloadNorma;
           else nuevasNormas.push(payloadNorma);
         }
       } else {
-        // Crear: verificar duplicado por norma_reparto_id
         const yaExiste = nuevasNormas.find(n => n.norma_reparto_id === payloadNorma.norma_reparto_id);
         if (yaExiste) {
           alert("Esta norma ya fue agregada");
@@ -553,7 +566,6 @@ export default function ProcesosLogistica() {
         nuevasNormas.push(payloadNorma);
       }
 
-      // 2. Enviar SIEMPRE como array al endpoint que reemplaza todo
       const res = await fetch(`${API}/documentoradicado/${radicadoId}/normas-reparto`, {
         method: "POST",
         headers: {
@@ -572,7 +584,7 @@ export default function ProcesosLogistica() {
       setShowNormaModal(false);
       setNormaEditandoId(null);
 
-      // 3. Refrescar
+      // Refrescar lista
       const nrRes = await fetch(`${API}/documentoradicado/${radicadoId}/normas-reparto`, {
         headers: { Authorization: `Bearer ${obtenerToken()}` }
       });
@@ -658,6 +670,35 @@ export default function ProcesosLogistica() {
           setSelectedRadicadoId(rad.id);
           setSelectedTareaId(null);
         }
+                // Precargar datos auxiliares para el modal SAIA
+        fetch(`${API}/documentoradicado/${rad.id}/tareas`, {
+          headers: { Authorization: `Bearer ${obtenerToken()}` }
+        })
+          .then(r => r.json())
+          .then(data => setTareasFlujo(Array.isArray(data) ? data : []))
+          .catch(() => {});
+
+        fetch(`${API}/trazabilidad?documento_radicado_id=${rad.id}`, {
+          headers: { Authorization: `Bearer ${obtenerToken()}` }
+        })
+          .then(r => r.json())
+          .then(data => setHistorialTrazabilidad(Array.isArray(data) ? data : []))
+          .catch(() => {});
+
+        fetch(`${API}/documentoradicado/${rad.id}/normas-reparto`, {
+          headers: { Authorization: `Bearer ${obtenerToken()}` }
+        })
+          .then(r => r.json())
+          .then(data => setNormasRepartoRadicado(Array.isArray(data) ? data : []))
+          .catch(() => setNormasRepartoRadicado([]));
+
+        fetch(`${API}/comentario?documento_radicado_id=${rad.id}`, {
+          headers: { Authorization: `Bearer ${obtenerToken()}` }
+        })
+          .then(r => r.json())
+          .then(data => setComentarios(Array.isArray(data) ? data : []))
+          .catch(() => setComentarios([]));
+
         setSaiaModalOpen(true);
       }
     } catch (err) {
@@ -975,7 +1016,7 @@ export default function ProcesosLogistica() {
   );
 
   // ── Render comentarios ──
-  const renderComentarios = (radicadoId, readOnly = false) => (
+   const renderComentarios = (radicadoId, readOnly = false) => (
     <div className="doc-section">
       <h4>
         <i className="fa-solid fa-comments"></i>{" "}
@@ -984,7 +1025,7 @@ export default function ProcesosLogistica() {
 
       <div
         style={{
-          maxHeight: 320,
+          maxHeight: 240,        
           overflowY: "auto",
           marginBottom: 12,
           paddingRight: 4
@@ -1064,7 +1105,8 @@ export default function ProcesosLogistica() {
               border: "1px solid #d1d5db",
               resize: "vertical",
               fontFamily: "inherit",
-              fontSize: "0.9em"
+              fontSize: "0.9em",
+              minHeight: 70 
             }}
           />
 
@@ -1962,7 +2004,7 @@ export default function ProcesosLogistica() {
   };
 
   // ── Borrar anexo: si no es propietario, solicita permiso ──
-  const handleBorrarAnexo = async (archivo, radicadoId) => {
+    const handleBorrarAnexo = async (archivo, radicadoId) => {
     const archivoId = archivo?.id || archivo;
     const creadoPor = Number(archivo?.creado_por_id || archivo?.creado_por?.id || 0);
 
@@ -1981,6 +2023,7 @@ export default function ProcesosLogistica() {
 
       alert("Archivo eliminado");
 
+      // Refrescar panel principal
       if (activeTab === "tareas") {
         setSelectedTareaId(null);
         setTimeout(() => setSelectedTareaId(radicadoId), 10);
@@ -1988,6 +2031,23 @@ export default function ProcesosLogistica() {
         setSelectedRadicadoId(null);
         setTimeout(() => setSelectedRadicadoId(radicadoId), 10);
       }
+
+      // ← NUEVO: si el modal SAIA está abierto, quitar el archivo localmente
+      if (saiaModalOpen && saiaRadicado?.id === radicadoId) {
+        setSaiaRadicado(prev => ({
+          ...prev,
+          archivos: (prev.archivos || []).filter(a => a.id !== archivoId)
+        }));
+        // Si el PDF que se estaba viendo es el eliminado, resetear visor
+        const pdfList = (saiaRadicado.archivos || []).filter(a =>
+          a.extension?.toLowerCase() === 'pdf' || a.nombre?.toLowerCase().endsWith('.pdf')
+        );
+        if (pdfList[saiaAnexoIdx]?.id === archivoId) {
+          setSaiaAnexoIdx(0);
+          if (saiaPdfUrl) { URL.revokeObjectURL(saiaPdfUrl); setSaiaPdfUrl(null); }
+        }
+      }
+
     } catch (err) {
       alert("Error: " + err.message);
     }
@@ -3430,7 +3490,12 @@ export default function ProcesosLogistica() {
                   </button>
                 ))}
               </div>
-              <div className="saia-tab-content">
+              <div className="saia-tab-content" onClick={(e) => {
+                const h = e.target.closest && e.target.closest('.doc-section > h4');
+                if (!h) return;
+                if (h.closest('.saia-comments-wrapper')) return;
+                h.parentElement?.classList.toggle('collapsed');
+              }}>
                 {saiaActiveTab === 'info' && (
                   <>
                     <div className="doc-section">
@@ -3490,7 +3555,7 @@ export default function ProcesosLogistica() {
                 {saiaActiveTab === 'flujo' && renderFlujoAprobacion()}
                 {saiaActiveTab === 'trazabilidad' && renderTrazabilidad()}
                 {saiaActiveTab === 'normas' && renderNormasReparto(saiaRadicado.id, readOnly)}
-                {saiaActiveTab === 'comentarios' && renderComentarios(saiaRadicado.id, readOnly)}
+                {saiaActiveTab === 'comentarios' && (<div className="saia-comments-wrapper">{renderComentarios(saiaRadicado.id, readOnly)}</div>)}
                 {saiaActiveTab === 'acciones' && (
                   <div className="doc-section" style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
                     <h4><i className="fa-solid fa-bolt"></i> Acciones</h4>
@@ -3504,8 +3569,51 @@ export default function ProcesosLogistica() {
                         <i className="fa-solid fa-pen-to-square"></i> Abrir Editor PDF
                       </button>
                     )}
+                                        {/* ── Anexos adjuntos ── */}
+                    <div className="doc-section" style={{ margin: 0, padding: 10 }}>
+                      <h4 style={{ fontSize: '0.75em', marginBottom: 8 }}>
+                        <i className="fa-solid fa-paperclip"></i> Anexos ({(saiaRadicado.archivos || []).length})
+                      </h4>
+                      {(saiaRadicado.archivos || []).length === 0 ? (
+                        <p style={{ fontSize: '0.8em', color: '#6b7280' }}>No hay anexos.</p>
+                      ) : (
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                          {saiaRadicado.archivos.map(arch => (
+                            <div key={arch.id} style={{
+                              display: 'flex', alignItems: 'center', gap: 8,
+                              padding: '6px 8px', background: '#f1f5f9',
+                              borderRadius: 6, fontSize: '0.8em'
+                            }}>
+                              <i className={`fa-solid fa-file${arch.extension?.toLowerCase() === 'pdf' ? '-pdf' : ''}`}
+                                 style={{ color: 'var(--pardo-blue)' }}></i>
+                              <span style={{
+                                flex: 1, overflow: 'hidden',
+                                textOverflow: 'ellipsis', whiteSpace: 'nowrap'
+                              }} title={arch.nombre}>{arch.nombre}</span>
 
+                              <button className="btn-icon btn-edit"
+                                style={{ width: 26, height: 26, flexShrink: 0 }}
+                                onClick={() => handleDescargarAnexo(arch.id, arch.nombre)}
+                                title="Descargar">
+                                <i className="fa-solid fa-download" style={{ fontSize: '0.75em' }}></i>
+                              </button>
+
+                              {(esAdmin || puedeGestionarRecurso(arch.creado_por_id || arch.creado_por?.id)) && !readOnly && (
+                                <button className="btn-icon btn-toggle"
+                                  style={{ width: 26, height: 26, flexShrink: 0 }}
+                                  onClick={() => handleBorrarAnexo(arch, saiaRadicado.id)}
+                                  title="Eliminar">
+                                  <i className="fa-solid fa-xmark" style={{ fontSize: '0.75em' }}></i>
+                                </button>
+                              )}
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
                     {!readOnly && (
+
+                      
                       <div className="doc-section" style={{ margin: 0, padding: 10 }}>
                         <h4 style={{ fontSize: '0.75em', marginBottom: 8 }}><i className="fa-solid fa-cloud-arrow-up"></i> Adjuntar archivo</h4>
                         <input type="file" id="anexo-saia-input" onChange={(e) => handleSubirAnexo(e, saiaRadicado.id)} style={{ display: 'none' }} />

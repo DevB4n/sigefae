@@ -678,7 +678,7 @@ body {
     display: flex;
     align-items: center;
     justify-content: center;
-    z-index: 1000;
+    z-index: 3000;
     backdrop-filter: blur(4px);
 }
 
@@ -1225,7 +1225,40 @@ body {
 .saia-tab-content .doc-items-table td { padding: 6px 8px; }
 .saia-tab-content .doc-btn { width: 100%; justify-content: center; font-size: 0.8em; padding: 8px; }
 .saia-tab-content .status-badge { font-size: 0.65em; }
+/* ── Evita que tablas se desborden en el sidebar del modal SAIA ── */
+.saia-tab-content .doc-section {
+  overflow-x: auto;
+}
+.saia-tab-content table {
+  min-width: 100%;
+}
 
+/* ── Textarea de comentarios más usable dentro del modal ── */
+.saia-tab-content textarea {
+  min-height: 70px;
+  font-size: 0.9em;
+}
+
+/* ── Layout flexible para comentarios (lista arriba, input abajo siempre visible) ── */
+.saia-comments-wrapper {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+.saia-comments-wrapper > .doc-section {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  margin-bottom: 0 !important;
+}
+.saia-comments-wrapper > .doc-section > div:first-of-type {
+  flex: 1;
+  max-height: none !important;
+  overflow-y: auto;
+}
+.saia-comments-wrapper > .doc-section > div:last-child {
+  margin-top: 10px;
+}
 @media (max-width: 1024px) {
   .saia-sidebar { width: 320px; }
 }
@@ -1233,6 +1266,47 @@ body {
   .saia-container { width: 100vw; height: 100vh; border-radius: 0; }
   .saia-sidebar { width: 100%; border-left: none; border-top: 1px solid #e2e8f0; }
   .saia-body { flex-direction: column; }
+}
+
+/* Acordeón colapsable dentro del modal SAIA */
+.saia-tab-content .doc-section > h4 {
+  cursor: pointer;
+}
+.saia-tab-content .doc-section > h4::after {
+  width: 16px;
+  height: 16px;
+  background-size: 12px 12px;
+}
+.saia-tab-content .doc-section.collapsed > h4::after {
+  transform: rotate(180deg);
+}
+.saia-tab-content .doc-section.collapsed > *:not(h4) {
+  display: none !important;
+}
+
+/* Textarea de comentarios siempre visible y grande */
+.saia-comments-wrapper textarea {
+  min-height: 80px !important;
+}
+.saia-comments-wrapper .doc-section > div:first-of-type {
+  max-height: 200px !important;
+}
+
+/* La sección de comentarios NO debe tener acordeón */
+.saia-comments-wrapper .doc-section > h4::after {
+  display: none !important;
+}
+.saia-comments-wrapper .doc-section > h4 {
+  cursor: default;
+}
+/* El botón de enviar NO debe ser width:100% dentro del flex-row de comentarios */
+.saia-comments-wrapper .doc-btn {
+  width: auto !important;
+  flex-shrink: 0;
+}
+.saia-comments-wrapper textarea {
+  flex: 1 !important;
+  min-width: 0;
 }
 
 /* ── RESPONSIVE ───────────────────────────────────────── */

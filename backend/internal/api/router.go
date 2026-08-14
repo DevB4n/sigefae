@@ -252,6 +252,8 @@ func New(database *gorm.DB) *gin.Engine {
 		protected.GET("/comentario", comentarioHandler.List)
 
 		protected.PATCH("/archivo/:id/reemplazar", archivoHandler.Reemplazar)
+		// ── Cualquier usuario logueado puede eliminar sus propios anexos (handler valida propietario) ──
+		protected.DELETE("/archivo/:id", archivoHandler.Delete)
 
 		// =========================
 		// Trazabilidad
@@ -573,7 +575,6 @@ func New(database *gorm.DB) *gin.Engine {
 			// =========================
 			admin.POST("/archivo", archivoHandler.Create)
 			admin.PUT("/archivo/:id", archivoHandler.Update)
-			admin.DELETE("/archivo/:id", archivoHandler.Delete)
 
 			// =========================
 			// Tarea
