@@ -29,40 +29,6 @@ export default function ProcesosLogistica() {
     return propietario > 0 && propietario === Number(userId);
   };
 
-  const enviarSolicitudPermiso = async ({ tipo, objeto_id, accion, propietario_id, mensaje }) => {
-    const propietario = Number(propietario_id || 0);
-    if (!propietario) {
-      alert("No se pudo identificar al propietario de este recurso.");
-      return false;
-    }
-
-    try {
-      const res = await fetch(`${API}/solicitud-permiso`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${obtenerToken()}`
-        },
-        body: JSON.stringify({
-          tipo,
-          objeto_id,
-          accion,
-          propietario_id,
-          mensaje
-        })
-      });
-
-      const data = await res.json().catch(() => ({}));
-      if (!res.ok) throw new Error(data.error || "Error enviando solicitud");
-      alert("Solicitud de permiso enviada al propietario correctamente.");
-      return true;
-    } catch (err) {
-      alert("Error: " + err.message);
-      return false;
-    }
-  };
-
-
   const handleSubirAnexo = async (e, radicadoId) => {
     const file = e.target.files[0];
     if (!file) return;
@@ -104,6 +70,13 @@ export default function ProcesosLogistica() {
 
   //pdf
   const [pdfEditor, setPdfEditor] = useState({ open: false, archivoId: null, radicadoId: null });
+    // ── SAIA BPM Viewer ──
+  const [saiaModalOpen, setSaiaModalOpen] = useState(false);
+  const [saiaRadicado, setSaiaRadicado] = useState(null);
+  const [saiaActiveTab, setSaiaActiveTab] = useState("info");
+  const [saiaAnexoIdx, setSaiaAnexoIdx] = useState(0);
+  const [saiaPdfUrl, setSaiaPdfUrl] = useState(null);
+  
 
   // ── Crear Documento Manual ──
   const [showCrearDocModal, setShowCrearDocModal] = useState(false);
@@ -267,31 +240,60 @@ export default function ProcesosLogistica() {
   const [solicitudes, setSolicitudes] = useState([]);
   const [loadingSolicitudes, setLoadingSolicitudes] = useState(false);
 
-  // Solicitudes de permiso sobre recursos
-  const [solicitudesPermiso, setSolicitudesPermiso] = useState([]);
-  const [loadingSolicitudesPermiso, setLoadingSolicitudesPermiso] = useState(false);
-
-  // Solicitudes de cambio de norma
-  const [solicitudesCambioNorma, setSolicitudesCambioNorma] = useState([]);
-  const [loadingSolicitudesCambio, setLoadingSolicitudesCambio] = useState(false);
-  const [solicitudesTab, setSolicitudesTab] = useState("rechazo"); // "rechazo" | "norma" | "permiso"
-  const [showSolicitarCambioNormaModal, setShowSolicitarCambioNormaModal] = useState(false);
-  const [solicitarCambioNormaForm, setSolicitarCambioNormaForm] = useState({
-    radicado_norma_reparto_id: "",
-    norma_reparto_id: "",
-    nuevo_porcentaje: "",
-    justificacion: "",
-    codigo: "",
-    nombre: "",
-    porcentaje_actual: ""
-  });
-  const [solicitandoCambioNorma, setSolicitandoCambioNorma] = useState(false);
-
 
   const totalPorcentajeNormas = (radicarForm.normas_reparto || []).reduce(
     (sum, n) => sum + (parseFloat(n.porcentaje) || 0), 0
   );
 
+
+    useEffect(() => {
+    if (activeTab !== "solicitudes") return;
+    setLoadingSolicitudes(true);
+    const endpoint = esAdmin ? `${API}/solicitud-rechazo` : `${API}/solicitud-rechazo/mias`;
+    fetch(endpoint, { headers: { Authorization: `Bearer ${obtenerToken()}` } })
+      .then(r => r.json())
+      .then(data => setSolicitudes(Array.isArray(data) ? data : []))
+      .catch(err => { console.error(err); setSolicitudes([]); })
+      .finally(() => setLoadingSolicitudes(false));
+  }, [activeTab, esAdmin]);
+
+
+    // Cargar PDF en blob para el visor SAIA (el iframe no envía headers)
+  useEffect(() => {
+    if (!saiaModalOpen || !saiaRadicado) {
+      if (saiaPdfUrl) { URL.revokeObjectURL(saiaPdfUrl); setSaiaPdfUrl(null); }
+      return;
+    }
+
+    const archivosPdf = (saiaRadicado.archivos || []).filter(a =>
+      a.extension?.toLowerCase() === 'pdf' || a.nombre?.toLowerCase().endsWith('.pdf')
+    );
+    const anexoActual = archivosPdf[saiaAnexoIdx];
+
+    if (!anexoActual) {
+      if (saiaPdfUrl) { URL.revokeObjectURL(saiaPdfUrl); setSaiaPdfUrl(null); }
+      return;
+    }
+
+    let cancelled = false;
+    fetch(`${API}/archivo/${anexoActual.id}/download`, {
+      headers: { Authorization: `Bearer ${obtenerToken()}` }
+    })
+      .then(res => {
+        if (!res.ok) throw new Error("No se pudo cargar el PDF");
+        return res.blob();
+      })
+      .then(blob => {
+        if (cancelled) return;
+        const url = URL.createObjectURL(blob);
+        setSaiaPdfUrl(prev => { if (prev) URL.revokeObjectURL(prev); return url; });
+      })
+      .catch(() => {
+        if (!cancelled) setSaiaPdfUrl(null);
+      });
+
+    return () => { cancelled = true; };
+  }, [saiaModalOpen, saiaRadicado, saiaAnexoIdx]);
 
   // Cargar tareas e historial de trazabilidad cuando se selecciona un radicado o tarea
   useEffect(() => {
@@ -447,34 +449,7 @@ export default function ProcesosLogistica() {
     return () => { cancelled = true; };
   }, [activeTab, selectedRadicadoId, selectedTareaId]);
 
-  // Cargar solicitudes cuando se activa la pestaña
-  useEffect(() => {
-    if (activeTab !== "solicitudes") return;
-
-    setLoadingSolicitudes(true);
-    const endpoint = esAdmin ? `${API}/solicitud-rechazo` : `${API}/solicitud-rechazo/mias`;
-    fetch(endpoint, { headers: { Authorization: `Bearer ${obtenerToken()}` } })
-      .then(r => r.json())
-      .then(data => setSolicitudes(Array.isArray(data) ? data : []))
-      .catch(err => { console.error("Error cargando solicitudes:", err); setSolicitudes([]); })
-      .finally(() => setLoadingSolicitudes(false));
-
-    setLoadingSolicitudesCambio(true);
-    const endpointCambio = esAdmin ? `${API}/solicitud-cambio-norma` : `${API}/solicitud-cambio-norma/mias`;
-    fetch(endpointCambio, { headers: { Authorization: `Bearer ${obtenerToken()}` } })
-      .then(r => r.json())
-      .then(data => setSolicitudesCambioNorma(Array.isArray(data) ? data : []))
-      .catch(err => { console.error("Error cargando solicitudes cambio norma:", err); setSolicitudesCambioNorma([]); })
-      .finally(() => setLoadingSolicitudesCambio(false));
-
-    setLoadingSolicitudesPermiso(true);
-    const endpointPermiso = esAdmin ? `${API}/solicitud-permiso` : `${API}/solicitud-permiso/mias`;
-    fetch(endpointPermiso, { headers: { Authorization: `Bearer ${obtenerToken()}` } })
-      .then(r => r.json())
-      .then(data => setSolicitudesPermiso(Array.isArray(data) ? data : []))
-      .catch(err => { console.error("Error cargando solicitudes permiso:", err); setSolicitudesPermiso([]); })
-      .finally(() => setLoadingSolicitudesPermiso(false));
-  }, [activeTab, esAdmin]);
+  
 
 
   const openCrearDocModal = () => {
@@ -652,6 +627,42 @@ export default function ProcesosLogistica() {
 
     } catch (err) {
       alert("Error: " + err.message);
+    }
+  };
+
+    const openSaia = async (radicadoBase, fromTab) => {
+    // Limpia PDF anterior si existe
+    if (saiaPdfUrl) { URL.revokeObjectURL(saiaPdfUrl); setSaiaPdfUrl(null); }
+   
+    try {
+      const res = await fetch(`${API}/documentoradicado/${radicadoBase.id}`, {
+        headers: { Authorization: `Bearer ${obtenerToken()}` }
+      });
+      const rad = await res.json();
+      if (rad && rad.id) {
+        if (rad.ruta?.id && !rad.ruta?.area) {
+          try {
+            const rutasRes = await fetch(`${API}/rutas`, { headers: { Authorization: `Bearer ${obtenerToken()}` } });
+            const rutasList = await rutasRes.json();
+            const rutaCompleta = (Array.isArray(rutasList) ? rutasList : []).find(r => r.id === rad.ruta.id);
+            if (rutaCompleta) rad.ruta.area = rutaCompleta.area;
+          } catch (e) { }
+        }
+        setSaiaRadicado(rad);
+        setSaiaAnexoIdx(0);
+        setSaiaActiveTab("info");
+        if (fromTab === "tareas") {
+          setSelectedTareaId(rad.id);
+          setSelectedRadicadoId(null);
+        } else {
+          setSelectedRadicadoId(rad.id);
+          setSelectedTareaId(null);
+        }
+        setSaiaModalOpen(true);
+      }
+    } catch (err) {
+      console.error(err);
+      alert("Error cargando detalle del radicado");
     }
   };
 
@@ -2028,33 +2039,10 @@ export default function ProcesosLogistica() {
     </div>
   );
 
-  const renderSolicitudes = () => (
+    const renderSolicitudes = () => (
     <div className="content-body">
-      <div style={{ display: "flex", gap: 16, marginBottom: 16, borderBottom: "1px solid #e5e7eb", paddingBottom: 8, flexWrap: "wrap" }}>
-        <button
-          className={`doc-btn ${solicitudesTab === "rechazo" ? "doc-btn-primary" : "doc-btn-secondary"}`}
-          onClick={() => setSolicitudesTab("rechazo")}
-        >
-          Rechazo de Documentos
-        </button>
-        <button
-          className={`doc-btn ${solicitudesTab === "norma" ? "doc-btn-primary" : "doc-btn-secondary"}`}
-          onClick={() => setSolicitudesTab("norma")}
-        >
-          Cambio de Norma de Reparto
-        </button>
-        <button
-          className={`doc-btn ${solicitudesTab === "permiso" ? "doc-btn-primary" : "doc-btn-secondary"}`}
-          onClick={() => setSolicitudesTab("permiso")}
-        >
-          Permisos de recursos
-        </button>
-      </div>
-
-      {solicitudesTab === "rechazo" && (
-        <>
-          <h3>Solicitudes de Rechazo</h3>
-          {loadingSolicitudes ? <p>Cargando solicitudes...</p> : solicitudes.length === 0 ? <p>No hay solicitudes de rechazo.</p> : (
+      <h3>Solicitudes de Rechazo</h3>
+      {loadingSolicitudes ? <p>Cargando solicitudes...</p> : solicitudes.length === 0 ? <p>No hay solicitudes de rechazo.</p> : (
         <div className="solicitudes-list">
           {solicitudes.map((s) => (
             <div key={s.id} className="solicitud-card">
@@ -2076,20 +2064,6 @@ export default function ProcesosLogistica() {
                           });
                           if (!res.ok) throw new Error((await res.json()).error || 'Error');
                           alert('Solicitud aceptada');
-                          // Refresh the radicado affected
-                          try {
-                            const docId = s.documento_radicado?.id || s.documento_radicado_id;
-                            if (docId) {
-                              const rres = await fetch(`${API}/documentoradicado/${docId}`, { headers: { Authorization: `Bearer ${obtenerToken()}` } });
-                              if (rres.ok) {
-                                const updated = await rres.json();
-                                setRadicados(prev => Array.isArray(prev) ? prev.map(r => r.id === updated.id ? updated : r) : prev);
-                                if (selectedRadicadoId === updated.id) setRadicadoDetail(updated);
-                                if (selectedTareaId === updated.id) setTareaDetail(updated);
-                              }
-                            }
-                          } catch (e) { console.warn('Error refreshing radicado', e); }
-                          // refresh solicitudes list
                           setSolicitudes(solicitudes.filter(x => x.id !== s.id));
                         } catch (err) { alert('Error: ' + err.message); }
                       }}>Aceptar</button>
@@ -2102,7 +2076,6 @@ export default function ProcesosLogistica() {
                           });
                           if (!res.ok) throw new Error((await res.json()).error || 'Error');
                           alert('Solicitud rechazada');
-                          // When admin rejects the solicitud (does not change radicado), just refresh list
                           setSolicitudes(solicitudes.filter(x => x.id !== s.id));
                         } catch (err) { alert('Error: ' + err.message); }
                       }}>Rechazar</button>
@@ -2114,131 +2087,6 @@ export default function ProcesosLogistica() {
             </div>
           ))}
         </div>
-      )}
-      </>
-      )}
-
-      {solicitudesTab === "norma" && (
-        <>
-          <h3>Solicitudes de Cambio de Norma de Reparto</h3>
-          {loadingSolicitudesCambio ? <p>Cargando solicitudes...</p> : solicitudesCambioNorma.length === 0 ? <p>No hay solicitudes de cambio de norma.</p> : (
-            <div className="solicitudes-list">
-              {solicitudesCambioNorma.map((s) => (
-                <div key={s.id} className="solicitud-card" style={{ borderLeft: "4px solid #3b82f6" }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <div>
-                      <strong>Radicado #{s.documento_radicado?.numero_radicado || s.documento_radicado_id}</strong> — Solicitado por: {s.usuario?.nombre || "Usuario"}
-                      <div style={{ marginTop: 4, fontSize: '0.9em' }}>
-                        Norma: <strong>{s.norma_reparto?.codigo}</strong> ({s.norma_reparto?.nombre})
-                      </div>
-                      <div style={{ display: "flex", gap: 8, alignItems: "center", marginTop: 4 }}>
-                        <span style={{ textDecoration: "line-through", color: "#6b7280" }}>{parseFloat(s.porcentaje_anterior).toFixed(2)}%</span>
-                        <i className="fa-solid fa-arrow-right" style={{ color: "#9ca3af", fontSize: "0.8em" }}></i>
-                        <span style={{ fontWeight: 600, color: "#10b981" }}>{parseFloat(s.nuevo_porcentaje).toFixed(2)}%</span>
-                      </div>
-                      {s.justificacion && (
-                        <div style={{ fontSize: '0.85em', color: '#6b7280', marginTop: 4, fontStyle: "italic" }}>
-                          "{s.justificacion}"
-                        </div>
-                      )}
-                    </div>
-                    <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-                      <span className={`status-badge ${s.estado === 'Pendiente' ? 'doc-pendiente' : s.estado === 'Aprobada' ? 'radicado' : 'doc-rechazado'}`}>{s.estado}</span>
-                      {esAdmin && s.estado === 'Pendiente' && (
-                        <>
-                          <button className="doc-btn doc-btn-primary" onClick={async () => {
-                            if (!confirm('¿Aprobar el cambio de norma de reparto?')) return;
-                            try {
-                              const res = await fetch(`${API}/solicitud-cambio-norma/${s.id}/decidir`, {
-                                method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${obtenerToken()}` },
-                                body: JSON.stringify({ accept: true, mensaje: 'Cambio aprobado por el administrador.' })
-                              });
-                              if (!res.ok) throw new Error((await res.json()).error || 'Error al aprobar');
-                              alert('Solicitud de cambio de norma aprobada');
-                              
-                              // Actualizar lista local
-                              setSolicitudesCambioNorma(solicitudesCambioNorma.filter(x => x.id !== s.id));
-                            } catch (err) { alert('Error: ' + err.message); }
-                          }}>Aprobar</button>
-                          
-                          <button className="doc-btn doc-btn-danger" onClick={async () => {
-                            const razon = prompt('Indique el motivo del rechazo (opcional):');
-                            if (razon === null) return;
-                            try {
-                              const res = await fetch(`${API}/solicitud-cambio-norma/${s.id}/decidir`, {
-                                method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${obtenerToken()}` },
-                                body: JSON.stringify({ accept: false, mensaje: razon || 'Rechazado por el administrador.' })
-                              });
-                              if (!res.ok) throw new Error((await res.json()).error || 'Error al rechazar');
-                              alert('Solicitud de cambio de norma rechazada');
-                              
-                              // Actualizar lista local
-                              setSolicitudesCambioNorma(solicitudesCambioNorma.filter(x => x.id !== s.id));
-                            } catch (err) { alert('Error: ' + err.message); }
-                          }}>Rechazar</button>
-                        </>
-                      )}
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
-        </>
-      )}
-
-      {solicitudesTab === "permiso" && (
-        <>
-          <h3>Solicitudes de Permiso sobre Recursos</h3>
-          {loadingSolicitudesPermiso ? <p>Cargando solicitudes...</p> : solicitudesPermiso.length === 0 ? <p>No hay solicitudes de permiso.</p> : (
-            <div className="solicitudes-list">
-              {solicitudesPermiso.map((s) => (
-                <div key={s.id} className="solicitud-card" style={{ borderLeft: "4px solid #8b5cf6" }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12 }}>
-                    <div>
-                      <strong>{s.tipo === "archivo" ? "Anexo" : "Norma de reparto"}</strong> — <span style={{ color: '#374151' }}>{s.mensaje || 'Sin mensaje'}</span>
-                      <div style={{ fontSize: '0.85em', color: '#6b7280', marginTop: 4 }}>
-                        {esAdmin ? `Solicitante: ${s.solicitante?.nombre || s.solicitante_id}` : `Propietario: ${s.propietario?.nombre || s.propietario_id}`}
-                      </div>
-                      <div style={{ fontSize: '0.85em', color: '#6b7280', marginTop: 4 }}>
-                        Acción: {s.accion} — Objeto: #{s.objeto_id}
-                      </div>
-                    </div>
-                    <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap', justifyContent: 'flex-end' }}>
-                      <span className={`status-badge ${s.estado === 'Pendiente' ? 'doc-pendiente' : s.estado === 'Aprobada' ? 'radicado' : 'doc-rechazado'}`}>{s.estado}</span>
-                      {((esAdmin && s.estado === 'Pendiente') || (!esAdmin && s.estado === 'Pendiente' && Number(s.propietario_id) === Number(userId))) && (
-                        <>
-                          <button className="doc-btn doc-btn-primary" onClick={async () => {
-                            try {
-                              const res = await fetch(`${API}/solicitud-permiso/${s.id}/decidir`, {
-                                method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${obtenerToken()}` },
-                                body: JSON.stringify({ accept: true, mensaje: 'Solicitud aprobada.' })
-                              });
-                              if (!res.ok) throw new Error((await res.json()).error || 'Error al aprobar');
-                              alert('Solicitud de permiso aprobada');
-                              setSolicitudesPermiso(prev => prev.filter(x => x.id !== s.id));
-                            } catch (err) { alert('Error: ' + err.message); }
-                          }}>Aprobar</button>
-                          <button className="doc-btn doc-btn-danger" onClick={async () => {
-                            try {
-                              const res = await fetch(`${API}/solicitud-permiso/${s.id}/decidir`, {
-                                method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${obtenerToken()}` },
-                                body: JSON.stringify({ accept: false, mensaje: 'Solicitud rechazada.' })
-                              });
-                              if (!res.ok) throw new Error((await res.json()).error || 'Error al rechazar');
-                              alert('Solicitud de permiso rechazada');
-                              setSolicitudesPermiso(prev => prev.filter(x => x.id !== s.id));
-                            } catch (err) { alert('Error: ' + err.message); }
-                          }}>Rechazar</button>
-                        </>
-                      )}
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
-        </>
       )}
     </div>
   );
@@ -2643,7 +2491,6 @@ export default function ProcesosLogistica() {
                   </div>
                 )}
 
-                |
               </div>
             </div>
             <div className="modal-footer">
@@ -2678,7 +2525,7 @@ export default function ProcesosLogistica() {
           <p style={{ padding: "15px", color: "#6b7280" }}>No hay documentos radicados.</p>
         ) : (
           filteredList.map((rad) => (
-            <div key={rad.id} className={`correo-item ${selectedRadicadoId === rad.id ? "active" : ""}`} onClick={() => setSelectedRadicadoId(rad.id)}>
+            <div key={rad.id} className={`correo-item ${selectedRadicadoId === rad.id ? "active" : ""}`} onClick={() => openSaia(rad, "radicados")}>
               <div className="correo-item-header">
                 <strong>{rad.documento_comercial?.numero_documento || "—"}</strong>
                 <span className="correo-date">{new Date(rad.fecha_radicacion).toLocaleDateString()}</span>
@@ -2992,7 +2839,7 @@ export default function ProcesosLogistica() {
             </p>
           ) : (
             tareasMostradas.map((rad) => (
-              <div key={rad.id} className={`correo-item ${selectedTareaId === rad.id ? "active" : ""}`} onClick={() => setSelectedTareaId(rad.id)}>
+              <div key={rad.id} className={`correo-item ${selectedTareaId === rad.id ? "active" : ""}`} onClick={() => openSaia(rad, "tareas")} >
                 <div className="correo-item-header">
                   <strong>{rad.documento_comercial?.numero_documento || "—"}</strong>
                   <span className="correo-date">{new Date(rad.fecha_radicacion).toLocaleDateString()}</span>
@@ -3531,6 +3378,193 @@ export default function ProcesosLogistica() {
     );
   };
 
+    const renderSaiaModal = () => {
+    if (!saiaModalOpen || !saiaRadicado) return null;
+    const archivosPdf = (saiaRadicado.archivos || []).filter(a =>
+      a.extension?.toLowerCase() === 'pdf' || a.nombre?.toLowerCase().endsWith('.pdf')
+    );
+    const anexoActual = archivosPdf[saiaAnexoIdx];
+    const readOnly = isFinalState(saiaRadicado.estado_posesion);
+
+    return (
+      <div className="saia-overlay" onClick={() => setSaiaModalOpen(false)}>
+        <div className="saia-container" onClick={e => e.stopPropagation()}>
+          <div className="saia-topbar">
+            <h3><i className="fa-solid fa-stamp"></i> Radicado #{saiaRadicado.numero_radicado}</h3>
+            {archivosPdf.length > 0 && (
+              <select className="saia-anexo-select" value={saiaAnexoIdx} onChange={e => setSaiaAnexoIdx(Number(e.target.value))}>
+                {archivosPdf.map((a, i) => (
+                  <option key={a.id} value={i}>{a.nombre}</option>
+                ))}
+              </select>
+            )}
+            <button className="doc-btn doc-btn-secondary" onClick={() => setSaiaModalOpen(false)} style={{ padding: '6px 14px', fontSize: '0.85em' }}>
+              <i className="fa-solid fa-xmark"></i> Cerrar
+            </button>
+          </div>
+          <div className="saia-body">
+            <div className="saia-pdf-area">
+                {saiaPdfUrl ? (
+                <iframe
+                  className="saia-pdf-frame"
+                  src={saiaPdfUrl}
+                  title="Visor PDF"
+                />
+              ) : (
+                <div className="saia-pdf-empty">
+                  <i className="fa-solid fa-file-pdf" style={{ fontSize: '3em' }}></i>
+                  <p>No hay anexos PDF disponibles</p>
+                </div>
+              )}
+            </div>
+            <div className="saia-sidebar">
+              <div className="saia-tabs">
+                {['info', 'flujo', 'trazabilidad', 'normas', 'comentarios', 'acciones'].map(tab => (
+                  <button key={tab} className={`saia-tab ${saiaActiveTab === tab ? 'active' : ''}`} onClick={() => setSaiaActiveTab(tab)} title={tab}>
+                    {tab === 'info' && <i className="fa-solid fa-circle-info"></i>}
+                    {tab === 'flujo' && <i className="fa-solid fa-route"></i>}
+                    {tab === 'trazabilidad' && <i className="fa-solid fa-clock-rotate-left"></i>}
+                    {tab === 'normas' && <i className="fa-solid fa-chart-pie"></i>}
+                    {tab === 'comentarios' && <i className="fa-solid fa-comments"></i>}
+                    {tab === 'acciones' && <i className="fa-solid fa-bolt"></i>}
+                  </button>
+                ))}
+              </div>
+              <div className="saia-tab-content">
+                {saiaActiveTab === 'info' && (
+                  <>
+                    <div className="doc-section">
+                      <h4><i className="fa-solid fa-circle-info"></i> Información del Radicado</h4>
+                      <div className="doc-grid">
+                        <div className="doc-field"><label>Número</label><span>{saiaRadicado.numero_radicado}</span></div>
+                        <div className="doc-field"><label>Fecha</label><span>{new Date(saiaRadicado.fecha_radicacion).toLocaleString()}</span></div>
+                        <div className="doc-field"><label>Tipo</label><span>{saiaRadicado.tipo_radicacion?.nombre || '—'}</span></div>
+                        <div className="doc-field"><label>Ruta</label><span>{saiaRadicado.ruta?.nombre || '—'}</span></div>
+                        <div className="doc-field"><label>Área</label><span>{typeof saiaRadicado.ruta?.area === 'string' ? saiaRadicado.ruta.area : (saiaRadicado.ruta?.area?.nombre || '—')}</span></div>
+                        <div className="doc-field"><label>Método Pago</label><span>{saiaRadicado.metodo_pago?.nombre || '—'}</span></div>
+                        <div className="doc-field"><label>Estado</label><span>{saiaRadicado.estado_posesion || '—'}</span></div>
+                        <div className="doc-field"><label>Paso Actual</label><span>{saiaRadicado.paso_actual?.nombre || 'Inicio'}</span></div>
+                        <div className="doc-field"><label>Responsable</label><span>{saiaRadicado.usuario_actual?.nombre || '—'}</span></div>
+                      </div>
+                    </div>
+                    {saiaRadicado.documento_comercial && (
+                      <>
+                        <div className="doc-section">
+                          <h4><i className="fa-solid fa-file-invoice"></i> Documento Comercial</h4>
+                          <div className="doc-grid">
+                            <div className="doc-field"><label>Tipo</label><span>{saiaRadicado.documento_comercial.tipo}</span></div>
+                            <div className="doc-field"><label>Número</label><span>{saiaRadicado.documento_comercial.numero_documento}</span></div>
+                            <div className="doc-field"><label>Proveedor</label><span>{saiaRadicado.documento_comercial.proveedor?.razon_social || '—'}</span></div>
+                            <div className="doc-field"><label>Receptor</label><span>{saiaRadicado.documento_comercial.receptor?.nombre || '—'}</span></div>
+                          </div>
+                        </div>
+                        <div className="doc-section">
+                          <h4><i className="fa-solid fa-calculator"></i> Valores</h4>
+                          <div className="doc-totals">
+                            <div className="doc-total-row"><span>Subtotal</span><span>{formatCurrency(saiaRadicado.documento_comercial.subtotal)}</span></div>
+                            <div className="doc-total-row"><span>IVA</span><span>{formatCurrency(saiaRadicado.documento_comercial.iva)}</span></div>
+                            <div className="doc-total-row total-final"><span>Total</span><span>{formatCurrency(saiaRadicado.documento_comercial.total)}</span></div>
+                          </div>
+                        </div>
+                        {saiaRadicado.documento_comercial.detalles?.length > 0 && (
+                          <div className="doc-section">
+                            <h4><i className="fa-solid fa-list"></i> Ítems ({saiaRadicado.documento_comercial.detalles.length})</h4>
+                            <table className="doc-items-table">
+                              <thead><tr><th>Desc.</th><th>Cant.</th><th>V.Unit</th><th>Total</th></tr></thead>
+                              <tbody>{saiaRadicado.documento_comercial.detalles.map(item => (
+                                <tr key={item.id}><td>{item.descripcion}</td><td>{item.cantidad}</td><td>{formatCurrency(item.valor_unitario)}</td><td>{formatCurrency(item.total)}</td></tr>
+                              ))}</tbody>
+                            </table>
+                          </div>
+                        )}
+                      </>
+                    )}
+                    {saiaRadicado.qr?.url && (
+                      <div className="doc-section" style={{ textAlign: 'center' }}>
+                        <h4><i className="fa-solid fa-qrcode"></i> QR Expediente</h4>
+                        <img src={`https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=${encodeURIComponent(saiaRadicado.qr.url)}`} alt="QR" style={{ margin: '12px auto', display: 'block', borderRadius: 8, border: '1px solid #e5e7eb' }} />
+                      </div>
+                    )}
+                  </>
+                )}
+                {saiaActiveTab === 'flujo' && renderFlujoAprobacion()}
+                {saiaActiveTab === 'trazabilidad' && renderTrazabilidad()}
+                {saiaActiveTab === 'normas' && renderNormasReparto(saiaRadicado.id, readOnly)}
+                {saiaActiveTab === 'comentarios' && renderComentarios(saiaRadicado.id, readOnly)}
+                {saiaActiveTab === 'acciones' && (
+                  <div className="doc-section" style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                    <h4><i className="fa-solid fa-bolt"></i> Acciones</h4>
+
+                    <button className="doc-btn doc-btn-secondary" onClick={() => handleDescargarExpediente(saiaRadicado)} disabled={generandoPdf}>
+                      <i className={`fa-solid ${generandoPdf ? 'fa-spinner fa-spin' : 'fa-file-pdf'}`}></i> {generandoPdf ? 'Generando...' : 'Descargar Expediente'}
+                    </button>
+
+                    {anexoActual && !readOnly && (
+                      <button className="doc-btn doc-btn-primary" onClick={() => setPdfEditor({ open: true, archivoId: anexoActual.id, radicadoId: saiaRadicado.id })}>
+                        <i className="fa-solid fa-pen-to-square"></i> Abrir Editor PDF
+                      </button>
+                    )}
+
+                    {!readOnly && (
+                      <div className="doc-section" style={{ margin: 0, padding: 10 }}>
+                        <h4 style={{ fontSize: '0.75em', marginBottom: 8 }}><i className="fa-solid fa-cloud-arrow-up"></i> Adjuntar archivo</h4>
+                        <input type="file" id="anexo-saia-input" onChange={(e) => handleSubirAnexo(e, saiaRadicado.id)} style={{ display: 'none' }} />
+                        <button className="doc-btn doc-btn-secondary" onClick={() => document.getElementById('anexo-saia-input').click()}>
+                          <i className="fa-solid fa-upload"></i> Seleccionar archivo
+                        </button>
+                      </div>
+                    )}
+
+                    {(() => {
+                      const tareaActiva = tareasFlujo.find(t => t.estado?.nombre === "En Proceso");
+                      const esResponsable = tareaActiva && (
+                        String(tareaActiva.usuario_asignado_id) === String(userId) ||
+                        String(saiaRadicado.usuario_actual?.id) === String(userId)
+                      );
+                      const botones = [];
+                      if (esResponsable && !readOnly) {
+                        botones.push(
+                          <button key="completar" className="doc-btn doc-btn-primary" onClick={() => handleCompletarTarea(tareaActiva.id, saiaRadicado.id)} disabled={completandoTarea}>
+                            <i className={`fa-solid ${completandoTarea ? 'fa-spinner fa-spin' : 'fa-check'}`}></i> {completandoTarea ? 'Completando...' : 'Marcar como Completado'}
+                          </button>
+                        );
+                        botones.push(
+                          <button key="devolver" className="doc-btn doc-btn-secondary" onClick={() => { setDevolverForm({ tarea_destino_id: "", observacion: "", retorno_directo: true }); setShowDevolverModal(true); }} style={{ borderColor: 'var(--pardo-red)', color: 'var(--pardo-red)' }}>
+                            <i className="fa-solid fa-reply"></i> Devolver
+                          </button>
+                        );
+                      }
+                      if (esUsuario && !readOnly) {
+                        botones.push(
+                          <button key="solicitar" className="doc-btn doc-btn-secondary" onClick={() => solicitarRechazo(saiaRadicado.id)}>
+                            <i className="fa-solid fa-ban"></i> Solicitar Rechazo
+                          </button>
+                        );
+                      }
+                      if (!readOnly && esAdmin) {
+                        botones.push(
+                          <button key="admin-completar" className="doc-btn doc-btn-primary" onClick={() => marcarCompletado(saiaRadicado.id)}>
+                            <i className="fa-solid fa-check"></i> Marcar Completado (Admin)
+                          </button>
+                        );
+                        botones.push(
+                          <button key="admin-rechazar" className="doc-btn doc-btn-danger" onClick={() => adminRechazar(saiaRadicado.id)}>
+                            <i className="fa-solid fa-ban"></i> Rechazar Definitivo
+                          </button>
+                        );
+                      }
+                      return <>{botones}</>;
+                    })()}
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  };
+
   const renderContent = () => {
     switch (activeTab) {
       case "correos": return renderCorreos();
@@ -3925,80 +3959,6 @@ export default function ProcesosLogistica() {
           </div>
         </div>
       )}
-      {/* ── Modal Solicitar Cambio de Norma de Reparto ── */}
-      {showSolicitarCambioNormaModal && (
-        <div className="modal-overlay" onClick={() => setShowSolicitarCambioNormaModal(false)}>
-          <div className="modal-content" onClick={(e) => e.stopPropagation()} style={{ maxWidth: 500 }}>
-            <div className="modal-header">
-              <h3><i className="fa-solid fa-code-pull-request"></i> Solicitar Cambio de Norma</h3>
-              <button className="modal-close" onClick={() => setShowSolicitarCambioNormaModal(false)}><i className="fa-solid fa-xmark"></i></button>
-            </div>
-            <div className="modal-body">
-              <div style={{ marginBottom: 15, padding: 12, background: "#f3f4f6", borderRadius: 6, fontSize: "0.9em" }}>
-                <strong>Norma:</strong> {solicitarCambioNormaForm.codigo} - {solicitarCambioNormaForm.nombre}<br/>
-                <strong>Porcentaje Actual:</strong> <span style={{ color: "#d97706", fontWeight: "bold" }}>{solicitarCambioNormaForm.porcentaje_actual}%</span>
-              </div>
-              <div className="form-group">
-                <label>Nuevo Porcentaje Solicitado (%)</label>
-                <input
-                  type="number"
-                  step="0.01"
-                  min="0"
-                  max="100"
-                  className="doc-input"
-                  value={solicitarCambioNormaForm.nuevo_porcentaje}
-                  onChange={(e) => setSolicitarCambioNormaForm({ ...solicitarCambioNormaForm, nuevo_porcentaje: e.target.value })}
-                  placeholder="Ej: 75.5"
-                />
-              </div>
-              <div className="form-group">
-                <label>Justificación del Cambio (Opcional)</label>
-                <textarea
-                  className="doc-input"
-                  rows={3}
-                  value={solicitarCambioNormaForm.justificacion}
-                  onChange={(e) => setSolicitarCambioNormaForm({ ...solicitarCambioNormaForm, justificacion: e.target.value })}
-                  placeholder="Explique por qué requiere este cambio..."
-                />
-              </div>
-            </div>
-            <div className="modal-footer" style={{ display: 'flex', justifyContent: 'flex-end', gap: 10, marginTop: 20 }}>
-              <button className="doc-btn doc-btn-secondary" onClick={() => setShowSolicitarCambioNormaModal(false)}>
-                Cancelar
-              </button>
-              <button
-                className="doc-btn doc-btn-primary"
-                disabled={solicitandoCambioNorma || !solicitarCambioNormaForm.nuevo_porcentaje}
-                onClick={async () => {
-                  setSolicitandoCambioNorma(true);
-                  try {
-                    const res = await fetch(`${API}/documentoradicado/${solicitarCambioNormaForm.radicadoId}/solicitar-cambio-norma`, {
-                      method: 'POST',
-                      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${obtenerToken()}` },
-                      body: JSON.stringify({
-                        radicado_norma_reparto_id: solicitarCambioNormaForm.radicado_norma_reparto_id,
-                        norma_reparto_id: solicitarCambioNormaForm.norma_reparto_id,
-                        nuevo_porcentaje: parseFloat(solicitarCambioNormaForm.nuevo_porcentaje),
-                        justificacion: solicitarCambioNormaForm.justificacion
-                      })
-                    });
-                    if (!res.ok) throw new Error((await res.json()).error || "Error al enviar solicitud");
-                    alert("Solicitud enviada correctamente.");
-                    setShowSolicitarCambioNormaModal(false);
-                  } catch (err) {
-                    alert("Error: " + err.message);
-                  } finally {
-                    setSolicitandoCambioNorma(false);
-                  }
-                }}
-              >
-                {solicitandoCambioNorma ? "Enviando..." : "Enviar Solicitud"}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
       {/* ── Modal Agregar/Editar Norma de Reparto ── */}
       {showNormaModal && (
         <div className="modal-overlay" onClick={() => setShowNormaModal(false)}>
@@ -4044,7 +4004,7 @@ export default function ProcesosLogistica() {
                   ))}
                 </select>
               </div>
-
+                  
               <div className="modal-field">
                 <label>Porcentaje <span className="required">*</span></label>
                 <input
@@ -4071,6 +4031,7 @@ export default function ProcesosLogistica() {
           </div>
         </div>
       )}
+            {renderSaiaModal()}
 
 
     </>
