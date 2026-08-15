@@ -156,6 +156,168 @@ body {
 }
 .welcome-wrap h2 { font-size:1.5em; color:var(--gray-900); }
 .welcome-wrap p  { font-size:.95em; color:var(--gray-600); max-width:400px; line-height:1.6; }
+/* ── FULLWIDTH CARD GRID (Radicados / Tareas) ──────────── */
+.fullwidth-list-container {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  overflow: hidden;
+  background: var(--gray-50);
+}
+.fullwidth-list-header {
+  padding: 18px 24px 14px;
+  background: white;
+  border-bottom: 1px solid var(--gray-200);
+  flex-shrink: 0;
+}
+.fullwidth-list-header h3 {
+  margin: 0 0 12px;
+  font-size: 1.15em;
+  color: var(--pardo-navy);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.fullwidth-list-header h3 i {
+  color: var(--pardo-blue);
+}
+.fullwidth-list-header .list-controls {
+  border: none;
+  padding: 0;
+  margin: 0;
+}
+.fullwidth-list-body {
+  flex: 1;
+  overflow-y: auto;
+  padding: 20px 24px;
+}
+.card-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 14px;
+}
+.rad-card {
+  background: white;
+  border-radius: 12px;
+  padding: 16px 18px;
+  border: 1px solid var(--gray-200);
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  position: relative;
+  overflow: hidden;
+}
+.rad-card::before {
+  content: "";
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 3px;
+  background: linear-gradient(90deg, var(--pardo-blue), var(--pardo-yellow));
+  opacity: 0;
+  transition: opacity 0.2s;
+}
+.rad-card:hover {
+  border-color: var(--pardo-blue);
+  box-shadow: 0 4px 16px rgba(44, 82, 130, 0.12);
+  transform: translateY(-2px);
+}
+.rad-card:hover::before { opacity: 1; }
+.rad-card.active {
+  border-color: var(--pardo-blue);
+  box-shadow: 0 4px 16px rgba(44, 82, 130, 0.15);
+}
+.rad-card.active::before { opacity: 1; }
+.rad-card-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+.rad-card-tipo {
+  font-size: 0.72em;
+  font-weight: 600;
+  text-transform: uppercase;
+  color: var(--gray-600);
+  letter-spacing: 0.5px;
+}
+.rad-card-numero {
+  font-size: 1.05em;
+  font-weight: 700;
+  color: var(--pardo-navy);
+}
+.rad-card-numero i {
+  color: var(--pardo-blue);
+  font-size: 0.85em;
+}
+.rad-card-doc {
+  font-size: 0.85em;
+  color: var(--gray-600);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.rad-card-bottom {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 4px;
+  padding-top: 8px;
+  border-top: 1px solid var(--gray-100);
+}
+.rad-card-date {
+  font-size: 0.78em;
+  color: var(--gray-500);
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+.rad-card-user {
+  font-size: 0.78em;
+  color: var(--pardo-blue);
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-weight: 500;
+  max-width: 50%;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* ── Tareas Sub-tabs ── */
+.tareas-subtabs {
+  display: flex;
+  gap: 4px;
+  margin-bottom: 12px;
+  background: var(--gray-100);
+  border-radius: 8px;
+  padding: 3px;
+}
+.tareas-subtabs button {
+  flex: 1;
+  padding: 8px 12px;
+  border: none;
+  border-radius: 6px;
+  background: transparent;
+  font-weight: 600;
+  font-size: 0.85em;
+  color: var(--gray-600);
+  cursor: pointer;
+  transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+}
+.tareas-subtabs button.active {
+  background: white;
+  color: var(--pardo-navy);
+  box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+}
+.tareas-subtabs button:hover:not(.active) {
+  color: var(--pardo-navy);
+}
 
 /* ── CORREOS MODULE ────────────────────────────────────── */
 .correos-container {

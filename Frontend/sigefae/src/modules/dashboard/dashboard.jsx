@@ -2570,9 +2570,9 @@ export default function ProcesosLogistica() {
   const renderRadicados = () => {
     const filteredList = getFilteredRadicados();
     return (
-    <div className="correos-container">
-      <div className="correos-list">
-        <h3>Documentos Radicados ({filteredList.length})</h3>
+    <div className="fullwidth-list-container">
+      <div className="fullwidth-list-header">
+        <h3><i className="fa-solid fa-stamp"></i> Documentos Radicados ({filteredList.length})</h3>
         <div className="list-controls">
           <input type="text" placeholder="Buscar radicado, doc, proveedor..." value={searchRadicados} onChange={e => setSearchRadicados(e.target.value)} />
           <select value={sortRadicados} onChange={e => setSortRadicados(e.target.value)}>
@@ -2581,52 +2581,42 @@ export default function ProcesosLogistica() {
             <option value="estado">Por Estado</option>
           </select>
         </div>
-        {loadingRadicados ? <p style={{ padding: "15px" }}>Cargando...</p> : filteredList.length === 0 ? (
-          <p style={{ padding: "15px", color: "#6b7280" }}>No hay documentos radicados.</p>
-        ) : (
-          filteredList.map((rad) => (
-            <div key={rad.id} className={`correo-item ${selectedRadicadoId === rad.id ? "active" : ""}`} onClick={() => openSaia(rad, "radicados")}>
-              <div className="correo-item-header">
-                <strong>{rad.documento_comercial?.numero_documento || "—"}</strong>
-                <span className="correo-date">{new Date(rad.fecha_radicacion).toLocaleDateString()}</span>
-              </div>
-              <div className="correo-item-subject">{rad.documento_comercial?.tipo || "—"} — {rad.numero_radicado}</div>
-              <div className="correo-item-status">
-                <span className={`status-badge ${rad.estado_posesion === "Completado" ? "radicado" :
-                    rad.estado_posesion === "EnProceso" ? "doc-pendiente" :
-                      (rad.estado_posesion === "Devuelto" || rad.estado_posesion === "Rechazado") ? "doc-rechazado" : ""
-                  }`}>
-                  {rad.estado_posesion === "Completado" ? "Finalizado" :
-                    rad.estado_posesion === "EnProceso" ? "En Proceso" :
-                      (rad.estado_posesion === "Devuelto" || rad.estado_posesion === "Rechazado") ? "Rechazado" :
-                        rad.estado_posesion === "Libre" ? "Libre" : "En espera"}
-                </span>
-
-                {(!isFinalState(rad.estado_posesion)) && rad.usuario_actual?.nombre && (
-                  <span
-                    className="item-asignado"
-                    title={`${rad.usuario_actual.nombre} — ${tareasPorRadicado[rad.id]?.descripcion || rad.paso_actual?.nombre || "Sin paso"}`}>
-                    <i className="fa-solid fa-user"></i>
-                    <span className="asignado-nombre">{rad.usuario_actual.nombre}</span>
-                    {(() => {
-                      const accion =
-                        tareasPorRadicado[rad.id]?.descripcion ||
-                        rad.paso_actual?.nombre;
-                      return accion && <span className="asignado-accion">• {accion}</span>;
-                    })()}
-                  </span>
-                )}
-              </div>
-            </div>
-          ))
-        )}
       </div>
-
-      <div className="correo-detail">
-        <div className="correo-empty">
-          <i className="fa-solid fa-stamp"></i>
-          <p>Selecciona un radicado de la lista para abrirlo</p>
-        </div>
+      <div className="fullwidth-list-body">
+        {loadingRadicados ? <p style={{ padding: "15px" }}>Cargando...</p> : filteredList.length === 0 ? (
+          <div className="correo-empty"><i className="fa-solid fa-inbox"></i><p>No hay documentos radicados.</p></div>
+        ) : (
+          <div className="card-grid">
+            {filteredList.map((rad) => (
+              <div key={rad.id} className={`rad-card ${selectedRadicadoId === rad.id ? "active" : ""}`} onClick={() => openSaia(rad, "radicados")}>
+                <div className="rad-card-top">
+                  <span className="rad-card-tipo">{rad.documento_comercial?.tipo || "—"}</span>
+                  <span className={`status-badge ${rad.estado_posesion === "Completado" ? "radicado" :
+                      rad.estado_posesion === "EnProceso" ? "doc-pendiente" :
+                        (rad.estado_posesion === "Devuelto" || rad.estado_posesion === "Rechazado") ? "doc-rechazado" : ""
+                    }`}>
+                    {rad.estado_posesion === "Completado" ? "Finalizado" :
+                      rad.estado_posesion === "EnProceso" ? "En Proceso" :
+                        (rad.estado_posesion === "Devuelto" || rad.estado_posesion === "Rechazado") ? "Rechazado" :
+                          rad.estado_posesion === "Libre" ? "Libre" : "En espera"}
+                  </span>
+                </div>
+                <div className="rad-card-numero">
+                  <i className="fa-solid fa-hashtag"></i> {rad.numero_radicado}
+                </div>
+                <div className="rad-card-doc">{rad.documento_comercial?.numero_documento || "Sin documento"}</div>
+                <div className="rad-card-bottom">
+                  <span className="rad-card-date"><i className="fa-regular fa-calendar"></i> {new Date(rad.fecha_radicacion).toLocaleDateString()}</span>
+                  {(!isFinalState(rad.estado_posesion)) && rad.usuario_actual?.nombre && (
+                    <span className="rad-card-user" title={`${rad.usuario_actual.nombre} — ${tareasPorRadicado[rad.id]?.descripcion || rad.paso_actual?.nombre || "Sin paso"}`}>
+                      <i className="fa-solid fa-user"></i> {rad.usuario_actual.nombre}
+                    </span>
+                  )}
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
     </div>
     );
@@ -2637,48 +2627,24 @@ export default function ProcesosLogistica() {
     const tareasMostradas = getFilteredTareas(tareasSubTab === "activas" ? misTareas : misTareasCompletadas);
 
     return (
-      <div className="correos-container">
-        <div className="correos-list">
-          <h3>Mis Tareas</h3>
-
+      <div className="fullwidth-list-container">
+        <div className="fullwidth-list-header">
+          <h3><i className="fa-solid fa-clipboard-list"></i> Mis Tareas</h3>
           {/* ── Sub-pestañas ── */}
-          <div style={{ display: "flex", borderBottom: "2px solid var(--gray-200)" }}>
+          <div className="tareas-subtabs">
             <button
+              className={tareasSubTab === "activas" ? "active" : ""}
               onClick={() => { setTareasSubTab("activas"); setSelectedTareaId(null); }}
-              style={{
-                flex: 1,
-                padding: "12px",
-                border: "none",
-                background: tareasSubTab === "activas" ? "white" : "transparent",
-                borderBottom: tareasSubTab === "activas" ? "3px solid var(--pardo-yellow)" : "3px solid transparent",
-                fontWeight: 600,
-                color: tareasSubTab === "activas" ? "var(--pardo-navy)" : "var(--gray-600)",
-                cursor: "pointer",
-                fontSize: "0.9em"
-              }}
             >
-              <i className="fa-solid fa-spinner" style={{ marginRight: 6 }}></i>
-              En Proceso ({misTareas.length})
+              <i className="fa-solid fa-spinner"></i> En Proceso ({misTareas.length})
             </button>
             <button
+              className={tareasSubTab === "completadas" ? "active" : ""}
               onClick={() => { setTareasSubTab("completadas"); setSelectedTareaId(null); }}
-              style={{
-                flex: 1,
-                padding: "12px",
-                border: "none",
-                background: tareasSubTab === "completadas" ? "white" : "transparent",
-                borderBottom: tareasSubTab === "completadas" ? "3px solid var(--pardo-yellow)" : "3px solid transparent",
-                fontWeight: 600,
-                color: tareasSubTab === "completadas" ? "var(--pardo-navy)" : "var(--gray-600)",
-                cursor: "pointer",
-                fontSize: "0.9em"
-              }}
             >
-              <i className="fa-solid fa-check-circle" style={{ marginRight: 6 }}></i>
-              Completadas ({misTareasCompletadas.length})
+              <i className="fa-solid fa-check-circle"></i> Completadas ({misTareasCompletadas.length})
             </button>
           </div>
-          
           <div className="list-controls">
             <input type="text" placeholder="Buscar radicado, doc, proveedor..." value={searchTareas} onChange={e => setSearchTareas(e.target.value)} />
             <select value={sortTareas} onChange={e => setSortTareas(e.target.value)}>
@@ -2687,43 +2653,41 @@ export default function ProcesosLogistica() {
               <option value="estado">Por Estado</option>
             </select>
           </div>
-
+        </div>
+        <div className="fullwidth-list-body">
           {loadingTareas ? (
             <p style={{ padding: "15px" }}>Cargando...</p>
           ) : tareasMostradas.length === 0 ? (
-            <p style={{ padding: "15px", color: "#6b7280" }}>
-              {tareasSubTab === "activas"
-                ? "No tienes documentos asignados."
-                : "No hay documentos finalizados."}
-            </p>
+            <div className="correo-empty">
+              <i className="fa-solid fa-inbox"></i>
+              <p>{tareasSubTab === "activas" ? "No tienes documentos asignados." : "No hay documentos finalizados."}</p>
+            </div>
           ) : (
-            tareasMostradas.map((rad) => (
-              <div key={rad.id} className={`correo-item ${selectedTareaId === rad.id ? "active" : ""}`} onClick={() => openSaia(rad, "tareas")} >
-                <div className="correo-item-header">
-                  <strong>{rad.documento_comercial?.numero_documento || "—"}</strong>
-                  <span className="correo-date">{new Date(rad.fecha_radicacion).toLocaleDateString()}</span>
+            <div className="card-grid">
+              {tareasMostradas.map((rad) => (
+                <div key={rad.id} className={`rad-card ${selectedTareaId === rad.id ? "active" : ""}`} onClick={() => openSaia(rad, "tareas")}>
+                  <div className="rad-card-top">
+                    <span className="rad-card-tipo">{rad.documento_comercial?.tipo || "—"}</span>
+                    <span className={`status-badge ${rad.estado_posesion === "Completado" ? "radicado" :
+                        rad.estado_posesion === "EnProceso" ? "doc-pendiente" :
+                          (rad.estado_posesion === "Devuelto" || rad.estado_posesion === "Rechazado") ? "doc-rechazado" : ""
+                      }`}>
+                      {rad.estado_posesion === "Completado" ? "Finalizado" :
+                        rad.estado_posesion === "EnProceso" ? "En Proceso" :
+                          (rad.estado_posesion === "Devuelto" || rad.estado_posesion === "Rechazado") ? "Rechazado" : "Sin estado"}
+                    </span>
+                  </div>
+                  <div className="rad-card-numero">
+                    <i className="fa-solid fa-hashtag"></i> {rad.numero_radicado}
+                  </div>
+                  <div className="rad-card-doc">{rad.documento_comercial?.numero_documento || "Sin documento"}</div>
+                  <div className="rad-card-bottom">
+                    <span className="rad-card-date"><i className="fa-regular fa-calendar"></i> {new Date(rad.fecha_radicacion).toLocaleDateString()}</span>
+                  </div>
                 </div>
-                <div className="correo-item-subject">{rad.documento_comercial?.tipo || "—"} — {rad.numero_radicado}</div>
-                <div className="correo-item-status">
-                  <span className={`status-badge ${rad.estado_posesion === "Completado" ? "radicado" :
-                      rad.estado_posesion === "EnProceso" ? "doc-pendiente" :
-                        (rad.estado_posesion === "Devuelto" || rad.estado_posesion === "Rechazado") ? "doc-rechazado" : ""
-                    }`}>
-                    {rad.estado_posesion === "Completado" ? "Finalizado" :
-                      rad.estado_posesion === "EnProceso" ? "En Proceso" :
-                        (rad.estado_posesion === "Devuelto" || rad.estado_posesion === "Rechazado") ? "Rechazado" : "Sin estado"}
-                  </span>
-                </div>
-              </div>
-            ))
+              ))}
+            </div>
           )}
-        </div>
-
-        <div className="correo-detail">
-          <div className="correo-empty">
-            <i className="fa-solid fa-clipboard-list"></i>
-            <p>Selecciona una tarea de la lista para abrirla</p>
-          </div>
         </div>
       </div>
     );
