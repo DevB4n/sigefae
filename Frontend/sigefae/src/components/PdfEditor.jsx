@@ -71,7 +71,7 @@ const loadSignatureFromStorage = () => {
   }
 };
 
-export default function PdfEditor({ archivoId, radicadoId, onClose, onSaved }) {
+export default function PdfEditor({ archivoId, archivoNombre, radicadoId, onClose, onSaved }) {
   const [pdfBytes, setPdfBytes] = useState(null);
   const [tool, setTool] = useState(null);
   const [annotations, setAnnotations] = useState([]);
@@ -418,7 +418,7 @@ export default function PdfEditor({ archivoId, radicadoId, onClose, onSaved }) {
 
       const blob = new Blob([newBytes], { type: "application/pdf" });
       const formData = new FormData();
-      formData.append("file", blob, "documento_editado.pdf");
+      formData.append("file", blob, archivoNombre || "documento_editado.pdf");
 
       const res = await fetch(`${API}/archivo/${archivoId}/reemplazar`, {
       method: "PATCH",

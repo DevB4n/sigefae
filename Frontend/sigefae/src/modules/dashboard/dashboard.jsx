@@ -81,7 +81,7 @@ export default function ProcesosLogistica() {
   const [activeTab, setActiveTab] = useState(esAdmin ? "welcome" : "tareas");
 
   //pdf
-  const [pdfEditor, setPdfEditor] = useState({ open: false, archivoId: null, radicadoId: null });
+  const [pdfEditor, setPdfEditor] = useState({ open: false, archivoId: null, archivoNombre: null, radicadoId: null });
     // ── SAIA BPM Viewer ──
   const [saiaModalOpen, setSaiaModalOpen] = useState(false);
   const [saiaRadicado, setSaiaRadicado] = useState(null);
@@ -3092,7 +3092,7 @@ export default function ProcesosLogistica() {
                     </button>
 
                     {anexoActual && !readOnly && (
-                      <button className="doc-btn doc-btn-primary" onClick={() => setPdfEditor({ open: true, archivoId: anexoActual.id, radicadoId: saiaRadicado.id })}>
+                      <button className="doc-btn doc-btn-primary" onClick={() => setPdfEditor({ open: true, archivoId: anexoActual.id, archivoNombre: anexoActual.nombre, radicadoId: saiaRadicado.id })}>
                         <i className="fa-solid fa-pen-to-square"></i> Abrir Editor PDF
                       </button>
                     )}
@@ -3299,11 +3299,13 @@ export default function ProcesosLogistica() {
       {pdfEditor.open && editorPermitido && (
         <PdfEditor
           archivoId={pdfEditor.archivoId}
+          archivoNombre={pdfEditor.archivoNombre}
           radicadoId={pdfEditor.radicadoId}
           onClose={() =>
             setPdfEditor({
               open: false,
               archivoId: null,
+              archivoNombre: null,
               radicadoId: null
             })
           }
@@ -3313,6 +3315,7 @@ export default function ProcesosLogistica() {
             setPdfEditor({
               open: false,
               archivoId: null,
+              archivoNombre: null,
               radicadoId: null
             });
 
