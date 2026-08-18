@@ -1,0 +1,51 @@
+export default function ModalNormaReparto({
+  showNormaModal, setShowNormaModal, normaEditandoId, normaFormDetalle, setNormaFormDetalle,
+  normaModalRadicadoId, normaFiltroSede, setNormaFiltroSede, normaFiltroArea, setNormaFiltroArea,
+  normasRepartoCatalogo, sedesDisponibles, areasDisponibles, handleGuardarNormaDetalle
+}) {
+  if (!showNormaModal) return null;
+
+  const normasFiltradas = normasRepartoCatalogo.filter(n => {
+    if (normaFiltroSede && n.sucursal !== normaFiltroSede) return false;
+    if (normaFiltroArea && n.departamento !== normaFiltroArea) return false;
+    return true;
+  });
+
+  return (
+    <div className="modal-overlay" onClick={() => setShowNormaModal(false)}>
+      <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+        <div className="modal-header">
+          <h3><i className="fa-solid fa-chart-pie"></i> {normaEditandoId ? "Editar" : "Agregar"} Norma de Reparto</h3>
+          <button className="modal-close" onClick={() => setShowNormaModal(false)}><i className="fa-solid fa-xmark"></i></button>
+        </div>
+        <div className="modal-body">
+          <div style={{ display: "flex", gap: 8, marginBottom: 10 }}>
+            <select className="doc-input" style={{ flex: 1 }} value={normaFiltroSede} onChange={(e) => { setNormaFiltroSede(e.target.value); setNormaFiltroArea(""); }}>
+              <option value="">Todas las sedes</option>{sedesDisponibles.map(s => <option key={s} value={s}>{s}</option>)}
+            </select>
+            <select className="doc-input" style={{ flex: 1 }} value={normaFiltroArea} onChange={(e) => setNormaFiltroArea(e.target.value)}>
+              <option value="">Todas las áreas</option>{areasDisponibles.map(a => <option key={a} value={a}>{a}</option>)}
+            </select>
+          </div>
+          <div className="modal-field">
+            <label>Norma <span className="required">*</span></label>
+            <select className="doc-input" value={normaFormDetalle.norma_reparto_id} onChange={(e) => setNormaFormDetalle(prev => ({ ...prev, norma_reparto_id: e.target.value }))}>
+              <option value="">Seleccione norma...</option>
+              {normasFiltradas.map(n => <option key={n.id} value={String(n.id)}>{n.codigo} — {n.nombre} ({n.sucursal} / {n.departamento})</option>)}
+            </select>
+          </div>
+          <div className="modal-field">
+            <label>Porcentaje <span className="required">*</span></label>
+            <input type="number" min="0" max="100" step="0.01" className="doc-input" value={normaFormDetalle.porcentaje} onChange={(e) => setNormaFormDetalle(prev => ({ ...prev, porcentaje: e.target.value }))} placeholder="%" />
+          </div>
+        </div>
+        <div className="modal-footer">
+          <button className="doc-btn doc-btn-secondary" onClick={() => setShowNormaModal(false)}>Cancelar</button>
+          <button className="doc-btn doc-btn-primary" onClick={() => handleGuardarNormaDetalle(normaModalRadicadoId)}>
+            <i className="fa-solid fa-floppy-disk"></i> {normaEditandoId ? "Actualizar" : "Agregar"}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
