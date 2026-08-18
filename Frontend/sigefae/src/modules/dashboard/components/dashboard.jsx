@@ -6,6 +6,8 @@ import { obtenerToken } from "../../auth/token.js";
 import PdfEditor from "../../../components/PdfEditor.jsx";
 import NotificacionesDropdown from "../../../components/NotificacionesDropdown.jsx";
 import AdminToast from "../../../components/AdminToast.jsx";
+import { API } from "../constants/api.js";
+import { isFinalState } from "../helpers/formatters.js";
 
 // Hooks
 import { useAuth } from "../hooks/useAuth.js";
@@ -177,6 +179,7 @@ export default function ProcesosLogistica() {
         saiaModalOpen={saiaHook.saiaModalOpen}
         setSaiaModalOpen={saiaHook.setSaiaModalOpen}
         saiaRadicado={saiaHook.saiaRadicado}
+        setSaiaRadicado={saiaHook.setSaiaRadicado}
         saiaActiveTab={saiaHook.saiaActiveTab}
         setSaiaActiveTab={saiaHook.setSaiaActiveTab}
         saiaAnexoIdx={saiaHook.saiaAnexoIdx}
@@ -191,7 +194,7 @@ export default function ProcesosLogistica() {
         enviandoComentario={flujoHook.enviandoComentario}
         handleEnviarComentario={flujoHook.handleEnviarComentario}
         generandoPdf={pdfExpedienteHook.generandoPdf}
-        handleDescargarExpediente={(rad) => pdfExpedienteHook.handleDescargarExpediente(rad, flujoHook.tareasFlujo, flujoHook.historialTrazabilidad, "http://localhost:8080/api")}
+        handleDescargarExpediente={(rad) => pdfExpedienteHook.handleDescargarExpediente(rad, flujoHook.tareasFlujo, flujoHook.historialTrazabilidad, API)}
         handleVerAnexo={anexosHook.handleVerAnexo}
         handleDescargarAnexo={anexosHook.handleDescargarAnexo}
         handleBorrarAnexo={anexosHook.handleBorrarAnexo}

@@ -8,7 +8,7 @@ import {
   inicializarAudio,
 } from "../utils/notificacion.js";
 
-const API = "http://localhost:8080/api";
+import { API } from "../modules/dashboard/constants/api";
 
 export function useNotificaciones() {
   const [notificaciones, setNotificaciones] = useState([]);

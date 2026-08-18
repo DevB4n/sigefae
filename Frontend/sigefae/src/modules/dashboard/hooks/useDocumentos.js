@@ -187,7 +187,7 @@ export function useDocumentos(obtenerToken, activeTab) {
   };
 
   return {
-    documentos, selectedDocId, setSelectedDocId, docDetail, loadingDocs,
+    documentos, setDocumentos, selectedDocId, setSelectedDocId, docDetail, setDocDetail, loadingDocs,
     searchDocs, setSearchDocs, sortDocs, setSortDocs, getFilteredDocs,
     showCrearDocModal, setShowCrearDocModal, docForm, setDocForm, creandoDoc,
     showCrearProveedorModal, setShowCrearProveedorModal, proveedorForm, creandoProveedor,

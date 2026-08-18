@@ -1,6 +1,8 @@
+import { API } from "../dashboard/constants/api.js";
+
 export async function login(email, password) {
 
-    const response = await fetch("http://localhost:8080/api/auth/login", {
+    const response = await fetch(`${API}/auth/login`, {
 
         method: "POST",
 

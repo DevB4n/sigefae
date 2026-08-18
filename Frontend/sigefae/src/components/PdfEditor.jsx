@@ -11,7 +11,7 @@ pdfjsLib.GlobalWorkerOptions.workerSrc = new URL(
   import.meta.url
 ).toString();
 
-const API = "http://localhost:8080/api";
+import { API } from "../modules/dashboard/constants/api";
 
 const hexToRgb = (hex) => {
   const r = parseInt(hex.slice(1, 3), 16) / 255;
@@ -73,6 +73,8 @@ const loadSignatureFromStorage = () => {
 
 export default function PdfEditor({ archivoId, archivoNombre, radicadoId, onClose, onSaved }) {
   const [pdfBytes, setPdfBytes] = useState(null);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [numPages, setNumPages] = useState(1);
   const [tool, setTool] = useState(null);
   const [annotations, setAnnotations] = useState([]);
   const [showTextModal, setShowTextModal] = useState(false);
@@ -116,8 +118,9 @@ export default function PdfEditor({ archivoId, archivoNombre, radicadoId, onClos
       const pdf = await pdfjsLib.getDocument({ data: buf.slice(0) }).promise;
       if (cancelled) return;
       pdfDocRef.current = pdf;
+      setNumPages(pdf.numPages);
 
-      await renderPage();
+      await renderPage(1);
     };
 
     load();
@@ -127,11 +130,11 @@ export default function PdfEditor({ archivoId, archivoNombre, radicadoId, onClos
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [archivoId]);
 
-  const renderPage = useCallback(async () => {
+  const renderPage = useCallback(async (pageNum) => {
     const pdf = pdfDocRef.current;
     if (!pdf) return;
 
-    const page = await pdf.getPage(1);
+    const page = await pdf.getPage(pageNum);
     const viewport1 = page.getViewport({ scale: 1 });
 
     const targetWidth = viewerWrapRef.current?.clientWidth || viewport1.width;
@@ -150,10 +153,16 @@ export default function PdfEditor({ archivoId, archivoNombre, radicadoId, onClos
 
   // Re-renderizar si cambia el ancho disponible (p. ej. resize de ventana)
   useEffect(() => {
-    const onResize = () => renderPage();
+    const onResize = () => renderPage(currentPage);
     window.addEventListener("resize", onResize);
     return () => window.removeEventListener("resize", onResize);
-  }, [renderPage]);
+  }, [renderPage, currentPage]);
+
+  useEffect(() => {
+    if (pdfDocRef.current) {
+      renderPage(currentPage);
+    }
+  }, [currentPage, renderPage]);
 
   // ── Drag & Resize globales ──
   useEffect(() => {
@@ -241,6 +250,7 @@ export default function PdfEditor({ archivoId, archivoNombre, radicadoId, onClos
       y: pos.y,
       width: sigWidth,
       height: sigHeight,
+      page: currentPage,
     },
     {
       id: sigId + 1,
@@ -251,6 +261,7 @@ export default function PdfEditor({ archivoId, archivoNombre, radicadoId, onClos
       y: pos.y + sigHeight + 4, // justo debajo de la firma
       width: sigWidth,
       height: 20,
+      page: currentPage,
     },
   ]);
   };
@@ -271,6 +282,7 @@ export default function PdfEditor({ archivoId, archivoNombre, radicadoId, onClos
       y,
       width: tool === "text" ? 200 : 120,
       height: tool === "text" ? 36 : 120,
+      page: currentPage,
     };
 
     setTempPos({ x, y });
@@ -312,6 +324,7 @@ export default function PdfEditor({ archivoId, archivoNombre, radicadoId, onClos
         y: tempPos.y,
         width: Math.max(200, textValue.length * 9),
         height: 36,
+        page: currentPage,
       },
     ]);
     setShowTextModal(false);
@@ -378,13 +391,13 @@ export default function PdfEditor({ archivoId, archivoNombre, radicadoId, onClos
       return;
     }
     const doc = await PDFDocument.load(pdfBytes);
-    const page = doc.getPages()[0];
-    const { height: pdfH } = page.getSize();
     const font = await doc.embedFont(StandardFonts.Helvetica);
     const scale = 1 / renderScale;
 
     try {
       for (const ann of annotations) {
+        const page = doc.getPages()[ann.page - 1];
+        const { height: pdfH } = page.getSize();
         const pdfX = ann.x * scale;
         const pdfY = pdfH - (ann.y + ann.height) * scale;
 
@@ -532,6 +545,16 @@ export default function PdfEditor({ archivoId, archivoNombre, radicadoId, onClos
 
           <div style={{ flex: 1 }} />
 
+          {numPages > 1 && (
+            <div className="pdf-pagination">
+              <button disabled={currentPage <= 1} onClick={() => setCurrentPage(currentPage - 1)}><i className="fa-solid fa-chevron-left"></i></button>
+              <span>Página {currentPage} de {numPages}</span>
+              <button disabled={currentPage >= numPages} onClick={() => setCurrentPage(currentPage + 1)}><i className="fa-solid fa-chevron-right"></i></button>
+            </div>
+          )}
+
+          <div style={{ flex: 1 }} />
+
           <button className="btn-save-pdf" onClick={applyChanges}>
             <i className="fa-solid fa-floppy-disk"></i> Guardar PDF
           </button>
@@ -558,7 +581,7 @@ export default function PdfEditor({ archivoId, archivoNombre, radicadoId, onClos
               onClick={handleOverlayClick}
             />
 
-            {annotations.map((ann) => (
+            {annotations.filter(ann => ann.page === currentPage).map((ann) => (
               <div
                 key={ann.id}
                 className="pdf-annotation"

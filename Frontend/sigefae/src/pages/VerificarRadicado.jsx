@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { useParams } from "react-router-dom";
 import styles from "./VerificarRadicado.module.css";
 
-const API = "http://localhost:8080/api";
+import { API } from "../modules/dashboard/constants/api";
 
 export default function VerificarRadicado() {
   const { numero } = useParams();

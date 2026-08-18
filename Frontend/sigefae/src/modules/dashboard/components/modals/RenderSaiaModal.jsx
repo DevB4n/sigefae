@@ -5,7 +5,7 @@ import RenderNormasReparto from "../RenderNormasReparto.jsx";
 import RenderComentarios from "../RenderComentarios.jsx";
 
 export default function RenderSaiaModal({
-  saiaModalOpen, setSaiaModalOpen, saiaRadicado, saiaActiveTab, setSaiaActiveTab,
+  saiaModalOpen, setSaiaModalOpen, saiaRadicado, setSaiaRadicado, saiaActiveTab, setSaiaActiveTab,
   saiaAnexoIdx, setSaiaAnexoIdx, saiaPdfUrl,
   tareasFlujo, historialTrazabilidad, normasRepartoRadicado, comentarios,
   nuevoComentario, setNuevoComentario, enviandoComentario, handleEnviarComentario,

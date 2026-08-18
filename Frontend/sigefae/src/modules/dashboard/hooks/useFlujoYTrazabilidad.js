@@ -67,10 +67,16 @@ export function useFlujoYTrazabilidad(obtenerToken, selectedRadicadoId, selected
     setTareasFlujo(Array.isArray(flujoData) ? flujoData : []);
   };
 
+  const recargarTrazabilidad = async (radicadoId) => {
+    const res = await fetch(`${API}/trazabilidad?documento_radicado_id=${radicadoId}`, { headers: { Authorization: `Bearer ${obtenerToken()}` } });
+    const data = await res.json();
+    setHistorialTrazabilidad(Array.isArray(data) ? data : []);
+  };
+
   return {
     tareasFlujo, setTareasFlujo, historialTrazabilidad, setHistorialTrazabilidad,
     normasRepartoRadicado, setNormasRepartoRadicado,
     comentarios, nuevoComentario, setNuevoComentario, enviandoComentario,
-    handleEnviarComentario, recargarComentarios, recargarNormas, recargarFlujo
+    handleEnviarComentario, recargarComentarios, recargarNormas, recargarFlujo, recargarTrazabilidad
   };
 }

@@ -74,6 +74,7 @@ export function useCatalogos(obtenerToken, activeTab) {
     if (cfg.fields.includes("area_id") && !body.area_id) { alert("Debe seleccionar un área"); return; }
     if (cfg.fields.includes("ruta_id") && !body.ruta_id) { alert("Debe seleccionar una ruta"); return; }
     if (cfg.fields.includes("usuario_id") && !body.usuario_id) { alert("Debe seleccionar un usuario"); return; }
+    if (cfg.fields.includes("tipo_pago_id") && !body.tipo_pago_id) { alert("Debe seleccionar un tipo de pago"); return; }
 
     try {
       const res = await fetch(url, { method, headers: { "Content-Type": "application/json", Authorization: `Bearer ${obtenerToken()}` }, body: JSON.stringify(body) });

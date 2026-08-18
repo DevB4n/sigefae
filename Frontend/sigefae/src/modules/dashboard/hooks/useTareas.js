@@ -64,8 +64,8 @@ export function useTareas(obtenerToken, activeTab, userId) {
   };
 
   return {
-    misTareas, misTareasCompletadas, selectedTareaId, setSelectedTareaId,
-    tareaDetail, loadingTareas, tareasSubTab, setTareasSubTab,
+    misTareas, setMisTareas, misTareasCompletadas, setMisTareasCompletadas, selectedTareaId, setSelectedTareaId,
+    tareaDetail, setTareaDetail, loadingTareas, tareasSubTab, setTareasSubTab,
     searchTareas, setSearchTareas, sortTareas, setSortTareas, getFilteredTareas
   };
 }

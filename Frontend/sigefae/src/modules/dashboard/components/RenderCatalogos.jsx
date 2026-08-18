@@ -11,29 +11,29 @@ export default function RenderCatalogos({
     const value = catalogoForm[field] || "";
     if (field === "tipo_pago_id") return (
       <div className="modal-field" key={field}><label>Tipo de Pago <span className="required">*</span></label>
-        <select name={field} value={value} onChange={handleCatalogoFormChange}>{tiposPagoCatalogo.map(tp => <option key={tp.id} value={tp.id}>{tp.nombre}</option>)}</select>
+        <select name={field} value={value} onChange={handleCatalogoFormChange}><option value="">Seleccione...</option>{tiposPagoCatalogo.map(tp => <option key={tp.id} value={tp.id}>{tp.nombre}</option>)}</select>
       </div>
     );
     if (field === "area_id") return (
       <div className="modal-field" key={field}><label>Área <span className="required">*</span></label>
-        <select name={field} value={value} onChange={handleCatalogoFormChange}>{areasCatalogo.map(a => <option key={a.id} value={a.id}>{a.nombre}</option>)}</select>
+        <select name={field} value={value} onChange={handleCatalogoFormChange}><option value="">Seleccione...</option>{areasCatalogo.map(a => <option key={a.id} value={a.id}>{a.nombre}</option>)}</select>
       </div>
     );
     if (field === "ruta_id") return (
       <div className="modal-field" key={field}><label>Ruta <span className="required">*</span></label>
-        <select name={field} value={value} onChange={handleCatalogoFormChange}>{rutasCatalogo.map(r => <option key={r.id} value={r.id}>{r.nombre}</option>)}</select>
+        <select name={field} value={value} onChange={handleCatalogoFormChange}><option value="">Seleccione...</option>{rutasCatalogo.map(r => <option key={r.id} value={r.id}>{r.nombre}</option>)}</select>
       </div>
     );
     if (field === "usuario_id" || field === "usuario_aprobador_id") return (
       <div className="modal-field" key={field}><label>{field === "usuario_id" ? "Usuario Responsable" : "Usuario Aprobador"} <span className="required">*</span></label>
-        <select name={field} value={value} onChange={handleCatalogoFormChange}>{usuariosCatalogo.map(u => <option key={u.id} value={u.id}>{u.nombre}</option>)}</select>
+        <select name={field} value={value} onChange={handleCatalogoFormChange}><option value="">Seleccione...</option>{usuariosCatalogo.map(u => <option key={u.id} value={u.id}>{u.nombre}</option>)}</select>
       </div>
     );
     if (field === "orden") return <div className="modal-field" key={field} style={{ maxWidth: 120 }}><label>Orden <span className="required">*</span></label><input type="number" name={field} value={value} onChange={handleCatalogoFormChange} min="1" /></div>;
     if (field === "monto_minimo") return <div className="modal-field" key={field} style={{ maxWidth: 160 }}><label>Monto Mínimo <span className="required">*</span></label><input type="number" name={field} value={value} onChange={handleCatalogoFormChange} min="0" /></div>;
     if (field === "moneda_id") return (
       <div className="modal-field" key={field}><label>Moneda <span className="required">*</span></label>
-        <select name={field} value={value} onChange={handleCatalogoFormChange}>{monedasCatalogo.map(m => <option key={m.id} value={m.id}>{m.nombre} ({m.codigo})</option>)}</select>
+        <select name={field} value={value} onChange={handleCatalogoFormChange}><option value="">Seleccione...</option>{monedasCatalogo.map(m => <option key={m.id} value={m.id}>{m.nombre} ({m.codigo})</option>)}</select>
       </div>
     );
     if (field === "posicion_insercion") return (

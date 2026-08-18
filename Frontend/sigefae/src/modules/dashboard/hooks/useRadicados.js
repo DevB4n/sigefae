@@ -76,7 +76,7 @@ export function useRadicados(obtenerToken, activeTab, userId) {
   };
 
   return {
-    radicados, selectedRadicadoId, setSelectedRadicadoId, radicadoDetail,
+    radicados, setRadicados, selectedRadicadoId, setSelectedRadicadoId, radicadoDetail, setRadicadoDetail,
     loadingRadicados, searchRadicados, setSearchRadicados, sortRadicados, setSortRadicados,
     tareasPorRadicado, getFilteredRadicados
   };

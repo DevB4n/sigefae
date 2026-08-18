@@ -54,7 +54,7 @@ export function useSaia(obtenerToken) {
 
   return {
     saiaModalOpen, setSaiaModalOpen, saiaRadicado, setSaiaRadicado,
-    saiaActiveTab, setSaiaActiveTab, saiaAnexoIdx, setSaiaAnexoIdx, saiaPdfUrl,
+    saiaActiveTab, setSaiaActiveTab, saiaAnexoIdx, setSaiaAnexoIdx, saiaPdfUrl, setSaiaPdfUrl,
     openSaia
   };
 }

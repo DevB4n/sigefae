@@ -98,7 +98,7 @@ export default function RenderComentarios({
 
           <button
             className="doc-btn doc-btn-primary"
-            onClick={() => handleEnviarComentario(radicadoId)}
+            onClick={() => handleEnviarComentario(radicadoId, userId)}
             disabled={enviandoComentario || !nuevoComentario.trim()}
             style={{ marginTop: 2 }}
           >
