@@ -146,6 +146,7 @@ export default function ProcesosLogistica() {
         loadingRadicados={radicadosHook.loadingRadicados} 
         {...finanzasHook} 
         userRole={userRol} 
+        handleSubirAnexo={anexosHook.handleSubirAnexo}
         openSaia={(rad, fromTab) => saiaHook.openSaia(rad, fromTab, tareasHook.setSelectedTareaId, radicadosHook.setSelectedRadicadoId, flujoHook.recargarFlujo, flujoHook.recargarTrazabilidad, flujoHook.recargarNormas, flujoHook.recargarComentarios)} 
       />;
       default: return <RenderWelcome />;

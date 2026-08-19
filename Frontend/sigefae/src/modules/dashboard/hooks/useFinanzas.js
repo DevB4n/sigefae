@@ -51,11 +51,57 @@ export function useFinanzas(obtenerToken, radicadosHook) {
     }
   };
 
+  const handlePagar = async (id, pagado) => {
+    try {
+      const token = obtenerToken();
+      const res = await fetch(`${API}/documentoradicado/${id}/pagar`, {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`
+        },
+        body: JSON.stringify({ pagado })
+      });
+
+      if (!res.ok) {
+        const err = await res.json();
+        throw new Error(err.error || "Error al actualizar el pago");
+      }
+
+      // Actualizar localmente el radicado en el hook de radicados
+      radicadosHook.setRadicados((prev) => 
+        prev.map((rad) => 
+          rad.id === id 
+            ? { ...rad, pagado, fecha_pago: pagado && !rad.pagado ? new Date().toISOString() : (!pagado ? null : rad.fecha_pago) } 
+            : rad
+        )
+      );
+
+      // Si está viéndolo en detalle, también actualizar
+      if (radicadosHook.radicadoDetail && radicadosHook.radicadoDetail.id === id) {
+        radicadosHook.setRadicadoDetail({
+          ...radicadosHook.radicadoDetail,
+          pagado,
+          fecha_pago: pagado && !radicadosHook.radicadoDetail.pagado ? new Date().toISOString() : (!pagado ? null : radicadosHook.radicadoDetail.fecha_pago)
+        });
+      }
+
+      const AdminToast = document.querySelector(".admin-toast");
+      if (AdminToast) {
+        const event = new CustomEvent("showToast", { detail: { message: "Pago actualizado", type: "success" } });
+        document.dispatchEvent(event);
+      }
+    } catch (err) {
+      alert("Error: " + err.message);
+    }
+  };
+
   return {
     searchFinanzas,
     setSearchFinanzas,
     sortFinanzas,
     setSortFinanzas,
-    handleCausar
+    handleCausar,
+    handlePagar
   };
 }

@@ -33,6 +33,8 @@ type DocumentoRadicado struct {
 	Causado                 bool                     `gorm:"column:causado;default:false" json:"causado"`
 	FechaCausacion          *time.Time               `gorm:"column:fecha_causacion" json:"fecha_causacion"`
 	NumeroEgreso            string                   `gorm:"column:numero_egreso;type:varchar(100)" json:"numero_egreso"`
+	Pagado                  bool                     `gorm:"column:pagado;default:false" json:"pagado"`
+	FechaPago               *time.Time               `gorm:"column:fecha_pago" json:"fecha_pago"`
 	NormasReparto           []RadicadoNormaReparto   `gorm:"foreignKey:DocumentoRadicadoID" json:"normas_reparto,omitempty"`
 	MetodoPagoID            uint                     `gorm:"column:metodo_pago_id;index:idx_radicado_metodo_pago" json:"metodo_pago_id"`
 	MetodoPago              *MetodoPago              `gorm:"foreignKey:MetodoPagoID;references:ID" json:"metodo_pago,omitempty"`

@@ -876,3 +876,79 @@ func (h *Handler) Causar(c *gin.Context) {
 
 	c.JSON(http.StatusOK, gin.H{"message": "Causación actualizada correctamente"})
 }
+
+// ─────────────────────────────────────────────────────────────────
+// Pago (Tesorería)
+// ─────────────────────────────────────────────────────────────────
+
+func (h *Handler) Pagar(c *gin.Context) {
+	user := c.MustGet("user").(db.Usuario)
+	
+	// Validar permisos (Tesorería o Superadministrador)
+	if user.Rol == nil || (user.Rol.Nombre != "Tesorería" && user.Rol.Nombre != "Superadministrador") {
+		c.JSON(http.StatusForbidden, gin.H{"error": "No tienes permisos para realizar pagos"})
+		return
+	}
+
+	id, err := strconv.ParseUint(c.Param("id"), 10, 64)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "id inválido"})
+		return
+	}
+
+	var body struct {
+		Pagado bool `json:"pagado"`
+	}
+	if err := c.ShouldBindJSON(&body); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	var radicado db.DocumentoRadicado
+	if err := h.db.First(&radicado, uint(id)).Error; err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "documento no encontrado"})
+		return
+	}
+
+	// Regla de negocio: Si ya está pagado, no se puede desmarcar a menos que sea Superadministrador
+	if radicado.Pagado && !body.Pagado && user.Rol.Nombre != "Superadministrador" {
+		c.JSON(http.StatusForbidden, gin.H{"error": "Una factura pagada solo puede ser revertida por un Superadministrador"})
+		return
+	}
+
+	updates := map[string]any{
+		"pagado": body.Pagado,
+	}
+
+	var accionTrazabilidad string
+	if body.Pagado && !radicado.Pagado {
+		now := time.Now()
+		updates["fecha_pago"] = &now
+		accionTrazabilidad = "Pago Realizado"
+	} else if !body.Pagado && radicado.Pagado {
+		updates["fecha_pago"] = gorm.Expr("NULL")
+		accionTrazabilidad = "Pago Revertido"
+	}
+
+	if err := h.db.Model(&radicado).Updates(updates).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	// Trazabilidad si hubo cambio de estado
+	if accionTrazabilidad != "" {
+		desc := "La factura fue marcada como pagada."
+		if !body.Pagado {
+			desc = "Se revertió el pago de la factura."
+		}
+		h.db.Create(&db.Trazabilidad{
+			DocumentoRadicadoID: radicado.ID,
+			UsuarioID:           user.ID,
+			Accion:              accionTrazabilidad,
+			Descripcion:         desc,
+			Fecha:               time.Now(),
+		})
+	}
+
+	c.JSON(http.StatusOK, gin.H{"message": "Pago actualizado correctamente"})
+}

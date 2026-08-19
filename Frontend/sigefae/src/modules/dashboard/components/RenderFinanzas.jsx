@@ -10,6 +10,8 @@ export default function RenderFinanzas({
   openSaia,
   userRole,
   handleCausar,
+  handlePagar,
+  handleSubirAnexo
 }) {
   // Filtrar radicados por búsqueda y estado
   const getFilteredRadicados = () => {
@@ -71,6 +73,19 @@ export default function RenderFinanzas({
     handleCausar(rad.id, rad.causado, val);
   };
 
+  const handlePagarChange = (rad) => {
+    if (rad.pagado && userRole !== "Superadministrador") return; 
+    
+    const confirmar = window.confirm(
+      rad.pagado 
+        ? "¿Estás seguro que deseas revertir el pago de esta factura?" 
+        : "¿Confirmas que esta factura ha sido pagada?"
+    );
+    if (!confirmar) return;
+
+    handlePagar(rad.id, !rad.pagado);
+  };
+
   return (
     <div className="fullwidth-list-container">
       <div className="fullwidth-list-header">
@@ -110,6 +125,7 @@ export default function RenderFinanzas({
                   <th style={{ padding: "16px", borderBottom: "2px solid #e2e8f0" }}>Normas Aplicadas</th>
                   <th style={{ padding: "16px", borderBottom: "2px solid #e2e8f0" }}>Causación</th>
                   <th style={{ padding: "16px", borderBottom: "2px solid #e2e8f0" }}>N° Egreso</th>
+                  <th style={{ padding: "16px", borderBottom: "2px solid #e2e8f0" }}>Pago (Tesorería)</th>
                   <th style={{ padding: "16px", borderBottom: "2px solid #e2e8f0", textAlign: "center" }}>Acciones</th>
                 </tr>
               </thead>
@@ -117,8 +133,10 @@ export default function RenderFinanzas({
                 {filteredList.map((rad) => {
                   const doc = rad.documento_comercial;
                   const esContabilidad = userRole === "Contabilidad" || userRole === "Superadministrador";
+                  const esTesoreria = userRole === "Tesorería" || userRole === "Superadministrador";
                   const checkDisabled = (!esContabilidad) || (rad.causado && userRole !== "Superadministrador");
                   const egresoDisabled = (!esContabilidad) || (rad.numero_egreso && userRole !== "Superadministrador");
+                  const pagoDisabled = (!esTesoreria) || (rad.pagado && userRole !== "Superadministrador");
 
                   return (
                     <tr key={rad.id} style={{ transition: "background-color 0.2s", ":hover": { backgroundColor: "#f1f5f9" } }}>
@@ -194,6 +212,42 @@ export default function RenderFinanzas({
                             cursor: egresoDisabled ? "not-allowed" : "text"
                           }}
                         />
+                      </td>
+                      <td style={{ padding: "16px", borderBottom: "1px solid #e2e8f0" }}>
+                        <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+                          <input
+                            type="checkbox"
+                            checked={rad.pagado || false}
+                            onChange={() => handlePagarChange(rad)}
+                            disabled={pagoDisabled}
+                            style={{ 
+                              cursor: pagoDisabled ? "not-allowed" : "pointer",
+                              width: "18px", height: "18px", accentColor: "var(--primary-color)"
+                            }}
+                          />
+                          {rad.fecha_pago ? (
+                            <span style={{ fontSize: "0.85em", color: "#10b981", fontWeight: "500", display: "flex", alignItems: "center", gap: "4px" }}>
+                              <i className="fa-solid fa-check-circle"></i> {new Date(rad.fecha_pago).toLocaleDateString()}
+                            </span>
+                          ) : (
+                            <span style={{ fontSize: "0.85em", color: "#94a3b8" }}>Pendiente</span>
+                          )}
+                        </div>
+                        <div style={{ marginTop: "8px" }}>
+                          <label 
+                            className={`doc-btn ${!esTesoreria ? "doc-btn-secondary" : "doc-btn-primary"}`} 
+                            style={{ padding: "4px 8px", fontSize: "0.75em", cursor: !esTesoreria ? "not-allowed" : "pointer", opacity: !esTesoreria ? 0.6 : 1, display: "inline-block" }}
+                            title={rad.archivos && rad.archivos.length > 0 ? `Tiene ${rad.archivos.length} anexos. Clic para subir comprobante.` : "Subir comprobante"}
+                          >
+                            <i className="fa-solid fa-upload"></i> Subir Comp.
+                            <input 
+                              type="file" 
+                              style={{ display: "none" }} 
+                              disabled={!esTesoreria}
+                              onChange={(e) => handleSubirAnexo(e, rad.id, null, null, null, false, null)} 
+                            />
+                          </label>
+                        </div>
                       </td>
                       <td style={{ padding: "16px", borderBottom: "1px solid #e2e8f0", textAlign: "center" }}>
                         <button 
