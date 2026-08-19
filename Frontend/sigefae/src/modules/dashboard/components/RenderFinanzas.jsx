@@ -11,9 +11,9 @@ export default function RenderFinanzas({
   userRole,
   handleCausar,
 }) {
-  // Filtrar radicados por búsqueda
+  // Filtrar radicados por búsqueda y estado
   const getFilteredRadicados = () => {
-    let list = radicados;
+    let list = radicados.filter(r => r.estado_posesion === "Completado");
 
     if (searchFinanzas.trim()) {
       const lower = searchFinanzas.toLowerCase();
@@ -106,7 +106,8 @@ export default function RenderFinanzas({
                   <th style={{ padding: "16px", borderBottom: "2px solid #e2e8f0" }}>N° Factura</th>
                   <th style={{ padding: "16px", borderBottom: "2px solid #e2e8f0" }}>Fecha Fact.</th>
                   <th style={{ padding: "16px", borderBottom: "2px solid #e2e8f0" }}>Fecha Venc.</th>
-                  <th style={{ padding: "16px", borderBottom: "2px solid #e2e8f0" }}>Total Factura</th>
+                  <th style={{ padding: "16px", borderBottom: "2px solid #e2e8f0" }}>Valores</th>
+                  <th style={{ padding: "16px", borderBottom: "2px solid #e2e8f0" }}>Normas Aplicadas</th>
                   <th style={{ padding: "16px", borderBottom: "2px solid #e2e8f0" }}>Causación</th>
                   <th style={{ padding: "16px", borderBottom: "2px solid #e2e8f0" }}>N° Egreso</th>
                   <th style={{ padding: "16px", borderBottom: "2px solid #e2e8f0", textAlign: "center" }}>Acciones</th>
@@ -135,8 +136,27 @@ export default function RenderFinanzas({
                       <td style={{ padding: "16px", borderBottom: "1px solid #e2e8f0", color: "#64748b", fontSize: "0.95em" }}>
                         {doc?.fecha_vencimiento ? new Date(doc.fecha_vencimiento).toLocaleDateString() : "—"}
                       </td>
-                      <td style={{ padding: "16px", borderBottom: "1px solid #e2e8f0", fontWeight: "600", color: "#0f172a" }}>
-                        {formatCurrency(doc?.total, doc?.moneda?.codigo)}
+                      <td style={{ padding: "16px", borderBottom: "1px solid #e2e8f0", fontSize: "0.9em" }}>
+                        <div style={{ display: "flex", flexDirection: "column", gap: "2px" }}>
+                          <span style={{ color: "#64748b" }}>Sub: {formatCurrency(doc?.subtotal, doc?.moneda?.codigo)}</span>
+                          <span style={{ color: "#64748b" }}>IVA: {formatCurrency(doc?.iva, doc?.moneda?.codigo)}</span>
+                          <span style={{ fontWeight: "600", color: "#0f172a", marginTop: "2px" }}>Tot: {formatCurrency(doc?.total, doc?.moneda?.codigo)}</span>
+                        </div>
+                      </td>
+                      <td style={{ padding: "16px", borderBottom: "1px solid #e2e8f0", fontSize: "0.85em", color: "#475569" }}>
+                        {(!rad.normas_reparto || rad.normas_reparto.length === 0) ? (
+                          <span style={{ fontStyle: "italic", color: "#94a3b8" }}>Sin normas</span>
+                        ) : (
+                          <div style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
+                            {rad.normas_reparto.map((nr, idx) => (
+                              <div key={idx} style={{ background: "#f8fafc", padding: "4px 8px", borderRadius: "4px", border: "1px solid #e2e8f0" }}>
+                                <strong>{nr.norma_reparto?.nombre || "N/A"}</strong> ({nr.porcentaje}%)
+                                <br/>
+                                <span style={{ color: "#1e293b", fontWeight: "600" }}>{formatCurrency((doc?.subtotal || 0) * (nr.porcentaje / 100), doc?.moneda?.codigo)}</span>
+                              </div>
+                            ))}
+                          </div>
+                        )}
                       </td>
                       <td style={{ padding: "16px", borderBottom: "1px solid #e2e8f0" }}>
                         <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
