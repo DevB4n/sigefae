@@ -21,7 +21,7 @@ export function useSaia(obtenerToken) {
       return;
     }
     let cancelled = false;
-    fetch(`${API}/archivo/${anexoActual.id}/download`, { headers: { Authorization: `Bearer ${obtenerToken()}` } })
+    fetch(`${API}/archivo/${anexoActual.id}/download?t=${new Date().getTime()}`, { headers: { Authorization: `Bearer ${obtenerToken()}` } })
       .then(res => { if (!res.ok) throw new Error("No se pudo cargar el PDF"); return res.blob(); })
       .then(blob => { if (cancelled) return; const url = URL.createObjectURL(blob); setSaiaPdfUrl(prev => { if (prev) URL.revokeObjectURL(prev); return url; }); })
       .catch(() => { if (!cancelled) setSaiaPdfUrl(null); });

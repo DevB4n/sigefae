@@ -62,6 +62,19 @@ func Seed(db *gorm.DB) error {
 	}
 
 	// ==========================
+	// Roles: Contabilidad y Tesorería
+	// ==========================
+	contabilidadRole := Rol{Nombre: "Contabilidad"}
+	if err := db.Where("nombre = ?", contabilidadRole.Nombre).FirstOrCreate(&contabilidadRole).Error; err != nil {
+		return err
+	}
+
+	tesoreriaRole := Rol{Nombre: "Tesorería"}
+	if err := db.Where("nombre = ?", tesoreriaRole.Nombre).FirstOrCreate(&tesoreriaRole).Error; err != nil {
+		return err
+	}
+
+	// ==========================
 	// Usuario: Administrador
 	// ==========================
 	hashAdmin, err := bcrypt.GenerateFromPassword([]byte("admin123"), bcrypt.DefaultCost)
@@ -98,22 +111,30 @@ func Seed(db *gorm.DB) error {
 	}
 
 	// ==========================
-	// Usuario: María Contadora
+	// Usuario: Prueba Contabilidad
 	// ==========================
-	hashMaria, err := bcrypt.GenerateFromPassword([]byte("maria123"), bcrypt.DefaultCost)
-	if err != nil {
-		return err
+	hashConta, _ := bcrypt.GenerateFromPassword([]byte("conta123"), bcrypt.DefaultCost)
+	conta := Usuario{
+		Nombre:         "Prueba Contabilidad",
+		Email:          "contabilidad@sigefae.local",
+		HashContrasena: string(hashConta),
+		Cargo:          "Contador Principal",
+		RolID:          contabilidadRole.ID,
 	}
-	maria := Usuario{
-		Nombre:         "María Contadora",
-		Email:          "maria@sigefae.local",
-		HashContrasena: string(hashMaria),
-		Cargo:          "Contadora",
-		RolID:          aprobadorRole.ID,
+	db.Where("email = ?", conta.Email).FirstOrCreate(&conta)
+
+	// ==========================
+	// Usuario: Prueba Tesorería
+	// ==========================
+	hashTeso, _ := bcrypt.GenerateFromPassword([]byte("teso123"), bcrypt.DefaultCost)
+	teso := Usuario{
+		Nombre:         "Prueba Tesorería",
+		Email:          "tesoreria@sigefae.local",
+		HashContrasena: string(hashTeso),
+		Cargo:          "Tesorero General",
+		RolID:          tesoreriaRole.ID,
 	}
-	if err := db.Where("email = ?", maria.Email).FirstOrCreate(&maria).Error; err != nil {
-		return err
-	}
+	db.Where("email = ?", teso.Email).FirstOrCreate(&teso)
 
 	// ==========================
 	// Área General

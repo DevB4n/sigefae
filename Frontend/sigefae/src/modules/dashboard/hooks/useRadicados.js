@@ -12,7 +12,7 @@ export function useRadicados(obtenerToken, activeTab, userId) {
   const [tareasPorRadicado, setTareasPorRadicado] = useState({});
 
   useEffect(() => {
-    if (activeTab !== "radicados") return;
+    if (activeTab !== "radicados" && activeTab !== "finanzas") return;
     setLoadingRadicados(true);
     fetch(`${API}/documentoradicado`, { headers: { Authorization: `Bearer ${obtenerToken()}` } })
       .then((res) => res.json())

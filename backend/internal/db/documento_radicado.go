@@ -30,6 +30,9 @@ type DocumentoRadicado struct {
 	UltimaActividad         *time.Time               `gorm:"column:ultima_actividad" json:"ultima_actividad"` // Puntero para evitar problemas de fecha cero
 	QrID                    uint                     `gorm:"column:qr_id;index:idx_radicado_qr" json:"qr_id"`
 	Qr                      *CodigoQr                `gorm:"foreignKey:QrID;references:ID" json:"qr,omitempty"`
+	Causado                 bool                     `gorm:"column:causado;default:false" json:"causado"`
+	FechaCausacion          *time.Time               `gorm:"column:fecha_causacion" json:"fecha_causacion"`
+	NumeroEgreso            string                   `gorm:"column:numero_egreso;type:varchar(100)" json:"numero_egreso"`
 	NormasReparto           []RadicadoNormaReparto   `gorm:"foreignKey:DocumentoRadicadoID" json:"normas_reparto,omitempty"`
 	MetodoPagoID            uint                     `gorm:"column:metodo_pago_id;index:idx_radicado_metodo_pago" json:"metodo_pago_id"`
 	MetodoPago              *MetodoPago              `gorm:"foreignKey:MetodoPagoID;references:ID" json:"metodo_pago,omitempty"`

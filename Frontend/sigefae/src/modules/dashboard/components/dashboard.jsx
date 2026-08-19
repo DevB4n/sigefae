@@ -26,6 +26,7 @@ import { useRadicacion } from "../hooks/useRadicacion.js";
 import { useCompletarTarea } from "../hooks/useCompletarTarea.js";
 import { useAccionesAdmin } from "../hooks/useAccionesAdmin.js";
 import { usePdfExpediente } from "../hooks/usePdfExpediente.js";
+import { useFinanzas } from "../hooks/useFinanzas.js";
 
 // Components
 import Sidebar from "./Sidebar.jsx";
@@ -42,11 +43,14 @@ import ModalCrearDocumento from "./modals/ModalCrearDocumento.jsx";
 import ModalCrearProveedor from "./modals/ModalCrearProveedor.jsx";
 import ModalDevolver from "./modals/ModalDevolver.jsx";
 import ModalNormaReparto from "./modals/ModalNormaReparto.jsx";
+import RenderFinanzas from "./RenderFinanzas.jsx";
 
 export default function ProcesosLogistica() {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const { userRol, userId, esAdmin, esUsuario, showDebug, puedeGestionarRecurso, obtenerToken } = useAuth();
-  const [activeTab, setActiveTab] = useState(esAdmin ? "welcome" : "tareas");
+  
+  const initialTab = esAdmin ? "welcome" : (userRol === "Contabilidad" || userRol === "Tesorería") ? "finanzas" : "tareas";
+  const [activeTab, setActiveTab] = useState(initialTab);
 
   // PDF Editor
   const [pdfEditor, setPdfEditor] = useState({ open: false, archivoId: null, archivoNombre: null, radicadoId: null });
@@ -86,6 +90,9 @@ export default function ProcesosLogistica() {
   // PDF Expediente
   const pdfExpedienteHook = usePdfExpediente();
 
+  // Finanzas
+  const finanzasHook = useFinanzas(obtenerToken, radicadosHook);
+
   // Colapsar secciones
   useEffect(() => {
     const handler = (e) => {
@@ -119,6 +126,7 @@ export default function ProcesosLogistica() {
       case "catalogos": return { icon: "fa-solid fa-sliders", title: "Catálogos del Sistema", subtitle: "Gestiona tipos de radicación, pagos y métodos" };
       case "tareas": return { icon: "fa-solid fa-clipboard-list", title: "Mis Tareas", subtitle: "Documentos radicados asignados a ti" };
       case "solicitudes": return { icon: "fa-solid fa-circle-exclamation", title: "Gestión de Solicitudes", subtitle: esAdmin ? "Solicitudes pendientes" : "Tus solicitudes realizadas" };
+      case "finanzas": return { icon: "fa-solid fa-file-invoice-dollar", title: "Control Financiero", subtitle: "Revisión de causación y egresos" };
       default: return { icon: "fa-solid fa-house", title: "Procesos administrativos", subtitle: "Selecciona un formato del menú lateral" };
     }
   };
@@ -133,6 +141,13 @@ export default function ProcesosLogistica() {
       case "tareas": return <RenderTareas {...tareasHook} openSaia={(rad, fromTab) => saiaHook.openSaia(rad, fromTab, tareasHook.setSelectedTareaId, radicadosHook.setSelectedRadicadoId, flujoHook.recargarFlujo, flujoHook.recargarTrazabilidad, flujoHook.recargarNormas, flujoHook.recargarComentarios)} />;
       case "catalogos": return <RenderCatalogos {...catalogosHook} />;
       case "solicitudes": return <RenderSolicitudes {...solicitudesHook} esAdmin={esAdmin} />;
+      case "finanzas": return <RenderFinanzas 
+        radicados={radicadosHook.radicados} 
+        loadingRadicados={radicadosHook.loadingRadicados} 
+        {...finanzasHook} 
+        userRole={userRol} 
+        openSaia={(rad, fromTab) => saiaHook.openSaia(rad, fromTab, tareasHook.setSelectedTareaId, radicadosHook.setSelectedRadicadoId, flujoHook.recargarFlujo, flujoHook.recargarTrazabilidad, flujoHook.recargarNormas, flujoHook.recargarComentarios)} 
+      />;
       default: return <RenderWelcome />;
     }
   };
@@ -155,7 +170,7 @@ export default function ProcesosLogistica() {
       </header>
 
       <div className="main-container">
-        <Sidebar isSidebarOpen={isSidebarOpen} setIsSidebarOpen={setIsSidebarOpen} activeTab={activeTab} setActiveTab={setActiveTab} esAdmin={esAdmin} esUsuario={esUsuario} />
+        <Sidebar isSidebarOpen={isSidebarOpen} setIsSidebarOpen={setIsSidebarOpen} activeTab={activeTab} setActiveTab={setActiveTab} esAdmin={esAdmin} esUsuario={esUsuario} userRole={userRol} />
         <main className="content-area">
           <div className="content-header">
             <div className="content-title">
@@ -216,6 +231,7 @@ export default function ProcesosLogistica() {
         setDevolverForm={devolucionHook.setDevolverForm}
         openNormaModal={normasHook.openNormaModal}
         handleEliminarNorma={normasHook.handleEliminarNorma}
+        readOnly={activeTab === "finanzas"}
       />
 
       {/* PDF Editor */}
@@ -230,6 +246,10 @@ export default function ProcesosLogistica() {
             setPdfEditor({ open: false, archivoId: null, archivoNombre: null, radicadoId: null });
             if (activeTab === "tareas") { tareasHook.setSelectedTareaId(null); setTimeout(() => tareasHook.setSelectedTareaId(radicadoId), 10); }
             else { radicadosHook.setSelectedRadicadoId(null); setTimeout(() => radicadosHook.setSelectedRadicadoId(radicadoId), 10); }
+            
+            if (saiaHook.saiaModalOpen && saiaHook.saiaRadicado) {
+              saiaHook.openSaia(saiaHook.saiaRadicado, activeTab, tareasHook.setSelectedTareaId, radicadosHook.setSelectedRadicadoId, flujoHook.recargarFlujo, flujoHook.recargarTrazabilidad, flujoHook.recargarNormas, flujoHook.recargarComentarios);
+            }
           }}
         />
       )}

@@ -16,12 +16,12 @@ export default function RenderSaiaModal({
   esAdmin, esUsuario, userId, puedeGestionarRecurso,
   setPdfEditor, activeTab, setSelectedTareaId, setSelectedRadicadoId,
   setShowDevolverModal, setDevolverForm,
-  openNormaModal, handleEliminarNorma
+  openNormaModal, handleEliminarNorma, readOnly: externalReadOnly
 }) {
   if (!saiaModalOpen || !saiaRadicado) return null;
   const archivosPdf = (saiaRadicado.archivos || []).filter(a => a.extension?.toLowerCase() === 'pdf' || a.nombre?.toLowerCase().endsWith('.pdf'));
   const anexoActual = archivosPdf[saiaAnexoIdx];
-  const readOnly = isFinalState(saiaRadicado.estado_posesion);
+  const readOnly = isFinalState(saiaRadicado.estado_posesion) || externalReadOnly;
 
   return (
     <div className="saia-overlay" onClick={() => setSaiaModalOpen(false)}>

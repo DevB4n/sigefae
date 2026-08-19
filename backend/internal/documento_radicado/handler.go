@@ -791,3 +791,88 @@ func (h *Handler) DecidirSolicitudPermiso(c *gin.Context) {
 
 	c.JSON(http.StatusOK, gin.H{"message": "Solicitd de permiso procesada", "estado": sol.Estado})
 }
+
+// ─────────────────────────────────────────────────────────────────
+// Causación (Contabilidad)
+// ─────────────────────────────────────────────────────────────────
+
+func (h *Handler) Causar(c *gin.Context) {
+	user := c.MustGet("user").(db.Usuario)
+	
+	// Validar permisos (Contabilidad o Superadministrador)
+	if user.Rol == nil || (user.Rol.Nombre != "Contabilidad" && user.Rol.Nombre != "Superadministrador") {
+		c.JSON(http.StatusForbidden, gin.H{"error": "No tienes permisos para realizar causaciones"})
+		return
+	}
+
+	id, err := strconv.ParseUint(c.Param("id"), 10, 64)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "id inválido"})
+		return
+	}
+
+	var body struct {
+		Causado      bool   `json:"causado"`
+		NumeroEgreso string `json:"numero_egreso"`
+	}
+	if err := c.ShouldBindJSON(&body); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	var radicado db.DocumentoRadicado
+	if err := h.db.First(&radicado, uint(id)).Error; err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "documento no encontrado"})
+		return
+	}
+
+	// Regla de negocio: Si ya está causado, no se puede desmarcar a menos que sea Superadministrador
+	if radicado.Causado && !body.Causado && user.Rol.Nombre != "Superadministrador" {
+		c.JSON(http.StatusForbidden, gin.H{"error": "Un radicado causado solo puede ser revertido por un Superadministrador"})
+		return
+	}
+
+	// Regla de negocio: Si ya tiene número de egreso, no se puede modificar a menos que sea Superadministrador
+	if radicado.NumeroEgreso != "" && body.NumeroEgreso != radicado.NumeroEgreso && user.Rol.Nombre != "Superadministrador" {
+		c.JSON(http.StatusForbidden, gin.H{"error": "El número de egreso ya fue asignado y solo puede ser modificado por un Superadministrador"})
+		return
+	}
+
+	updates := map[string]any{
+		"causado":       body.Causado,
+		"numero_egreso": body.NumeroEgreso,
+	}
+
+	if body.Causado && !radicado.Causado {
+		now := time.Now()
+		updates["fecha_causacion"] = &now
+	} else if !body.Causado {
+		updates["fecha_causacion"] = gorm.Expr("NULL")
+	}
+
+	if err := h.db.Model(&radicado).Updates(updates).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	// Registrar trazabilidad
+	accion := "Causación Realizada"
+	desc := "El documento fue causado."
+	if !body.Causado {
+		accion = "Causación Revertida"
+		desc = "El documento dejó de estar causado."
+	}
+	if body.NumeroEgreso != "" {
+		desc += fmt.Sprintf(" Número de egreso: %s", body.NumeroEgreso)
+	}
+
+	h.db.Create(&db.Trazabilidad{
+		DocumentoRadicadoID: radicado.ID,
+		UsuarioID:           user.ID,
+		Accion:              accion,
+		Descripcion:         desc,
+		Fecha:               time.Now(),
+	})
+
+	c.JSON(http.StatusOK, gin.H{"message": "Causación actualizada correctamente"})
+}
