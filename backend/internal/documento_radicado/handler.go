@@ -952,3 +952,67 @@ func (h *Handler) Pagar(c *gin.Context) {
 
 	c.JSON(http.StatusOK, gin.H{"message": "Pago actualizado correctamente"})
 }
+
+// ─────────────────────────────────────────────────────────────────
+// Comprobantes Subidos (Tesorería)
+// ─────────────────────────────────────────────────────────────────
+
+func (h *Handler) ToggleComprobantesSubidos(c *gin.Context) {
+	user := c.MustGet("user").(db.Usuario)
+	
+	// Validar permisos (Tesorería o Superadministrador)
+	if user.Rol == nil || (user.Rol.Nombre != "Tesorería" && user.Rol.Nombre != "Superadministrador") {
+		c.JSON(http.StatusForbidden, gin.H{"error": "No tienes permisos para modificar este estado"})
+		return
+	}
+
+	id, err := strconv.ParseUint(c.Param("id"), 10, 64)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "id inválido"})
+		return
+	}
+
+	var body struct {
+		ComprobantesSubidos bool `json:"comprobantes_subidos"`
+	}
+	if err := c.ShouldBindJSON(&body); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	var radicado db.DocumentoRadicado
+	if err := h.db.First(&radicado, uint(id)).Error; err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "documento no encontrado"})
+		return
+	}
+
+	// Regla de negocio: Si ya está marcado como subido, solo el superadmin puede revertirlo
+	if radicado.ComprobantesSubidos && !body.ComprobantesSubidos && user.Rol.Nombre != "Superadministrador" {
+		c.JSON(http.StatusForbidden, gin.H{"error": "El bloqueo de comprobantes solo puede ser revertido por un Superadministrador"})
+		return
+	}
+
+	if err := h.db.Model(&radicado).Update("comprobantes_subidos", body.ComprobantesSubidos).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	// Trazabilidad
+	if radicado.ComprobantesSubidos != body.ComprobantesSubidos {
+		accion := "Comprobantes Bloqueados"
+		desc := "Se confirmó la subida de los comprobantes de pago y se bloqueó la carga de nuevos archivos."
+		if !body.ComprobantesSubidos {
+			accion = "Comprobantes Desbloqueados"
+			desc = "Se habilitó nuevamente la carga de comprobantes de pago."
+		}
+		h.db.Create(&db.Trazabilidad{
+			DocumentoRadicadoID: radicado.ID,
+			UsuarioID:           user.ID,
+			Accion:              accion,
+			Descripcion:         desc,
+			Fecha:               time.Now(),
+		})
+	}
+
+	c.JSON(http.StatusOK, gin.H{"message": "Estado de comprobantes actualizado", "comprobantes_subidos": body.ComprobantesSubidos})
+}

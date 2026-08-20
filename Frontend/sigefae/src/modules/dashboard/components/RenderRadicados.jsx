@@ -1,23 +1,48 @@
-import { isFinalState, formatCurrency } from "../helpers/formatters";
+import { useState } from "react";
+import { isFinalState } from "../helpers/formatters";
 
 export default function RenderRadicados({
   radicados, selectedRadicadoId, loadingRadicados, searchRadicados, setSearchRadicados,
   sortRadicados, setSortRadicados, tareasPorRadicado, getFilteredRadicados, openSaia
 }) {
-  const filteredList = getFilteredRadicados();
+  const [activeSubTab, setActiveSubTab] = useState("en_proceso");
+
+  const baseFilteredList = getFilteredRadicados();
+  
+  const filteredList = baseFilteredList.filter(rad => {
+    if (activeSubTab === "finalizados") return isFinalState(rad.estado_posesion);
+    return !isFinalState(rad.estado_posesion);
+  });
   return (
     <div className="fullwidth-list-container">
-      <div className="fullwidth-list-header">
-        <h3><i className="fa-solid fa-stamp"></i> Documentos Radicados ({filteredList.length})</h3>
-        <div className="list-controls">
-          <input type="text" placeholder="Buscar radicado, doc, proveedor..." value={searchRadicados} onChange={e => setSearchRadicados(e.target.value)} />
-          <select value={sortRadicados} onChange={e => setSortRadicados(e.target.value)}>
-            <option value="fecha_desc">Más recientes</option>
-            <option value="fecha_asc">Más antiguos</option>
-            <option value="estado">Por Estado</option>
-          </select>
+      <div className="fullwidth-list-header" style={{ flexDirection: "column", alignItems: "stretch", gap: "15px" }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+          <h3><i className="fa-solid fa-stamp"></i> Documentos Radicados ({filteredList.length})</h3>
+          <div className="list-controls">
+            <input type="text" placeholder="Buscar radicado, doc, proveedor..." value={searchRadicados} onChange={e => setSearchRadicados(e.target.value)} />
+            <select value={sortRadicados} onChange={e => setSortRadicados(e.target.value)}>
+              <option value="fecha_desc">Más recientes</option>
+              <option value="fecha_asc">Más antiguos</option>
+              <option value="estado">Por Estado</option>
+            </select>
+          </div>
+        </div>
+        <div style={{ display: "flex", gap: "10px", borderBottom: "1px solid #e2e8f0", paddingBottom: "10px" }}>
+          <button 
+            className={`doc-btn ${activeSubTab === "en_proceso" ? "doc-btn-primary" : "doc-btn-secondary"}`} 
+            onClick={() => setActiveSubTab("en_proceso")}
+          >
+            En Proceso
+          </button>
+          <button 
+            className={`doc-btn ${activeSubTab === "finalizados" ? "doc-btn-primary" : "doc-btn-secondary"}`} 
+            onClick={() => setActiveSubTab("finalizados")}
+          >
+            Finalizados
+          </button>
         </div>
       </div>
+
       <div className="fullwidth-list-body">
         {loadingRadicados ? <p style={{ padding: "15px" }}>Cargando...</p> : filteredList.length === 0 ? (
           <div className="correo-empty"><i className="fa-solid fa-inbox"></i><p>No hay documentos radicados.</p></div>

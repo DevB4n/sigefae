@@ -237,6 +237,7 @@ func New(database *gorm.DB) *gin.Engine {
 		protected.GET("/documentoradicado/:id", documentoRadicadoHandler.GetByID)
 		protected.PATCH("/documentoradicado/:id/causar", documentoRadicadoHandler.Causar)
 		protected.PATCH("/documentoradicado/:id/pagar", documentoRadicadoHandler.Pagar)
+		protected.PATCH("/documentoradicado/:id/comprobantes_subidos", documentoRadicadoHandler.ToggleComprobantesSubidos)
 		// ── Cualquier usuario logueado puede subir/leer anexos ──
 		protected.POST("/documentoradicado/:id/anexos", archivoHandler.UploadAnexo)
 		protected.GET("/archivo", archivoHandler.List)

@@ -1,4 +1,6 @@
+import React, { useState } from "react";
 import { formatCurrency } from "../helpers/formatters";
+import ModalSubirComprobante from "./modals/ModalSubirComprobante";
 
 export default function RenderFinanzas({
   radicados,
@@ -11,10 +13,18 @@ export default function RenderFinanzas({
   userRole,
   handleCausar,
   handlePagar,
-  handleSubirAnexo
+  handleSubirAnexo,
+  obtenerToken,
+  handleComprobantesSubidosLocal
 }) {
+  const [activeSubTab, setActiveSubTab] = useState("en_proceso");
+  const [fechaInicio, setFechaInicio] = useState("");
+  const [fechaFin, setFechaFin] = useState("");
+  const [modalComprobante, setModalComprobante] = useState({ open: false, radicadoId: null });
+
   // Filtrar radicados por búsqueda y estado
   const getFilteredRadicados = () => {
+    // Solo mostramos facturas que ya llegaron a la fase contable (Completado el BPM)
     let list = radicados.filter(r => r.estado_posesion === "Completado");
 
     if (searchFinanzas.trim()) {
@@ -22,15 +32,48 @@ export default function RenderFinanzas({
       list = list.filter((r) => {
         const prov = r.documento_comercial?.proveedor?.razon_social?.toLowerCase() || "";
         const num = r.documento_comercial?.numero_documento?.toLowerCase() || "";
-        return prov.includes(lower) || num.includes(lower);
+        const rad = r.numero_radicado?.toString().toLowerCase() || "";
+        return prov.includes(lower) || num.includes(lower) || rad.includes(lower);
       });
     }
 
-    // Ordenamiento por fecha facturación (fecha_documento)
+    // Ordenamiento inicial por fecha facturación
     if (sortFinanzas === "fecha_fact_desc") {
       list = [...list].sort((a, b) => new Date(b.documento_comercial?.fecha_documento || 0) - new Date(a.documento_comercial?.fecha_documento || 0));
-    } else if (sortFinanzas === "fecha_fact_asc") {
-      list = [...list].sort((a, b) => new Date(a.documento_comercial?.fecha_documento || 0) - new Date(b.documento_comercial?.fecha_documento || 0));
+    }
+
+    // Filtro por fechas (usando string comparison seguro YYYY-MM-DD)
+    if (fechaInicio) {
+      list = list.filter(r => {
+        const fechaStr = (r.documento_comercial?.fecha_documento || r.fecha_radicacion || "").substring(0, 10);
+        return fechaStr >= fechaInicio;
+      });
+    }
+    if (fechaFin) {
+      list = list.filter(r => {
+        const fechaStr = (r.documento_comercial?.fecha_documento || r.fecha_radicacion || "").substring(0, 10);
+        return fechaStr <= fechaFin;
+      });
+    }
+
+    // Filtro por pestañas "En Proceso" vs "Finalizados"
+    list = list.filter(r => {
+      // Requisitos para estar Finalizado en Finanzas:
+      const cumpleTodos = r.causado === true && 
+                          r.numero_egreso && r.numero_egreso.trim() !== "" && 
+                          r.pagado === true && 
+                          r.comprobantes_subidos === true;
+      
+      if (activeSubTab === "finalizados") return cumpleTodos;
+      return !cumpleTodos; // "En Proceso"
+    });
+
+    if (sortFinanzas === "fecha_fact_asc") {
+      list.sort((a, b) => new Date(a.documento_comercial?.fecha_documento || 0) - new Date(b.documento_comercial?.fecha_documento || 0));
+    } else if (sortFinanzas === "total_desc") {
+      list.sort((a, b) => (b.documento_comercial?.total || 0) - (a.documento_comercial?.total || 0));
+    } else if (sortFinanzas === "total_asc") {
+      list.sort((a, b) => (a.documento_comercial?.total || 0) - (b.documento_comercial?.total || 0));
     } else if (sortFinanzas === "proveedor") {
       list = [...list].sort((a, b) => {
         const pA = a.documento_comercial?.proveedor?.razon_social || "";
@@ -86,22 +129,50 @@ export default function RenderFinanzas({
     handlePagar(rad.id, !rad.pagado);
   };
 
+  const handleVerComprobante = (rad) => {
+    openSaia(rad, "finanzas");
+    // Saia should ideally open directly on anexos tab, but just opening it is fine since anexos is prominent.
+  };
+
   return (
     <div className="fullwidth-list-container">
-      <div className="fullwidth-list-header">
-        <h3><i className="fa-solid fa-file-invoice-dollar"></i> Control de Facturas - {userRole} ({filteredList.length})</h3>
-        <div className="list-controls">
-          <input
-            type="text"
-            placeholder="Buscar por proveedor o número..."
-            value={searchFinanzas}
-            onChange={(e) => setSearchFinanzas(e.target.value)}
-          />
-          <select value={sortFinanzas} onChange={(e) => setSortFinanzas(e.target.value)}>
-            <option value="fecha_fact_desc">Más recientes primero (Facturación)</option>
-            <option value="fecha_fact_asc">Más antiguas primero (Facturación)</option>
-            <option value="proveedor">Por Proveedor (A-Z)</option>
-          </select>
+      <div className="fullwidth-list-header" style={{ flexDirection: "column", alignItems: "stretch", gap: "15px" }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+          <h3><i className="fa-solid fa-file-invoice-dollar"></i> Control Financiero ({filteredList.length})</h3>
+          <div className="list-controls">
+            <input type="text" placeholder="Buscar radicado, doc, proveedor..." value={searchFinanzas} onChange={e => setSearchFinanzas(e.target.value)} />
+            <select value={sortFinanzas} onChange={e => setSortFinanzas(e.target.value)}>
+              <option value="fecha_fact_desc">Fech. Fact. (Recientes)</option>
+              <option value="fecha_fact_asc">Fech. Fact. (Antiguos)</option>
+              <option value="total_desc">Mayor Total</option>
+              <option value="total_asc">Menor Total</option>
+              <option value="proveedor">Por Proveedor (A-Z)</option>
+            </select>
+          </div>
+        </div>
+
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", borderBottom: "1px solid #e2e8f0", paddingBottom: "10px", flexWrap: "wrap", gap: "10px", overflow: "visible" }}>
+          <div style={{ display: "flex", gap: "10px" }}>
+            <button 
+              className={`doc-btn ${activeSubTab === "en_proceso" ? "doc-btn-primary" : "doc-btn-secondary"}`} 
+              onClick={() => setActiveSubTab("en_proceso")}
+            >
+              En Proceso
+            </button>
+            <button 
+              className={`doc-btn ${activeSubTab === "finalizados" ? "doc-btn-primary" : "doc-btn-secondary"}`} 
+              onClick={() => setActiveSubTab("finalizados")}
+            >
+              Finalizados
+            </button>
+          </div>
+          
+          <div style={{ display: "flex", gap: "10px", alignItems: "center", flexWrap: "wrap" }}>
+            <span style={{ fontSize: "0.85em", color: "#64748b" }}><i className="fa-solid fa-filter"></i> Fechas:</span>
+            <input type="date" className="doc-btn doc-btn-secondary" style={{ padding: "4px 8px", zIndex: 10, position: "relative" }} value={fechaInicio} onChange={e => setFechaInicio(e.target.value)} title="Fecha Inicio" />
+            <span style={{ fontSize: "0.85em", color: "#64748b" }}>a</span>
+            <input type="date" className="doc-btn doc-btn-secondary" style={{ padding: "4px 8px", zIndex: 10, position: "relative" }} value={fechaFin} onChange={e => setFechaFin(e.target.value)} title="Fecha Fin" />
+          </div>
         </div>
       </div>
       <div className="fullwidth-list-body" style={{ overflowX: "auto" }}>
@@ -234,19 +305,26 @@ export default function RenderFinanzas({
                           )}
                         </div>
                         <div style={{ marginTop: "8px" }}>
-                          <label 
-                            className={`doc-btn ${!esTesoreria ? "doc-btn-secondary" : "doc-btn-primary"}`} 
-                            style={{ padding: "4px 8px", fontSize: "0.75em", cursor: !esTesoreria ? "not-allowed" : "pointer", opacity: !esTesoreria ? 0.6 : 1, display: "inline-block" }}
-                            title={rad.archivos && rad.archivos.length > 0 ? `Tiene ${rad.archivos.length} anexos. Clic para subir comprobante.` : "Subir comprobante"}
-                          >
-                            <i className="fa-solid fa-upload"></i> Subir Comp.
-                            <input 
-                              type="file" 
-                              style={{ display: "none" }} 
+                          {(!rad.comprobantes_subidos || userRole === "Superadministrador") ? (
+                            <button 
+                              className={`doc-btn ${!esTesoreria ? "doc-btn-secondary" : "doc-btn-primary"}`} 
+                              style={{ padding: "4px 8px", fontSize: "0.75em", cursor: !esTesoreria ? "not-allowed" : "pointer", opacity: !esTesoreria ? 0.6 : 1, display: "inline-block" }}
+                              title="Subir comprobante(s) de pago"
                               disabled={!esTesoreria}
-                              onChange={(e) => handleSubirAnexo(e, rad.id, null, null, null, false, null)} 
-                            />
-                          </label>
+                              onClick={() => setModalComprobante({ open: true, radicadoId: rad.id })}
+                            >
+                              <i className="fa-solid fa-upload"></i> Subir Comp.
+                            </button>
+                          ) : (
+                            <button 
+                              className="doc-btn doc-btn-secondary" 
+                              style={{ padding: "4px 8px", fontSize: "0.75em", display: "inline-block" }}
+                              onClick={() => handleVerComprobante(rad)}
+                              title="Ver anexos subidos"
+                            >
+                              <i className="fa-solid fa-eye"></i> Ver Anexos
+                            </button>
+                          )}
                         </div>
                       </td>
                       <td style={{ padding: "16px", borderBottom: "1px solid #e2e8f0", textAlign: "center" }}>
@@ -266,6 +344,19 @@ export default function RenderFinanzas({
           </div>
         )}
       </div>
+
+      <ModalSubirComprobante 
+        isOpen={modalComprobante.open} 
+        onClose={() => setModalComprobante({ open: false, radicadoId: null })}
+        radicadoId={modalComprobante.radicadoId}
+        obtenerToken={obtenerToken}
+        onUploadSuccess={() => {
+          if (handleComprobantesSubidosLocal) {
+            handleComprobantesSubidosLocal(modalComprobante.radicadoId);
+          }
+          setModalComprobante({ open: false, radicadoId: null });
+        }}
+      />
     </div>
   );
 }

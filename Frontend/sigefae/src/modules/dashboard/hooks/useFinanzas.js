@@ -96,12 +96,29 @@ export function useFinanzas(obtenerToken, radicadosHook) {
     }
   };
 
+  const handleComprobantesSubidosLocal = (id) => {
+    radicadosHook.setRadicados((prev) => 
+      prev.map((rad) => 
+        rad.id === id 
+          ? { ...rad, comprobantes_subidos: true } 
+          : rad
+      )
+    );
+    if (radicadosHook.radicadoDetail && radicadosHook.radicadoDetail.id === id) {
+      radicadosHook.setRadicadoDetail({
+        ...radicadosHook.radicadoDetail,
+        comprobantes_subidos: true
+      });
+    }
+  };
+
   return {
     searchFinanzas,
     setSearchFinanzas,
     sortFinanzas,
     setSortFinanzas,
     handleCausar,
-    handlePagar
+    handlePagar,
+    handleComprobantesSubidosLocal
   };
 }
