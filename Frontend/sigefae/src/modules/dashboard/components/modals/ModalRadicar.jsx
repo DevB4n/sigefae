@@ -1,6 +1,7 @@
 export default function ModalRadicar({
   showRadicarModal, setShowRadicarModal, radicarForm, radicando,
   normasRepartoAutoMsg, tiposRadicacion, rutas, metodosPago,
+  normasRepartoCatalogo,
   normaFiltroSede, setNormaFiltroSede, normaFiltroArea, setNormaFiltroArea,
   normaSeleccionadaId, setNormaSeleccionadaId, normaPorcentajeInput, setNormaPorcentajeInput,
   sedesDisponibles, areasDisponibles, normasFiltradas, totalPorcentajeNormas,
