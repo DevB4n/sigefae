@@ -189,7 +189,7 @@ export default function ProcesosLogistica() {
       <ModalCrearDocumento {...documentosHook} openCrearProveedorModal={documentosHook.openCrearProveedorModal} />
       <ModalCrearProveedor showCrearProveedorModal={documentosHook.showCrearProveedorModal} setShowCrearProveedorModal={documentosHook.setShowCrearProveedorModal} proveedorForm={documentosHook.proveedorForm} creandoProveedor={documentosHook.creandoProveedor} tiposDocumentoCatalogo={documentosHook.tiposDocumentoCatalogo} handleProveedorFormChange={documentosHook.handleProveedorFormChange} handleCrearProveedorSubmit={documentosHook.handleCrearProveedorSubmit} />
       <ModalDevolver {...devolucionHook} tareasFlujo={flujoHook.tareasFlujo} selectedRadicadoId={radicadosHook.selectedRadicadoId} selectedTareaId={tareasHook.selectedTareaId} />
-      <ModalNormaReparto {...normasHook} />
+      <ModalNormaReparto {...normasHook} subtotalRadicado={detalleRadicadoActual?.documento_comercial?.subtotal || 0} />
 
       {/* SAIA */}
       <RenderSaiaModal

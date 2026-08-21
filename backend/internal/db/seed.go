@@ -111,6 +111,24 @@ func Seed(db *gorm.DB) error {
 	}
 
 	// ==========================
+	// Usuario: Maria
+	// ==========================
+	hashMaria, err := bcrypt.GenerateFromPassword([]byte("maria123"), bcrypt.DefaultCost)
+	if err != nil {
+		return err
+	}
+	Maria := Usuario{
+		Nombre:         "Maria",
+		Email:          "maria@sigefae.local",
+		HashContrasena: string(hashMaria),
+		Cargo:          "Aprobador de Documentos",
+		RolID:          aprobadorRole.ID,
+	}
+	if err := db.Where("email = ?", Maria.Email).FirstOrCreate(&Maria).Error; err != nil {
+		return err
+	}
+
+	// ==========================
 	// Usuario: Prueba Contabilidad
 	// ==========================
 	hashConta, _ := bcrypt.GenerateFromPassword([]byte("conta123"), bcrypt.DefaultCost)

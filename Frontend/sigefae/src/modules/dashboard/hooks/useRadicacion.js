@@ -17,6 +17,8 @@ export function useRadicacion(obtenerToken, userId, setDocumentos, setActiveTab,
   const [normaFiltroArea, setNormaFiltroArea] = useState("");
   const [normaSeleccionadaId, setNormaSeleccionadaId] = useState("");
   const [normaPorcentajeInput, setNormaPorcentajeInput] = useState("");
+  const [normaValorInput, setNormaValorInput] = useState("");
+  const [subtotalDoc, setSubtotalDoc] = useState(0);
 
   const sedesDisponibles = ["BUCARAMANGA", "MALAMBO", "CUCUTA", "CB", "CIENAGA DE ORO", "GENERAL"];
   const areasDisponibles = ["ADMON", "VENTAS", "PRODUCCION"];
@@ -37,11 +39,12 @@ export function useRadicacion(obtenerToken, userId, setDocumentos, setActiveTab,
     }).catch(err => console.error("Error cargando catálogos:", err));
   }, [showRadicarModal, obtenerToken]);
 
-  const openRadicarModal = (docId) => {
+  const openRadicarModal = (docId, subtotal = 0) => {
     setRadicarDocId(docId);
+    setSubtotalDoc(parseFloat(subtotal) || 0);
     setRadicarForm({ tipo_radicacion_id: "", ruta_id: "", metodo_pago_id: "", numero_radicado: "", normas_reparto: [] });
     setNormasRepartoAutoMsg(""); setNormaFiltroSede(""); setNormaFiltroArea("");
-    setNormaSeleccionadaId(""); setNormaPorcentajeInput("");
+    setNormaSeleccionadaId(""); setNormaPorcentajeInput(""); setNormaValorInput("");
     setShowRadicarModal(true);
   };
 
@@ -51,13 +54,29 @@ export function useRadicacion(obtenerToken, userId, setDocumentos, setActiveTab,
   };
 
   const handleAgregarNormaModal = () => {
-    if (!normaSeleccionadaId || !normaPorcentajeInput) { alert("Selecciona una norma y escribe el porcentaje"); return; }
-    const pct = parseFloat(normaPorcentajeInput);
+    if (!normaSeleccionadaId) { alert("Selecciona una norma"); return; }
+    if (!normaPorcentajeInput && !normaValorInput) { alert("Ingresa un porcentaje o un valor"); return; }
+    
+    let pct = parseFloat(normaPorcentajeInput);
+    let val = parseFloat(normaValorInput);
+    
+    // Auto-calcular el que falte
+    if (subtotalDoc > 0) {
+      if (normaValorInput && !normaPorcentajeInput) {
+        pct = (val / subtotalDoc) * 100;
+      } else if (normaPorcentajeInput && !normaValorInput) {
+        val = (pct / 100) * subtotalDoc;
+      }
+    }
+    
     if (isNaN(pct) || pct <= 0) { alert("Porcentaje inválido"); return; }
+    if (pct > 100) { alert("El porcentaje no puede superar el 100%"); return; }
+    if (subtotalDoc > 0 && val > subtotalDoc) { alert("El valor no puede superar el subtotal"); return; }
+    
     const yaExiste = radicarForm.normas_reparto.find(n => n.norma_reparto_id === normaSeleccionadaId);
     if (yaExiste) { alert("Esta norma ya fue agregada"); return; }
-    setRadicarForm(prev => ({ ...prev, normas_reparto: [...prev.normas_reparto, { norma_reparto_id: normaSeleccionadaId, porcentaje: normaPorcentajeInput }] }));
-    setNormaSeleccionadaId(""); setNormaPorcentajeInput("");
+    setRadicarForm(prev => ({ ...prev, normas_reparto: [...prev.normas_reparto, { norma_reparto_id: normaSeleccionadaId, porcentaje: pct.toFixed(2), valor: val.toFixed(2) }] }));
+    setNormaSeleccionadaId(""); setNormaPorcentajeInput(""); setNormaValorInput("");
   };
 
   const handleNormaRepartoChange = (index, field, value) => {
@@ -121,6 +140,7 @@ export function useRadicacion(obtenerToken, userId, setDocumentos, setActiveTab,
     tiposRadicacion, rutas, metodosPago, normasRepartoCatalogo,
     normaFiltroSede, setNormaFiltroSede, normaFiltroArea, setNormaFiltroArea,
     normaSeleccionadaId, setNormaSeleccionadaId, normaPorcentajeInput, setNormaPorcentajeInput,
+    normaValorInput, setNormaValorInput, subtotalDoc,
     sedesDisponibles, areasDisponibles, normasFiltradas, totalPorcentajeNormas,
     openRadicarModal, handleRadicarChange, handleAgregarNormaModal,
     handleNormaRepartoChange, handleRemoveNormaReparto, handleRadicarSubmit

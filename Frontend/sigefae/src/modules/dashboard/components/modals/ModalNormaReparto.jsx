@@ -1,15 +1,42 @@
+import { formatCurrency } from "../../helpers/formatters";
+
 export default function ModalNormaReparto({
   showNormaModal, setShowNormaModal, normaEditandoId, normaFormDetalle, setNormaFormDetalle,
   normaModalRadicadoId, normaFiltroSede, setNormaFiltroSede, normaFiltroArea, setNormaFiltroArea,
-  normasRepartoCatalogo, sedesDisponibles, areasDisponibles, handleGuardarNormaDetalle
+  normasRepartoCatalogo, sedesDisponibles, areasDisponibles, handleGuardarNormaDetalle,
+  subtotalRadicado
 }) {
   if (!showNormaModal) return null;
+
+  const subtotal = parseFloat(subtotalRadicado) || 0;
 
   const normasFiltradas = normasRepartoCatalogo.filter(n => {
     if (normaFiltroSede && n.sucursal !== normaFiltroSede) return false;
     if (normaFiltroArea && n.departamento !== normaFiltroArea) return false;
     return true;
   });
+
+  const handlePctChange = (e) => {
+    const val = e.target.value;
+    const newForm = { ...normaFormDetalle, porcentaje: val };
+    if (subtotal > 0 && val) {
+      newForm.valor = ((parseFloat(val) / 100) * subtotal).toFixed(2);
+    } else {
+      newForm.valor = "";
+    }
+    setNormaFormDetalle(newForm);
+  };
+
+  const handleValChange = (e) => {
+    const val = e.target.value;
+    const newForm = { ...normaFormDetalle, valor: val };
+    if (subtotal > 0 && val) {
+      newForm.porcentaje = ((parseFloat(val) / subtotal) * 100).toFixed(2);
+    } else {
+      newForm.porcentaje = "";
+    }
+    setNormaFormDetalle(newForm);
+  };
 
   return (
     <div className="modal-overlay" onClick={() => setShowNormaModal(false)}>
@@ -19,6 +46,11 @@ export default function ModalNormaReparto({
           <button className="modal-close" onClick={() => setShowNormaModal(false)}><i className="fa-solid fa-xmark"></i></button>
         </div>
         <div className="modal-body">
+          {subtotal > 0 && (
+            <p style={{ fontSize: "0.85em", color: "#64748b", margin: "0 0 12px" }}>
+              <i className="fa-solid fa-info-circle"></i> Subtotal: <strong>{formatCurrency(subtotal)}</strong> — Ingresa % o valor, el otro se calcula automáticamente.
+            </p>
+          )}
           <div style={{ display: "flex", gap: 8, marginBottom: 10 }}>
             <select className="doc-input" style={{ flex: 1 }} value={normaFiltroSede} onChange={(e) => { setNormaFiltroSede(e.target.value); setNormaFiltroArea(""); }}>
               <option value="">Todas las sedes</option>{sedesDisponibles.map(s => <option key={s} value={s}>{s}</option>)}
@@ -34,9 +66,15 @@ export default function ModalNormaReparto({
               {normasFiltradas.map(n => <option key={n.id} value={String(n.id)}>{n.codigo} — {n.nombre} ({n.sucursal} / {n.departamento})</option>)}
             </select>
           </div>
-          <div className="modal-field">
-            <label>Porcentaje <span className="required">*</span></label>
-            <input type="number" min="0" max="100" step="0.01" className="doc-input" value={normaFormDetalle.porcentaje} onChange={(e) => setNormaFormDetalle(prev => ({ ...prev, porcentaje: e.target.value }))} placeholder="%" />
+          <div style={{ display: "flex", gap: 10, marginTop: 10 }}>
+            <div className="modal-field" style={{ flex: 1 }}>
+              <label>Porcentaje <span className="required">*</span></label>
+              <input type="number" min="0" max="100" step="0.01" className="doc-input" value={normaFormDetalle.porcentaje} onChange={handlePctChange} placeholder="%" />
+            </div>
+            <div className="modal-field" style={{ flex: 1 }}>
+              <label>Valor ($)</label>
+              <input type="number" min="0" step="0.01" className="doc-input" value={normaFormDetalle.valor || ""} onChange={handleValChange} placeholder="Valor $" />
+            </div>
           </div>
         </div>
         <div className="modal-footer">

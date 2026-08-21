@@ -99,7 +99,7 @@ export default function RenderDocumentos({
               )}
             </div>
             <div className="doc-actions">
-              <button className="doc-btn doc-btn-primary" onClick={() => openRadicarModal(docDetail.id)}>
+              <button className="doc-btn doc-btn-primary" onClick={() => openRadicarModal(docDetail.id, docDetail.subtotal)}>
                 <i className="fa-solid fa-stamp"></i> Aprobar para Radicación
               </button>
             </div>
