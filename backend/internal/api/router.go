@@ -262,6 +262,7 @@ func New(database *gorm.DB) *gin.Engine {
 		// Trazabilidad
 		// =========================
 		protected.GET("/trazabilidad", trazabilidadHandler.List)
+		protected.GET("/trazabilidad/por-area", trazabilidadHandler.ListPorArea)
 
 		protected.GET("/rutas", rutaHandler.List)
 		protected.GET("/proveedor/:id/normas-reparto", proveedorHandler.ListNormasReparto)

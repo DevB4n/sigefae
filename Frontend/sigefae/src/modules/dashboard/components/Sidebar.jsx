@@ -52,6 +52,13 @@ export default function Sidebar({ isSidebarOpen, setIsSidebarOpen, activeTab, se
             <div className="item-text"><span className="item-nombre">Catálogos</span></div>
           </a>
         )}
+
+        {(userRole === "Contabilidad" || esAdmin) && (
+          <a href="#" className={`menu-item ${activeTab === "trazabilidad-area" ? "active" : ""}`} onClick={(e) => { e.preventDefault(); setActiveTab("trazabilidad-area"); setIsSidebarOpen(false); }}>
+            <div className="item-icon"><i className="fa-solid fa-route"></i></div>
+            <div className="item-text"><span className="item-nombre">Trazabilidad por Área</span></div>
+          </a>
+        )}
       </nav>
     </aside>
   );

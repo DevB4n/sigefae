@@ -6,7 +6,6 @@ import (
 
 	"github.com/gin-gonic/gin"
 )
-
 type Handler struct {
 	service *Service
 }
@@ -63,6 +62,30 @@ func (h *Handler) List(c *gin.Context) {
 			"error": err.Error(),
 		})
 
+		return
+	}
+
+	c.JSON(http.StatusOK, response)
+}
+func (h *Handler) ListPorArea(c *gin.Context) {
+	areaIDStr := c.Query("area_id")
+	fechaDesde := c.Query("fecha_desde")
+	fechaHasta := c.Query("fecha_hasta")
+
+	if areaIDStr == "" || fechaDesde == "" || fechaHasta == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "area_id, fecha_desde y fecha_hasta son requeridos"})
+		return
+	}
+
+	areaID, err := strconv.ParseUint(areaIDStr, 10, 32)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "area_id inválido"})
+		return
+	}
+
+	response, err := h.service.ListPorArea(uint(areaID), fechaDesde, fechaHasta)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
 

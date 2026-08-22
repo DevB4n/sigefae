@@ -8,6 +8,8 @@ import NotificacionesDropdown from "../../../components/NotificacionesDropdown.j
 import AdminToast from "../../../components/AdminToast.jsx";
 import { API } from "../constants/api.js";
 import { isFinalState } from "../helpers/formatters.js";
+import { useTrazabilidadPorArea } from "../hooks/useTrazabilidadPorArea.js";
+import RenderTrazabilidadPorArea from "./RenderTrazabilidadPorArea.jsx";
 
 // Hooks
 import { useAuth } from "../hooks/useAuth.js";
@@ -93,6 +95,8 @@ export default function ProcesosLogistica() {
   // Finanzas
   const finanzasHook = useFinanzas(obtenerToken, radicadosHook);
 
+  const trazabilidadAreaHook = useTrazabilidadPorArea(obtenerToken);
+
   // Colapsar secciones
   useEffect(() => {
     const handler = (e) => {
@@ -127,6 +131,7 @@ export default function ProcesosLogistica() {
       case "tareas": return { icon: "fa-solid fa-clipboard-list", title: "Mis Tareas", subtitle: "Documentos radicados asignados a ti" };
       case "solicitudes": return { icon: "fa-solid fa-circle-exclamation", title: "Gestión de Solicitudes", subtitle: esAdmin ? "Solicitudes pendientes" : "Tus solicitudes realizadas" };
       case "finanzas": return { icon: "fa-solid fa-file-invoice-dollar", title: "Control Financiero", subtitle: "Revisión de causación y egresos" };
+      case "trazabilidad-area": return { icon: "fa-solid fa-route", title: "Trazabilidad por Área", subtitle: "Consulta y descarga trazabilidad filtrada por área y fechas" };
       default: return { icon: "fa-solid fa-house", title: "Procesos administrativos", subtitle: "Selecciona un formato del menú lateral" };
     }
   };
@@ -150,6 +155,7 @@ export default function ProcesosLogistica() {
         obtenerToken={obtenerToken}
         openSaia={(rad, fromTab) => saiaHook.openSaia(rad, fromTab, tareasHook.setSelectedTareaId, radicadosHook.setSelectedRadicadoId, flujoHook.recargarFlujo, flujoHook.recargarTrazabilidad, flujoHook.recargarNormas, flujoHook.recargarComentarios)} 
       />;
+      case "trazabilidad-area": return <RenderTrazabilidadPorArea {...trazabilidadAreaHook} obtenerToken={obtenerToken} />;
       default: return <RenderWelcome />;
     }
   };

@@ -33,3 +33,23 @@ func toResponse(trazabilidad db.Trazabilidad) Response {
 		Fecha:               trazabilidad.Fecha,
 	}
 }
+type RadicadoConTrazabilidadResponse struct {
+	ID              uint                  `json:"id"`
+	NumeroRadicado  string                `json:"numero_radicado"`
+	FechaRadicacion time.Time             `json:"fecha_radicacion"`
+	EstadoPosesion  string                `json:"estado_posesion"`
+	Proveedor       ProveedorMiniResponse `json:"proveedor"`
+	Area            AreaMiniResponse      `json:"area"`
+	Trazabilidad    []Response            `json:"trazabilidad"`
+}
+
+type ProveedorMiniResponse struct {
+	ID              uint   `json:"id"`
+	RazonSocial     string `json:"razon_social"`
+	NumeroDocumento string `json:"numero_documento"`
+}
+
+type AreaMiniResponse struct {
+	ID     uint   `json:"id"`
+	Nombre string `json:"nombre"`
+}

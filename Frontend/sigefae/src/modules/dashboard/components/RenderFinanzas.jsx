@@ -105,8 +105,8 @@ export default function RenderFinanzas({
     if (val === (rad.numero_egreso || "")) return;
 
     const mensaje = rad.numero_egreso 
-      ? `¿Estás seguro que deseas cambiar el N° de Egreso de '${rad.numero_egreso}' a '${val}'?`
-      : `¿Confirmas que el N° de Egreso es '${val}'?`;
+      ? `¿Estás seguro que deseas cambiar el N° de Documento de '${rad.numero_egreso}' a '${val}'?`
+      : `¿Confirmas que el N° de Documento es '${val}'?`;
 
     if (!window.confirm(mensaje)) {
       e.target.value = rad.numero_egreso || ""; // revert
@@ -195,7 +195,7 @@ export default function RenderFinanzas({
                   <th style={{ padding: "16px", borderBottom: "2px solid #e2e8f0" }}>Valores</th>
                   <th style={{ padding: "16px", borderBottom: "2px solid #e2e8f0" }}>Normas Aplicadas</th>
                   <th style={{ padding: "16px", borderBottom: "2px solid #e2e8f0" }}>Causación</th>
-                  <th style={{ padding: "16px", borderBottom: "2px solid #e2e8f0" }}>N° Egreso</th>
+                  <th style={{ padding: "16px", borderBottom: "2px solid #e2e8f0" }}>N° Documento</th>
                   <th style={{ padding: "16px", borderBottom: "2px solid #e2e8f0" }}>Pago (Tesorería)</th>
                   <th style={{ padding: "16px", borderBottom: "2px solid #e2e8f0", textAlign: "center" }}>Acciones</th>
                 </tr>
