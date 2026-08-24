@@ -19,6 +19,7 @@ type ReglaMontoRuta struct {
 	RolAprobadorID     *uint     `gorm:"column:rol_aprobador_id;index:idx_regla_rol" json:"rol_aprobador_id,omitempty"`
 	RolAprobador       *Rol      `gorm:"foreignKey:RolAprobadorID;references:ID" json:"rol_aprobador,omitempty"`
 	PosicionInsercion  string    `gorm:"column:posicion_insercion;type:varchar(20);default:'ULTIMO'" json:"posicion_insercion"` // PRIMERO, ULTIMO, ANTES_FINAL
+	Prioridad          int       `gorm:"column:prioridad;default:0" json:"prioridad"` // menor = se inserta primero en el flujo
 	Activo             bool      `gorm:"column:activo;default:true" json:"activo"`
 	CreatedAt          time.Time `gorm:"column:created_at" json:"created_at"`
 	UpdatedAt          time.Time `gorm:"column:updated_at" json:"updated_at"`

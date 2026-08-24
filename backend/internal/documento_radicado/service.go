@@ -7,6 +7,7 @@ import (
 	"math"
 	"os"
 	"path/filepath"
+	"sort"
 	"strings"
 	"time"
 
@@ -375,6 +376,11 @@ func generarTareasDesdeRuta(tx *gorm.DB, radicado *db.DocumentoRadicado, rutaID 
 			alFinal = append(alFinal, r)
 		}
 	}
+
+	// Ordenar cada grupo por prioridad (menor = va primero)
+	sort.Slice(alInicio, func(i, j int) bool { return alInicio[i].Prioridad < alInicio[j].Prioridad })
+	sort.Slice(antesDelFinal, func(i, j int) bool { return antesDelFinal[i].Prioridad < antesDelFinal[j].Prioridad })
+	sort.Slice(alFinal, func(i, j int) bool { return alFinal[i].Prioridad < alFinal[j].Prioridad })
 
 	// ── 5. Helper para resolver usuario de una regla ──
 	resolverUsuario := func(r db.ReglaMontoRuta) uint {

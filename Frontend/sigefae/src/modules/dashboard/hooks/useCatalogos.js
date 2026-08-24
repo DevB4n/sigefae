@@ -67,7 +67,7 @@ export function useCatalogos(obtenerToken, activeTab) {
     const method = isEdit ? cfg.method : "POST";
     const body = {};
     cfg.fields.forEach(f => {
-      if (f === "orden" || f.includes("_id") || f === "monto_minimo") body[f] = parseFloat(catalogoForm[f]) || 0;
+      if (f === "orden" || f.includes("_id") || f === "monto_minimo" || f === "prioridad") body[f] = parseFloat(catalogoForm[f]) || 0;
       else body[f] = catalogoForm[f]?.trim() || "";
     });
     if (!body.nombre && cfg.fields.includes("nombre")) { alert("El nombre es obligatorio"); return; }

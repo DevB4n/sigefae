@@ -11,9 +11,18 @@ export default function ModalDevolver({
   const ultimaCompletada = tareasCompletadas.length > 0 ? tareasCompletadas[tareasCompletadas.length - 1] : null;
   const tareaActiva = tareaEnProceso || ultimaCompletada;
 
-  // Tareas destino: las completadas anteriores a la tarea activa
+  // Tareas destino:
+  // - Si hay tarea En Proceso: mostrar completadas anteriores (flujo normal)
+  // - Si NO hay tarea En Proceso (Contabilidad): mostrar TODAS las completadas excepto la última (que se usa como fuente)
   const tareasDestino = tareasFlujo.filter(t => {
-    return t.estado?.nombre === "Completada" && t.id < (tareaActiva?.id || 999999);
+    if (t.estado?.nombre !== "Completada") return false;
+    if (tareaEnProceso) {
+      // Flujo normal: solo las anteriores a la tarea en proceso
+      return t.id < tareaEnProceso.id;
+    } else {
+      // Contabilidad: todas las completadas excepto la última (que es la "activa")
+      return t.id !== ultimaCompletada?.id;
+    }
   });
 
   return (

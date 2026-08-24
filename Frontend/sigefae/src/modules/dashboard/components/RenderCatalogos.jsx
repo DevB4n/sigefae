@@ -41,6 +41,7 @@ export default function RenderCatalogos({
         <select name={field} value={value} onChange={handleCatalogoFormChange}><option value="">Seleccione...</option><option value="PRIMERO">Al inicio</option><option value="ANTES_FINAL">Antes del final</option><option value="ULTIMO">Al final</option></select>
       </div>
     );
+    if (field === "prioridad") return <div className="modal-field" key={field} style={{ maxWidth: 120 }}><label>Prioridad <span className="required">*</span></label><input type="number" name={field} value={value} onChange={handleCatalogoFormChange} min="0" placeholder="0" title="Menor número = se ejecuta primero dentro de su posición" /></div>;
     if (field === "codigo") return <div className="modal-field" key={field} style={{ flex: 1 }}><label>Código <span className="required">*</span></label><input type="text" name={field} value={value} onChange={handleCatalogoFormChange} placeholder="Ej: BU101" /></div>;
     if (field === "sucursal") {
       const sucursales = ["BUCARAMANGA", "MALAMBO", "CUCUTA", "CB", "CIENAGA DE ORO", "GENERAL"];
@@ -56,7 +57,7 @@ export default function RenderCatalogos({
   };
 
   const getColumnLabel = (field) => {
-    const map = { nombre: "Nombre", codigo: "Código", sucursal: "Sucursal", departamento: "Depto", tipo: "Tipo", tarifa_iva: "Tarifa IVA", tipo_pago: "Tipo de Pago", area: "Área", ruta: "Ruta", orden: "Orden", usuario: "Usuario" };
+    const map = { nombre: "Nombre", codigo: "Código", sucursal: "Sucursal", departamento: "Depto", tipo: "Tipo", tarifa_iva: "Tarifa IVA", tipo_pago: "Tipo de Pago", area: "Área", ruta: "Ruta", orden: "Orden", usuario: "Usuario", prioridad: "Prioridad", usuario_aprobador_id: "Aprobador", moneda_id: "Moneda", monto_minimo: "Monto Mínimo", posicion_insercion: "Posición" };
     return map[field] || field;
   };
 
@@ -65,6 +66,8 @@ export default function RenderCatalogos({
     if (field === "area_id") return item.area || "—";
     if (field === "ruta_id") return item.ruta || "—";
     if (field === "usuario_id") return item.usuario || "—";
+    if (field === "usuario_aprobador_id") return item.usuario_aprobador?.nombre || item.usuario_aprobador_id || "—";
+    if (field === "moneda_id") return item.moneda ? `${item.moneda.nombre} (${item.moneda.codigo})` : item.moneda_id || "—";
     if ((field === "tipo" || field === "tarifa_iva") && !item[field]) return "—";
     return item[field] !== undefined ? item[field] : "—";
   };

@@ -268,6 +268,7 @@ func New(database *gorm.DB) *gin.Engine {
 		protected.GET("/trazabilidad/por-area", trazabilidadHandler.ListPorArea)
 
 		protected.GET("/rutas", rutaHandler.List)
+		protected.GET("/areas", areaHandler.List) // lectura para todos (Contabilidad necesita para trazabilidad por área)
 		protected.GET("/proveedor/:id/normas-reparto", proveedorHandler.ListNormasReparto)
 		protected.GET("/normas-reparto", normaRepartoHandler.List)
 		protected.GET("/normas-reparto/:id", normaRepartoHandler.GetByID)
@@ -351,10 +352,9 @@ func New(database *gorm.DB) *gin.Engine {
 			admin.PATCH("/metodos-pago/:id/activo", metodoPagoHandler.UpdateStatus)
 
 			// =========================
-			// Áreas
+			// Áreas (escritura solo admin, lectura en protected)
 			// =========================
 			admin.POST("/areas", areaHandler.Create)
-			admin.GET("/areas", areaHandler.List)
 			admin.PATCH("/areas/:id/activo", areaHandler.UpdateStatus)
 			admin.PATCH("/areas/:id", areaHandler.Update)
 
