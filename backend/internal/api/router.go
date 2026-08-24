@@ -258,6 +258,9 @@ func New(database *gorm.DB) *gin.Engine {
 		// ── Cualquier usuario logueado puede eliminar sus propios anexos (handler valida propietario) ──
 		protected.DELETE("/archivo/:id", archivoHandler.Delete)
 
+		// ── Rechazar documento (Superadministrador y Contabilidad — validado en handler) ──
+		protected.POST("/documentoradicado/:id/rechazar", documentoRadicadoHandler.Rechazar)
+
 		// =========================
 		// Trazabilidad
 		// =========================
@@ -308,7 +311,6 @@ func New(database *gorm.DB) *gin.Engine {
 		{
 			// =========================
 			// Rechazar documento (marcar como Devuelto / rechazado)
-			admin.POST("/documentoradicado/:id/rechazar", documentoRadicadoHandler.Rechazar)
 			admin.POST("/documentoradicado/:id/completar", documentoRadicadoHandler.MarcarCompletado)
 			admin.GET("/solicitud-rechazo", documentoRadicadoHandler.ListSolicitudes)
 			admin.POST("/solicitud-rechazo/:id/decidir", documentoRadicadoHandler.DecidirSolicitud)

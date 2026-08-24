@@ -230,7 +230,7 @@ export default function ProcesosLogistica() {
         esAdmin={esAdmin}
         esUsuario={esUsuario}
         userId={userId}
-        puedeGestionarRecurso={puedeGestionarRecurso}
+        userRol={userRol}
         setPdfEditor={setPdfEditor}
         activeTab={activeTab}
         setSelectedTareaId={tareasHook.setSelectedTareaId}

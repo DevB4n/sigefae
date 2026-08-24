@@ -3,6 +3,19 @@ export default function ModalDevolver({
   devolviendo, tareasFlujo, handleDevolverTarea, selectedRadicadoId, selectedTareaId
 }) {
   if (!showDevolverModal) return null;
+
+  // Determinar la tarea "activa" — puede ser la En Proceso (caso normal)
+  // o la última Completada (caso Contabilidad devolviendo desde finanzas)
+  const tareaEnProceso = tareasFlujo.find(t => t.estado?.nombre === "En Proceso");
+  const tareasCompletadas = tareasFlujo.filter(t => t.estado?.nombre === "Completada");
+  const ultimaCompletada = tareasCompletadas.length > 0 ? tareasCompletadas[tareasCompletadas.length - 1] : null;
+  const tareaActiva = tareaEnProceso || ultimaCompletada;
+
+  // Tareas destino: las completadas anteriores a la tarea activa
+  const tareasDestino = tareasFlujo.filter(t => {
+    return t.estado?.nombre === "Completada" && t.id < (tareaActiva?.id || 999999);
+  });
+
   return (
     <div className="modal-overlay" onClick={() => setShowDevolverModal(false)}>
       <div className="modal-content" onClick={(e) => e.stopPropagation()}>
@@ -15,10 +28,7 @@ export default function ModalDevolver({
             <label>Devolver a Paso / Usuario <span className="required">*</span></label>
             <select value={devolverForm.tarea_destino_id} onChange={(e) => setDevolverForm(prev => ({ ...prev, tarea_destino_id: e.target.value }))} className="doc-input">
               <option value="">Seleccione paso de destino...</option>
-              {tareasFlujo.filter(t => {
-                const tareaEnProceso = tareasFlujo.find(x => x.estado?.nombre === "En Proceso");
-                return t.estado?.nombre === "Completada" && t.id < (tareaEnProceso?.id || 999999);
-              }).map(t => (
+              {tareasDestino.map(t => (
                 <option key={t.id} value={t.id}>{t.descripcion} — {t.usuario_asignado?.nombre || "Sin usuario"} ({t.usuario_asignado?.email || ""}) [Completada]</option>
               ))}
             </select>
@@ -35,7 +45,6 @@ export default function ModalDevolver({
         <div className="modal-footer">
           <button className="doc-btn doc-btn-secondary" onClick={() => setShowDevolverModal(false)} disabled={devolviendo}>Cancelar</button>
           <button className="doc-btn doc-btn-primary" onClick={() => {
-            const tareaActiva = tareasFlujo.find(t => t.estado?.nombre === "En Proceso");
             const radId = selectedRadicadoId || selectedTareaId;
             if (tareaActiva && radId) handleDevolverTarea(tareaActiva.id, radId);
           }} disabled={devolviendo} style={{ background: "var(--pardo-red)", borderColor: "var(--pardo-red)" }}>

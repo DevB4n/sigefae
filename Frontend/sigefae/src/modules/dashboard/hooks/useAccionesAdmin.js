@@ -29,18 +29,19 @@ export function useAccionesAdmin(obtenerToken, setRadicadoDetail) {
     } catch (err) { alert("Error: " + err.message); }
   };
 
-  const adminRechazar = async (radicadoId) => {
+  const adminRechazar = async (radicadoId, onSuccess) => {
     if (!confirm("¿Confirmar rechazo definitivo de este radicado?")) return;
     const motivo = prompt("Motivo (opcional):", "");
     try {
       const res = await fetch(`${API}/documentoradicado/${radicadoId}/rechazar`, {
         method: "POST", headers: { "Content-Type": "application/json", Authorization: `Bearer ${obtenerToken()}` },
-        body: JSON.stringify({ mensaje: motivo || "Rechazado por admin" }),
+        body: JSON.stringify({ mensaje: motivo || "Rechazado" }),
       });
       if (!res.ok) { const err = await res.json(); throw new Error(err.error || "Error al rechazar"); }
       alert("Radicado marcado como rechazado");
       const nuevo = await fetch(`${API}/documentoradicado/${radicadoId}`, { headers: { Authorization: `Bearer ${obtenerToken()}` } });
       setRadicadoDetail(await nuevo.json());
+      if (onSuccess) onSuccess();
     } catch (err) { alert("Error: " + err.message); }
   };
 

@@ -384,9 +384,15 @@ func (h *Handler) DecidirSolicitud(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"message": "Solicitud procesada", "estado": estado})
 }
 
-// Rechazar permite al administrador marcar el documento como rechazado (estado final).
+// Rechazar permite al administrador o contabilidad marcar el documento como rechazado (estado final).
 func (h *Handler) Rechazar(c *gin.Context) {
 	adminUser := c.MustGet("user").(db.Usuario)
+
+	// Validar permisos (Superadministrador o Contabilidad)
+	if adminUser.Rol == nil || (adminUser.Rol.Nombre != "Superadministrador" && adminUser.Rol.Nombre != "Contabilidad") {
+		c.JSON(http.StatusForbidden, gin.H{"error": "No tienes permisos para rechazar documentos"})
+		return
+	}
 
 	id, err := strconv.ParseUint(c.Param("id"), 10, 64)
 	if err != nil {

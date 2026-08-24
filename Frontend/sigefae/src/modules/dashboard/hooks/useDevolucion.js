@@ -28,7 +28,7 @@ export function useDevolucion(obtenerToken, activeTab, setSelectedTareaId, setSe
         if (activeTab === "tareas") {
           setMisTareas(listaData.filter(r => r.usuario_actual_id === userId && !isFinalState(r.estado_posesion)));
           setMisTareasCompletadas(listaData.filter(r => isFinalState(r.estado_posesion)));
-        } else if (activeTab === "radicados") { setRadicados(listaData); }
+        } else if (activeTab === "radicados" || activeTab === "finanzas") { setRadicados(listaData); }
       }
       alert("Tarea devuelta correctamente");
     } catch (err) { alert("Error: " + err.message); }

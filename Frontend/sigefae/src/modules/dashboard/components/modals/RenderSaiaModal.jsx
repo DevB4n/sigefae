@@ -13,7 +13,7 @@ export default function RenderSaiaModal({
   handleVerAnexo, handleDescargarAnexo, handleBorrarAnexo, handleSubirAnexo,
   completandoTarea, handleCompletarTarea,
   solicitarRechazo, marcarCompletado, adminRechazar,
-  esAdmin, esUsuario, userId, puedeGestionarRecurso,
+  esAdmin, esUsuario, userId, userRol,
   setPdfEditor, activeTab, setSelectedTareaId, setSelectedRadicadoId,
   setShowDevolverModal, setDevolverForm,
   openNormaModal, handleEliminarNorma, readOnly: externalReadOnly
@@ -22,6 +22,12 @@ export default function RenderSaiaModal({
   const archivosPdf = (saiaRadicado.archivos || []).filter(a => a.extension?.toLowerCase() === 'pdf' || a.nombre?.toLowerCase().endsWith('.pdf'));
   const anexoActual = archivosPdf[saiaAnexoIdx];
   const readOnly = isFinalState(saiaRadicado.estado_posesion) || externalReadOnly;
+  const esContabilidad = userRol === "Contabilidad";
+  const puedeGestionarRecurso = (creadoPorId) => {
+    if (esAdmin) return true;
+    const propietario = Number(creadoPorId || 0);
+    return propietario > 0 && propietario === Number(userId);
+  };
 
   return (
     <div className="saia-overlay" onClick={() => setSaiaModalOpen(false)}>
@@ -156,14 +162,39 @@ export default function RenderSaiaModal({
                     const tareaActiva = tareasFlujo.find(t => t.estado?.nombre === "En Proceso");
                     const esResponsable = tareaActiva && (String(tareaActiva.usuario_asignado_id) === String(userId) || String(saiaRadicado.usuario_actual?.id) === String(userId));
                     const botones = [];
+
+                    // ── Botones para el usuario responsable (Aprobador asignado) ──
                     if (esResponsable && !readOnly) {
                       botones.push(<button key="completar" className="doc-btn doc-btn-primary" onClick={() => handleCompletarTarea(tareaActiva.id, saiaRadicado.id)} disabled={completandoTarea}><i className={`fa-solid ${completandoTarea ? 'fa-spinner fa-spin' : 'fa-check'}`}></i> {completandoTarea ? 'Completando...' : 'Marcar como Completado'}</button>);
                       botones.push(<button key="devolver" className="doc-btn doc-btn-secondary" onClick={() => { setDevolverForm({ tarea_destino_id: "", observacion: "", retorno_directo: true }); setShowDevolverModal(true); }} style={{ borderColor: 'var(--pardo-red)', color: 'var(--pardo-red)' }}><i className="fa-solid fa-reply"></i> Devolver</button>);
                     }
-                    if (esUsuario && !readOnly) botones.push(<button key="solicitar" className="doc-btn doc-btn-secondary" onClick={() => solicitarRechazo(saiaRadicado.id)}><i className="fa-solid fa-ban"></i> Solicitar Rechazo</button>);
+
+                    // ── Solicitar rechazo (cualquier usuario no-admin, no-contabilidad) ──
+                    if (esUsuario && !esContabilidad && !readOnly) botones.push(<button key="solicitar" className="doc-btn doc-btn-secondary" onClick={() => solicitarRechazo(saiaRadicado.id)}><i className="fa-solid fa-ban"></i> Solicitar Rechazo</button>);
+
+                    // ── Botones para Contabilidad (devolver y rechazar) ──
+                    if (esContabilidad && saiaRadicado.estado_posesion !== "Rechazado") {
+                      // Para devolver: usar la última tarea completada como "tarea activa"
+                      const tareasCompletadas = tareasFlujo.filter(t => t.estado?.nombre === "Completada");
+                      const ultimaTareaCompletada = tareasCompletadas.length > 0 ? tareasCompletadas[tareasCompletadas.length - 1] : null;
+                      if (ultimaTareaCompletada) {
+                        botones.push(
+                          <button key="conta-devolver" className="doc-btn doc-btn-secondary" onClick={() => { setDevolverForm({ tarea_destino_id: "", observacion: "", retorno_directo: false }); setShowDevolverModal(true); }} style={{ borderColor: 'var(--pardo-red)', color: 'var(--pardo-red)' }}>
+                            <i className="fa-solid fa-reply"></i> Devolver Documento
+                          </button>
+                        );
+                      }
+                      botones.push(
+                        <button key="conta-rechazar" className="doc-btn doc-btn-danger" onClick={() => adminRechazar(saiaRadicado.id, () => setSaiaModalOpen(false))}>
+                          <i className="fa-solid fa-ban"></i> Rechazar Documento
+                        </button>
+                      );
+                    }
+
+                    // ── Botones admin (completar y rechazar) ──
                     if (!readOnly && esAdmin) {
                       botones.push(<button key="admin-completar" className="doc-btn doc-btn-primary" onClick={() => marcarCompletado(saiaRadicado.id)}><i className="fa-solid fa-check"></i> Marcar Completado (Admin)</button>);
-                      botones.push(<button key="admin-rechazar" className="doc-btn doc-btn-danger" onClick={() => adminRechazar(saiaRadicado.id)}><i className="fa-solid fa-ban"></i> Rechazar Definitivo</button>);
+                      botones.push(<button key="admin-rechazar" className="doc-btn doc-btn-danger" onClick={() => adminRechazar(saiaRadicado.id, () => setSaiaModalOpen(false))}><i className="fa-solid fa-ban"></i> Rechazar Definitivo</button>);
                     }
                     return <>{botones}</>;
                   })()}

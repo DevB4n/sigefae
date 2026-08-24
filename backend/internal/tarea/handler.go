@@ -64,7 +64,7 @@ func (h *Handler) Completar(c *gin.Context) {
 		return
 	}
 
-	if tarea.UsuarioAsignadoID != user.ID && user.Rol.Nombre != "Superadministrador" {
+	if tarea.UsuarioAsignadoID != user.ID && user.Rol.Nombre != "Superadministrador" && user.Rol.Nombre != "Contabilidad" {
 		c.JSON(http.StatusForbidden, gin.H{"error": "No estás asignado a esta tarea"})
 		return
 	}
@@ -309,7 +309,7 @@ func (h *Handler) Devolver(c *gin.Context) {
 		return
 	}
 
-	if tarea.UsuarioAsignadoID != user.ID && user.Rol.Nombre != "Superadministrador" {
+	if tarea.UsuarioAsignadoID != user.ID && user.Rol.Nombre != "Superadministrador" && user.Rol.Nombre != "Contabilidad" {
 		c.JSON(http.StatusForbidden, gin.H{"error": "No estás asignado a esta tarea"})
 		return
 	}
