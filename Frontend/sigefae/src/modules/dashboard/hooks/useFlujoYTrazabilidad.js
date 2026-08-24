@@ -76,7 +76,7 @@ export function useFlujoYTrazabilidad(obtenerToken, selectedRadicadoId, selected
   return {
     tareasFlujo, setTareasFlujo, historialTrazabilidad, setHistorialTrazabilidad,
     normasRepartoRadicado, setNormasRepartoRadicado,
-    comentarios, nuevoComentario, setNuevoComentario, enviandoComentario,
+    comentarios, setComentarios, nuevoComentario, setNuevoComentario, enviandoComentario,
     handleEnviarComentario, recargarComentarios, recargarNormas, recargarFlujo, recargarTrazabilidad
   };
 }
