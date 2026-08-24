@@ -20,6 +20,11 @@ export function useRadicacion(obtenerToken, userId, setDocumentos, setActiveTab,
   const [normaValorInput, setNormaValorInput] = useState("");
   const [subtotalDoc, setSubtotalDoc] = useState(0);
 
+  // ── NUEVO: normas predeterminadas del proveedor-ruta ──
+  const [proveedorIdActual, setProveedorIdActual] = useState(null);
+  const [normasPredeterminadas, setNormasPredeterminadas] = useState([]);
+  const [usarNormasPredeterminadas, setUsarNormasPredeterminadas] = useState(null); // null=sin decidir, true=sí, false=no
+
   const sedesDisponibles = ["BUCARAMANGA", "MALAMBO", "CUCUTA", "CB", "CIENAGA DE ORO", "GENERAL"];
   const areasDisponibles = ["ADMON", "VENTAS", "PRODUCCION"];
 
@@ -39,13 +44,81 @@ export function useRadicacion(obtenerToken, userId, setDocumentos, setActiveTab,
     }).catch(err => console.error("Error cargando catálogos:", err));
   }, [showRadicarModal, obtenerToken]);
 
-  const openRadicarModal = (docId, subtotal = 0) => {
+  // ── NUEVO: cuando cambia la ruta, consultar normas predeterminadas ──
+  useEffect(() => {
+    if (!showRadicarModal || !proveedorIdActual || !radicarForm.ruta_id) {
+      setNormasPredeterminadas([]);
+      setUsarNormasPredeterminadas(null);
+      return;
+    }
+    const cargar = async () => {
+      try {
+        const res = await fetch(`${API}/proveedor/${proveedorIdActual}/normas-reparto?ruta_id=${radicarForm.ruta_id}`, {
+          headers: { Authorization: `Bearer ${obtenerToken()}` }
+        });
+        const data = await res.json();
+        if (Array.isArray(data) && data.length > 0) {
+          setNormasPredeterminadas(data);
+          setUsarNormasPredeterminadas(null); // mostrar aviso para que decida
+        } else {
+          setNormasPredeterminadas([]);
+          setUsarNormasPredeterminadas(null);
+        }
+      } catch (e) {
+        console.error("Error cargando normas predeterminadas:", e);
+        setNormasPredeterminadas([]);
+      }
+    };
+    cargar();
+  }, [radicarForm.ruta_id, proveedorIdActual, showRadicarModal, obtenerToken]);
+
+const openRadicarModal = async (docId, subtotal = 0) => {
     setRadicarDocId(docId);
     setSubtotalDoc(parseFloat(subtotal) || 0);
     setRadicarForm({ tipo_radicacion_id: "", ruta_id: "", metodo_pago_id: "", numero_radicado: "", normas_reparto: [] });
-    setNormasRepartoAutoMsg(""); setNormaFiltroSede(""); setNormaFiltroArea("");
+    setNormasRepartoAutoMsg("");
+    setNormasPredeterminadas([]);
+    setUsarNormasPredeterminadas(null);
+    setNormaFiltroSede(""); setNormaFiltroArea("");
     setNormaSeleccionadaId(""); setNormaPorcentajeInput(""); setNormaValorInput("");
+    
+    // ── NUEVO: obtener proveedor del documento comercial ──
+    try {
+      const res = await fetch(`${API}/documentocomercial/${docId}`, {
+        headers: { Authorization: `Bearer ${obtenerToken()}` }
+      });
+      const data = await res.json();
+      if (data?.proveedor_id) {
+        setProveedorIdActual(data.proveedor_id);
+      } else if (data?.proveedor?.id) {
+        setProveedorIdActual(data.proveedor.id);
+      } else {
+        setProveedorIdActual(null);
+      }
+    } catch (e) {
+      console.error("Error obteniendo proveedor del documento:", e);
+      setProveedorIdActual(null);
+    }
+    
     setShowRadicarModal(true);
+  };
+
+  // ── NUEVO: aceptar / rechazar normas predeterminadas ──
+  const aceptarNormasPredeterminadas = () => {
+    const nuevasNormas = normasPredeterminadas.map(n => ({
+      norma_reparto_id: String(n.norma_reparto_id),
+      porcentaje: n.porcentaje.toFixed(2),
+      valor: subtotalDoc > 0 ? ((n.porcentaje / 100) * subtotalDoc).toFixed(2) : "0"
+    }));
+    setRadicarForm(prev => ({ ...prev, normas_reparto: nuevasNormas }));
+    setUsarNormasPredeterminadas(true);
+    setNormasRepartoAutoMsg("");
+  };
+
+  const rechazarNormasPredeterminadas = () => {
+    setRadicarForm(prev => ({ ...prev, normas_reparto: [] }));
+    setUsarNormasPredeterminadas(false);
+    setNormasRepartoAutoMsg("");
   };
 
   const handleRadicarChange = (e) => {
@@ -60,7 +133,6 @@ export function useRadicacion(obtenerToken, userId, setDocumentos, setActiveTab,
     let pct = parseFloat(normaPorcentajeInput);
     let val = parseFloat(normaValorInput);
     
-    // Auto-calcular el que falte
     if (subtotalDoc > 0) {
       if (normaValorInput && !normaPorcentajeInput) {
         pct = (val / subtotalDoc) * 100;
@@ -142,6 +214,10 @@ export function useRadicacion(obtenerToken, userId, setDocumentos, setActiveTab,
     normaSeleccionadaId, setNormaSeleccionadaId, normaPorcentajeInput, setNormaPorcentajeInput,
     normaValorInput, setNormaValorInput, subtotalDoc,
     sedesDisponibles, areasDisponibles, normasFiltradas, totalPorcentajeNormas,
+    // ── NUEVO ──
+    proveedorIdActual, normasPredeterminadas, usarNormasPredeterminadas,
+    aceptarNormasPredeterminadas, rechazarNormasPredeterminadas,
+    // ── /NUEVO ──
     openRadicarModal, handleRadicarChange, handleAgregarNormaModal,
     handleNormaRepartoChange, handleRemoveNormaReparto, handleRadicarSubmit
   };

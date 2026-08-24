@@ -8,11 +8,14 @@ export default function ModalRadicar({
   normaSeleccionadaId, setNormaSeleccionadaId, normaPorcentajeInput, setNormaPorcentajeInput,
   normaValorInput, setNormaValorInput, subtotalDoc,
   sedesDisponibles, areasDisponibles, normasFiltradas, totalPorcentajeNormas,
+  // ── NUEVO ──
+  normasPredeterminadas, usarNormasPredeterminadas,
+  aceptarNormasPredeterminadas, rechazarNormasPredeterminadas,
+  // ── /NUEVO ──
   handleRadicarChange, handleAgregarNormaModal, handleNormaRepartoChange, handleRemoveNormaReparto, handleRadicarSubmit
 }) {
   if (!showRadicarModal) return null;
 
-  // Auto-calc helpers for the input fields
   const handlePctChange = (e) => {
     const val = e.target.value;
     setNormaPorcentajeInput(val);
@@ -59,6 +62,54 @@ export default function ModalRadicar({
               <option value="">Seleccione...</option>{metodosPago.map(mp => <option key={mp.id} value={mp.id}>{mp.nombre}</option>)}
             </select>
           </div>
+
+          {/* ── NUEVO: aviso de normas predeterminadas ── */}
+          {normasPredeterminadas.length > 0 && usarNormasPredeterminadas === null && (
+            <div className="modal-field" style={{
+              padding: "16px", borderRadius: 10,
+              background: "linear-gradient(135deg, #fef3c7, #fde68a)",
+              border: "1px solid #f59e0b", color: "#92400e"
+            }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 10 }}>
+                <i className="fa-solid fa-lightbulb" style={{ fontSize: 20, color: "#f59e0b" }}></i>
+                <strong style={{ fontSize: 15 }}>Normas de reparto guardadas</strong>
+              </div>
+              <p style={{ margin: "0 0 12px", fontSize: 13, lineHeight: 1.5 }}>
+                Este proveedor tiene <strong>{normasPredeterminadas.length} norma{normasPredeterminadas.length !== 1 ? 's' : ''}</strong> predeterminada{normasPredeterminadas.length !== 1 ? 's' : ''} para esta ruta
+                {" "}({normasPredeterminadas.map(n => n.norma_reparto?.codigo || `Norma ${n.norma_reparto_id}`).join(", ")}).
+                <br />¿Deseas generarlas automáticamente?
+              </p>
+              <div style={{ display: "flex", gap: 10 }}>
+                <button type="button" onClick={aceptarNormasPredeterminadas} style={{
+                  padding: "8px 16px", borderRadius: 6, border: "none",
+                  background: "#f59e0b", color: "#fff", fontWeight: 600,
+                  fontSize: 13, cursor: "pointer", display: "flex", alignItems: "center", gap: 6
+                }}>
+                  <i className="fa-solid fa-check"></i> Sí, generar automáticamente
+                </button>
+                <button type="button" onClick={rechazarNormasPredeterminadas} style={{
+                  padding: "8px 16px", borderRadius: 6, border: "1px solid #d97706",
+                  background: "#fff", color: "#92400e", fontWeight: 600,
+                  fontSize: 13, cursor: "pointer"
+                }}>
+                  No, dejar en blanco
+                </button>
+              </div>
+            </div>
+          )}
+
+          {usarNormasPredeterminadas === true && (
+            <div className="modal-field" style={{
+              padding: "10px 12px", borderRadius: 8,
+              background: "#d1fae5", border: "1px solid #10b981",
+              color: "#065f46", fontSize: 13, display: "flex", alignItems: "center", gap: 8
+            }}>
+              <i className="fa-solid fa-check-circle"></i>
+              <span>Normas de reparto cargadas automáticamente desde el histórico.</span>
+            </div>
+          )}
+          {/* ── /NUEVO ── */}
+
           {normasRepartoAutoMsg && (
             <div className="modal-field" style={{ padding: "10px 12px", borderRadius: 8, background: "#fef3c7", border: "1px solid #f59e0b", color: "#92400e", fontSize: "0.92em", fontWeight: 600 }}>{normasRepartoAutoMsg}</div>
           )}
