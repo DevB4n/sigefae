@@ -38,14 +38,14 @@ func Load(path string) (*Env, error) {
 		GraphUserEmail:    os.Getenv("GRAPH_USER_EMAIL"),
 
 		// DB
-		DBHost:      os.Getenv("DB_HOST"),
-		DBPort:      os.Getenv("DB_PORT"),
-		DBUser:      os.Getenv("DB_USER"),
-		DBPassword:  os.Getenv("DB_PASSWORD"),
-		DBName:      os.Getenv("DB_NAME"),
-		DBCharset:   os.Getenv("DB_CHARSET"),
-		DBParseTime: os.Getenv("DB_PARSE_TIME"),
-		DBLoc:       os.Getenv("DB_LOC"),
+		DBHost:      os.Getenv("DB_SIGEFAE_HOST"),
+		DBPort:      os.Getenv("DB_SIGEFAE_PORT"),
+		DBUser:      os.Getenv("DB_SIGEFAE_USER"),
+		DBPassword:  os.Getenv("DB_SIGEFAE_PASSWORD"),
+		DBName:      os.Getenv("DB_SIGEFAE_NAME"),
+		DBCharset:   os.Getenv("DB_SIGEFAE_CHARSET"),
+		DBParseTime: os.Getenv("DB_SIGEFAE_PARSE_TIME"),
+		DBLoc:       os.Getenv("DB_SIGEFAE_LOC"),
 	}
 
 	if cfg.GraphClientID == "" ||
