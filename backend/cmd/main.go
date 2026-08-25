@@ -16,7 +16,7 @@ func main() {
 	// Configuración
 	// ========================================
 
-	cfg, err := env.Load(".env")
+	cfg, err := env.Load("../../../../../env_hp")
 	if err != nil {
 		log.Fatal(err)
 	}
