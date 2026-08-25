@@ -39,7 +39,7 @@ function Login() {
 
             <div className="logo-container">
                 <img
-                    src="./src/assets/login/logo.png"
+                    src={`${import.meta.env.BASE_URL}logo.png`}
                     alt="Logo"
                 />
             </div>

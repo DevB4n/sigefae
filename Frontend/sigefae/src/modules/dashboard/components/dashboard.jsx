@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import "../dashboard.css";
 import "@fortawesome/fontawesome-free/css/all.min.css";
-import logo from "../../../assets/login/logo.png";
+import logo from "/logo.png";
 import { obtenerToken } from "../../auth/token.js";
 import PdfEditor from "../../../components/PdfEditor.jsx";
 import NotificacionesDropdown from "../../../components/NotificacionesDropdown.jsx";
