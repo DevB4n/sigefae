@@ -56,6 +56,7 @@ func New(database *gorm.DB) *gin.Engine {
 	router.Use(cors.New(cors.Config{
 		AllowOrigins: []string{
 			"http://localhost:5173",
+			"https://app.harinerapardo.co",
 		},
 		AllowMethods: []string{
 			"GET",
@@ -72,6 +73,16 @@ func New(database *gorm.DB) *gin.Engine {
 		},
 		AllowCredentials: true,
 	}))
+
+	// ==========================
+	// No Cache Middleware
+	// ==========================
+	router.Use(func(c *gin.Context) {
+		c.Header("Cache-Control", "no-store, no-cache, must-revalidate, proxy-revalidate")
+		c.Header("Pragma", "no-cache")
+		c.Header("Expires", "0")
+		c.Next()
+	})
 
 	// ==========================
 	// Health Check
@@ -223,6 +234,7 @@ func New(database *gorm.DB) *gin.Engine {
 	api := router.Group("/api")
 	{
 		api.POST("/auth/login", authHandler.Login)
+		api.POST("/auth/sso", authHandler.SSO) // Nuevo endpoint para Single Sign-On desde PHP
 		api.GET("/documentoradicado/verificar/:numero_radicado", documentoRadicadoHandler.VerificarPublico)
 	}
 	// =========================

@@ -78,3 +78,45 @@ func (h *Handler) Login(c *gin.Context) {
 
 	c.JSON(http.StatusOK, response)
 }
+
+type SSORequest struct {
+	Email  string `json:"email" binding:"required,email"`
+	Secret string `json:"secret" binding:"required"`
+}
+
+func (h *Handler) SSO(c *gin.Context) {
+	var request SSORequest
+
+	if err := c.ShouldBindJSON(&request); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	// Secret validation (you can change this string or move to env vars)
+	if request.Secret != "SIGEFAE_INTERNAL_SSO_SECRET_2026" {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "invalid secret"})
+		return
+	}
+
+	user, token, err := h.service.SSOLogin(request.Email)
+	if err != nil {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": err.Error()})
+		return
+	}
+
+	response := LoginResponse{
+		Token: token,
+		Usuario: UsuarioDTO{
+			ID:     user.ID,
+			Nombre: user.Nombre,
+			Email:  user.Email,
+			Cargo:  user.Cargo,
+		},
+	}
+
+	if user.Rol != nil {
+		response.Usuario.Rol = user.Rol.Nombre
+	}
+
+	c.JSON(http.StatusOK, response)
+}

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 
 import { guardarToken } from "../auth/token";
@@ -11,6 +11,24 @@ function Login() {
 
     const [email, setEmail] = useState("");
     const [password, setPassword] = useState("");
+
+    // ── Auto-login si la URL contiene credenciales SSO desde el panel PHP ──
+    useEffect(() => {
+        const params = new URLSearchParams(window.location.search);
+        const token = params.get("sso_token");
+        const rol = params.get("sso_rol");
+        const userId = params.get("sso_user_id");
+
+        if (token && rol && userId) {
+            guardarToken(token);
+            localStorage.setItem("rol", rol);
+            localStorage.setItem("user_id", userId);
+            
+            // Limpiar la URL por seguridad y redirigir
+            window.history.replaceState({}, document.title, window.location.pathname);
+            navigate("/dashboard");
+        }
+    }, [navigate]);
 
     async function iniciarSesion() {
 

@@ -22,7 +22,9 @@ export function useCatalogos(obtenerToken, activeTab) {
     const c = catalogoConfig[tipo];
     setCatalogoLoading(true);
     try {
-      const res = await fetch(`${API}/${c.endpoint}`, { headers: { Authorization: `Bearer ${obtenerToken()}` } });
+      const cacheBuster = `_t=${new Date().getTime()}`;
+      const url = `${API}/${c.endpoint}${c.endpoint.includes('?') ? '&' : '?'}${cacheBuster}`;
+      const res = await fetch(url, { headers: { Authorization: `Bearer ${obtenerToken()}` } });
       const data = await res.json();
       setCatalogoItems(Array.isArray(data) ? data : []);
     } catch (err) { console.error(err); setCatalogoItems([]); }
@@ -33,11 +35,12 @@ export function useCatalogos(obtenerToken, activeTab) {
   useEffect(() => {
     if (activeTab !== "catalogos") return;
     const headers = { Authorization: `Bearer ${obtenerToken()}` };
-    if (catalogoActivo === "reglas-monto") fetch(`${API}/monedas`, { headers }).then(r => r.ok ? r.json() : []).then(d => setMonedasCatalogo(Array.isArray(d) ? d : [])).catch(() => setMonedasCatalogo([]));
-    if (catalogoActivo === "metodos-pago") fetch(`${API}/tipos-pago`, { headers }).then(r => r.json()).then(d => setTiposPagoCatalogo(Array.isArray(d) ? d : []));
-    if (catalogoActivo === "rutas" || catalogoActivo === "pasos-ruta") fetch(`${API}/areas`, { headers }).then(r => r.json()).then(d => setAreasCatalogo(Array.isArray(d) ? d : []));
-    if (catalogoActivo === "pasos-ruta") fetch(`${API}/rutas`, { headers }).then(r => r.json()).then(d => setRutasCatalogo(Array.isArray(d) ? d : [])).catch(err => console.error(err));
-    if (catalogoActivo === "pasos-ruta" || catalogoActivo === "reglas-monto") fetch(`${API}/usuarios`, { headers }).then(r => r.json()).then(d => setUsuariosCatalogo(Array.isArray(d) ? d : []));
+    const t = `?_t=${new Date().getTime()}`;
+    if (catalogoActivo === "reglas-monto") fetch(`${API}/monedas${t}`, { headers }).then(r => r.ok ? r.json() : []).then(d => setMonedasCatalogo(Array.isArray(d) ? d : [])).catch(() => setMonedasCatalogo([]));
+    if (catalogoActivo === "metodos-pago") fetch(`${API}/tipos-pago${t}`, { headers }).then(r => r.json()).then(d => setTiposPagoCatalogo(Array.isArray(d) ? d : []));
+    if (catalogoActivo === "rutas" || catalogoActivo === "pasos-ruta") fetch(`${API}/areas${t}`, { headers }).then(r => r.json()).then(d => setAreasCatalogo(Array.isArray(d) ? d : []));
+    if (catalogoActivo === "pasos-ruta") fetch(`${API}/rutas${t}`, { headers }).then(r => r.json()).then(d => setRutasCatalogo(Array.isArray(d) ? d : [])).catch(err => console.error(err));
+    if (catalogoActivo === "pasos-ruta" || catalogoActivo === "reglas-monto") fetch(`${API}/usuarios${t}`, { headers }).then(r => r.json()).then(d => setUsuariosCatalogo(Array.isArray(d) ? d : []));
   }, [activeTab, catalogoActivo, obtenerToken]);
 
   const openCatalogoCreate = () => {
@@ -60,28 +63,50 @@ export function useCatalogos(obtenerToken, activeTab) {
     const { name, value, type } = e.target;
     setCatalogoForm(prev => ({ ...prev, [name]: type === "number" ? (value === "" ? 0 : parseInt(value)) : value }));
   };
+const handleCatalogoSubmit = async () => {
+  const isEdit = !!catalogoEditing;
+  const url = isEdit ? `${API}/${cfg.endpoint}/${catalogoEditing.id}` : `${API}/${cfg.endpoint}`;
+  const method = isEdit ? cfg.method : "POST";
+  const body = {};
 
-  const handleCatalogoSubmit = async () => {
-    const isEdit = !!catalogoEditing;
-    const url = isEdit ? `${API}/${cfg.endpoint}/${catalogoEditing.id}` : `${API}/${cfg.endpoint}`;
-    const method = isEdit ? cfg.method : "POST";
-    const body = {};
-    cfg.fields.forEach(f => {
-      if (f === "orden" || f.includes("_id") || f === "monto_minimo" || f === "prioridad") body[f] = parseFloat(catalogoForm[f]) || 0;
-      else body[f] = catalogoForm[f]?.trim() || "";
+  cfg.fields.forEach(f => {
+    const val = catalogoForm[f];
+    if (f === "orden" || f.includes("_id") || f === "monto_minimo" || f === "prioridad") {
+      // Solo parsear si hay un valor ingresado para evitar enviar 0 en campos requeridos por Gin
+      if (val !== "" && val !== undefined && val !== null) {
+        body[f] = parseFloat(val);
+      }
+    } else {
+      body[f] = val?.trim() || "";
+    }
+  });
+
+  // Validaciones del Frontend
+  if (!body.nombre && cfg.fields.includes("nombre")) { alert("El nombre es obligatorio"); return; }
+
+  try {
+    const res = await fetch(url, {
+      method,
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${obtenerToken()}`
+      },
+      body: JSON.stringify(body)
     });
-    if (!body.nombre && cfg.fields.includes("nombre")) { alert("El nombre es obligatorio"); return; }
-    if (cfg.fields.includes("area_id") && !body.area_id) { alert("Debe seleccionar un área"); return; }
-    if (cfg.fields.includes("ruta_id") && !body.ruta_id) { alert("Debe seleccionar una ruta"); return; }
-    if (cfg.fields.includes("usuario_id") && !body.usuario_id) { alert("Debe seleccionar un usuario"); return; }
-    if (cfg.fields.includes("tipo_pago_id") && !body.tipo_pago_id) { alert("Debe seleccionar un tipo de pago"); return; }
 
-    try {
-      const res = await fetch(url, { method, headers: { "Content-Type": "application/json", Authorization: `Bearer ${obtenerToken()}` }, body: JSON.stringify(body) });
-      if (!res.ok) { const errData = await res.json(); throw new Error(errData.error || "Error guardando"); }
-      setShowCatalogoForm(false); loadCatalogo(catalogoActivo);
-    } catch (err) { alert("Error: " + err.message); }
-  };
+    const data = await res.json();
+
+    if (!res.ok) {
+      console.error("Detalle error Backend (Go):", data); // Muestra la causa exacta en consola F12
+      throw new Error(data.error || JSON.stringify(data));
+    }
+
+    setShowCatalogoForm(false);
+    loadCatalogo(catalogoActivo);
+  } catch (err) {
+    alert("Error: " + err.message);
+  }
+};
 
   const handleToggleCatalogoStatus = async (item) => {
     try {
