@@ -14,7 +14,8 @@ export function useRadicados(obtenerToken, activeTab, userId) {
   useEffect(() => {
     if (activeTab !== "radicados" && activeTab !== "finanzas") return;
     setLoadingRadicados(true);
-    fetch(`${API}/documentoradicado`, { headers: { Authorization: `Bearer ${obtenerToken()}` } })
+    const t = `?_t=${new Date().getTime()}`;
+    fetch(`${API}/documentoradicado${t}`, { headers: { Authorization: `Bearer ${obtenerToken()}` } })
       .then((res) => res.json())
       .then(async (data) => {
         if (!Array.isArray(data)) return;
@@ -23,7 +24,8 @@ export function useRadicados(obtenerToken, activeTab, userId) {
         await Promise.all(data.map(async (rad) => {
           if (isFinalState(rad.estado_posesion)) return;
           try {
-            const res = await fetch(`${API}/documentoradicado/${rad.id}/tareas`, { headers: { Authorization: `Bearer ${obtenerToken()}` } });
+            const t = `?_t=${new Date().getTime()}`;
+            const res = await fetch(`${API}/documentoradicado/${rad.id}/tareas${t}`, { headers: { Authorization: `Bearer ${obtenerToken()}` } });
             const tareas = await res.json();
             const tareaActiva = (Array.isArray(tareas) ? tareas : []).find(t => t.estado?.nombre === "En Proceso");
             if (tareaActiva) tareasMap[rad.id] = tareaActiva;
@@ -38,13 +40,14 @@ export function useRadicados(obtenerToken, activeTab, userId) {
   useEffect(() => {
     if (!selectedRadicadoId) return;
     setRadicadoDetail(null);
-    fetch(`${API}/documentoradicado/${selectedRadicadoId}`, { headers: { Authorization: `Bearer ${obtenerToken()}` } })
+    const t = `?_t=${new Date().getTime()}`;
+    fetch(`${API}/documentoradicado/${selectedRadicadoId}${t}`, { headers: { Authorization: `Bearer ${obtenerToken()}` } })
       .then((res) => res.json())
       .then(async (data) => {
         if (data?.id) {
           if (data.ruta?.id && !data.ruta?.area) {
             try {
-              const rutasRes = await fetch(`${API}/rutas`, { headers: { Authorization: `Bearer ${obtenerToken()}` } });
+              const rutasRes = await fetch(`${API}/rutas${t}`, { headers: { Authorization: `Bearer ${obtenerToken()}` } });
               const rutasList = await rutasRes.json();
               const rutaCompleta = (Array.isArray(rutasList) ? rutasList : []).find(r => r.id === data.ruta.id);
               if (rutaCompleta) data.ruta.area = rutaCompleta.area;

@@ -12,7 +12,8 @@ export function useCorreos(obtenerToken, activeTab) {
   useEffect(() => {
     if (activeTab !== "correos") return;
     setLoading(true);
-    fetch(`${API}/correo`, { headers: { Authorization: `Bearer ${obtenerToken()}` } })
+    const t = `?_t=${new Date().getTime()}`;
+    fetch(`${API}/correo${t}`, { headers: { Authorization: `Bearer ${obtenerToken()}` } })
       .then((res) => res.json())
       .then((data) => { if (Array.isArray(data)) setCorreos(data); })
       .catch((err) => console.error(err))
@@ -22,7 +23,8 @@ export function useCorreos(obtenerToken, activeTab) {
   useEffect(() => {
     if (!selectedCorreoId) return;
     setCorreoDetail(null);
-    fetch(`${API}/correo/${selectedCorreoId}`, { headers: { Authorization: `Bearer ${obtenerToken()}` } })
+    const t = `?_t=${new Date().getTime()}`;
+    fetch(`${API}/correo/${selectedCorreoId}${t}`, { headers: { Authorization: `Bearer ${obtenerToken()}` } })
       .then((res) => res.json())
       .then((data) => { if (data?.id) setCorreoDetail(data); })
       .catch((err) => console.error(err));

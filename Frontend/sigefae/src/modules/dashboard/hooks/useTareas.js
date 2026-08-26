@@ -15,7 +15,8 @@ export function useTareas(obtenerToken, activeTab, userId) {
   useEffect(() => {
     if (activeTab !== "tareas") return;
     setLoadingTareas(true);
-    fetch(`${API}/documentoradicado`, { headers: { Authorization: `Bearer ${obtenerToken()}` } })
+    const t = `?_t=${new Date().getTime()}`;
+    fetch(`${API}/documentoradicado${t}`, { headers: { Authorization: `Bearer ${obtenerToken()}` } })
       .then((res) => res.json())
       .then((data) => {
         if (Array.isArray(data)) {
@@ -30,7 +31,8 @@ export function useTareas(obtenerToken, activeTab, userId) {
   useEffect(() => {
     if (!selectedTareaId) return;
     setTareaDetail(null);
-    fetch(`${API}/documentoradicado/${selectedTareaId}`, { headers: { Authorization: `Bearer ${obtenerToken()}` } })
+    const t = `?_t=${new Date().getTime()}`;
+    fetch(`${API}/documentoradicado/${selectedTareaId}${t}`, { headers: { Authorization: `Bearer ${obtenerToken()}` } })
       .then((res) => res.json())
       .then(async (data) => {
         if (data?.id) {

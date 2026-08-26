@@ -3,6 +3,7 @@ import { obtenerToken } from "../../auth/token.js";
 
 export const obtenerRol = () => localStorage.getItem("rol") || "";
 export const obtenerUserId = () => parseInt(localStorage.getItem("user_id")) || 0;
+export const obtenerNombre = () => localStorage.getItem("user_name") || "";
 
 export function useAuth() {
   const userRol = obtenerRol();
@@ -17,5 +18,7 @@ export function useAuth() {
     return propietario > 0 && propietario === Number(userId);
   }, [esAdmin, userId]);
 
-  return { userRol, userId, esAdmin, esUsuario, showDebug, puedeGestionarRecurso, obtenerToken };
+  const userName = obtenerNombre();
+
+  return { userRol, userId, userName, esAdmin, esUsuario, showDebug, puedeGestionarRecurso, obtenerToken };
 }

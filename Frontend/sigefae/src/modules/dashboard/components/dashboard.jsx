@@ -172,6 +172,28 @@ export default function ProcesosLogistica() {
           <div className="header-text"><h1>SIGEFAE</h1><p>Sistema de Gestion de Facturas Electronicas</p></div>
         </div>
         <div className="header-right">
+          <a
+            href="https://app.harinerapardo.co/index.php"
+            className="btn-volver-panel"
+            title="Volver al Panel Principal"
+            style={{
+              display: "inline-flex",
+              alignItems: "center",
+              gap: "6px",
+              padding: "8px 14px",
+              backgroundColor: "rgba(255, 255, 255, 0.15)",
+              color: "#ffffff",
+              borderRadius: "6px",
+              textDecoration: "none",
+              fontWeight: "600",
+              fontSize: "13px",
+              marginRight: "12px",
+              border: "1px solid rgba(255, 255, 255, 0.25)",
+              transition: "all 0.2s"
+            }}
+          >
+            <i className="fa-solid fa-arrow-left"></i> Volver al Panel
+          </a>
           <NotificacionesDropdown onNavigate={(id) => { setActiveTab("tareas"); tareasHook.setSelectedTareaId(id); radicadosHook.setSelectedRadicadoId(null); }} />
           <AdminToast />
         </div>

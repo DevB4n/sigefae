@@ -31,11 +31,12 @@ export function useRadicacion(obtenerToken, userId, setDocumentos, setActiveTab,
   useEffect(() => {
     if (!showRadicarModal) return;
     const headers = { Authorization: `Bearer ${obtenerToken()}` };
+    const t = `_t=${new Date().getTime()}`;
     Promise.all([
-      fetch(`${API}/tipo-radicacion`, { headers }).then(r => r.json()),
-      fetch(`${API}/rutas`, { headers }).then(r => r.json()),
-      fetch(`${API}/metodos-pago`, { headers }).then(r => r.json()),
-      fetch(`${API}/normas-reparto?activo=true`, { headers }).then(r => r.json()),
+      fetch(`${API}/tipo-radicacion?${t}`, { headers }).then(r => r.json()),
+      fetch(`${API}/rutas?${t}`, { headers }).then(r => r.json()),
+      fetch(`${API}/metodos-pago?${t}`, { headers }).then(r => r.json()),
+      fetch(`${API}/normas-reparto?activo=true&${t}`, { headers }).then(r => r.json()),
     ]).then(([tr, r, mp, nr]) => {
       setTiposRadicacion(Array.isArray(tr) ? tr : []);
       setRutas(Array.isArray(r) ? r : []);

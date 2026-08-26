@@ -18,11 +18,13 @@ function Login() {
         const token = params.get("sso_token");
         const rol = params.get("sso_rol");
         const userId = params.get("sso_user_id");
+        const nombre = params.get("sso_nombre");
 
         if (token && rol && userId) {
             guardarToken(token);
             localStorage.setItem("rol", rol);
             localStorage.setItem("user_id", userId);
+            if (nombre) localStorage.setItem("user_name", nombre);
             
             // Limpiar la URL por seguridad y redirigir
             window.history.replaceState({}, document.title, window.location.pathname);
@@ -41,6 +43,7 @@ function Login() {
             // ── Guardar datos del usuario para el rol-based dashboard ──
             localStorage.setItem("rol", data.usuario.rol);
             localStorage.setItem("user_id", data.usuario.id);
+            if (data.usuario.nombre) localStorage.setItem("user_name", data.usuario.nombre);
 
             navigate("/dashboard");
 

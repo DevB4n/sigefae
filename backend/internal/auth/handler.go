@@ -80,8 +80,8 @@ func (h *Handler) Login(c *gin.Context) {
 }
 
 type SSORequest struct {
-	Email  string `json:"email" binding:"required,email"`
-	Secret string `json:"secret" binding:"required"`
+	Identifier string `json:"identifier" binding:"required"`
+	Secret     string `json:"secret" binding:"required"`
 }
 
 func (h *Handler) SSO(c *gin.Context) {
@@ -98,7 +98,7 @@ func (h *Handler) SSO(c *gin.Context) {
 		return
 	}
 
-	user, token, err := h.service.SSOLogin(request.Email)
+	user, token, err := h.service.SSOLogin(request.Identifier)
 	if err != nil {
 		c.JSON(http.StatusUnauthorized, gin.H{"error": err.Error()})
 		return

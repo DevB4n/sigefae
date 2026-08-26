@@ -1,7 +1,6 @@
 package db
 
 import (
-	"golang.org/x/crypto/bcrypt"
 	"gorm.io/gorm"
 )
 
@@ -74,87 +73,7 @@ func Seed(db *gorm.DB) error {
 		return err
 	}
 
-	// ==========================
-	// Usuario: Administrador
-	// ==========================
-	hashAdmin, err := bcrypt.GenerateFromPassword([]byte("admin123"), bcrypt.DefaultCost)
-	if err != nil {
-		return err
-	}
-	admin := Usuario{
-		Nombre:         "Administrador",
-		Email:          "admin@sigefae.local",
-		HashContrasena: string(hashAdmin),
-		Cargo:          "Superadministrador",
-		RolID:          superAdminRole.ID,
-	}
-	if err := db.Where("email = ?", admin.Email).FirstOrCreate(&admin).Error; err != nil {
-		return err
-	}
 
-	// ==========================
-	// Usuario: Juan Aprobador
-	// ==========================
-	hashAprobador, err := bcrypt.GenerateFromPassword([]byte("aprobador123"), bcrypt.DefaultCost)
-	if err != nil {
-		return err
-	}
-	aprobador := Usuario{
-		Nombre:         "Juan Aprobador",
-		Email:          "aprobador@sigefae.local",
-		HashContrasena: string(hashAprobador),
-		Cargo:          "Aprobador de Documentos",
-		RolID:          aprobadorRole.ID,
-	}
-	if err := db.Where("email = ?", aprobador.Email).FirstOrCreate(&aprobador).Error; err != nil {
-		return err
-	}
-
-	// ==========================
-	// Usuario: Maria
-	// ==========================
-	hashMaria, err := bcrypt.GenerateFromPassword([]byte("maria123"), bcrypt.DefaultCost)
-	if err != nil {
-		return err
-	}
-	Maria := Usuario{
-		Nombre:         "Maria",
-		Email:          "maria@sigefae.local",
-		HashContrasena: string(hashMaria),
-		Cargo:          "Aprobador de Documentos",
-		RolID:          aprobadorRole.ID,
-	}
-	if err := db.Where("email = ?", Maria.Email).FirstOrCreate(&Maria).Error; err != nil {
-		return err
-	}
-
-	// ==========================
-	// Usuario: Prueba Contabilidad
-	// ==========================
-	hashConta, _ := bcrypt.GenerateFromPassword([]byte("conta123"), bcrypt.DefaultCost)
-	conta := Usuario{
-		Nombre:         "Prueba Contabilidad",
-		Email:          "contabilidad@sigefae.local",
-		HashContrasena: string(hashConta),
-		Cargo:          "Contador Principal",
-		RolID:          contabilidadRole.ID,
-	}
-	db.Where("email = ?", conta.Email).FirstOrCreate(&conta)
-
-	// ==========================
-	// Usuario: Prueba Tesorería
-	// ==========================
-	hashTeso, _ := bcrypt.GenerateFromPassword([]byte("teso123"), bcrypt.DefaultCost)
-	teso := Usuario{
-		Nombre:         "Prueba Tesorería",
-		Email:          "tesoreria@sigefae.local",
-		HashContrasena: string(hashTeso),
-		Cargo:          "Tesorero General",
-		RolID:          tesoreriaRole.ID,
-	}
-	db.Where("email = ?", teso.Email).FirstOrCreate(&teso)
-
-	// ==========================
 	// Área General
 	// ==========================
 	areaGeneral := Area{ID: 1, Nombre: "General", Activo: true}

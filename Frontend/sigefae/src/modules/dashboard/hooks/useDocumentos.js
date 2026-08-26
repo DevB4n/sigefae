@@ -37,23 +37,26 @@ export function useDocumentos(obtenerToken, activeTab) {
     if (activeTab !== "documentos") return;
     const headers = { Authorization: `Bearer ${obtenerToken()}` };
     setLoadingDocs(true);
-    fetch(`${API}/documentocomercial/pendientes`, { headers })
+    const t1 = `?_t=${new Date().getTime()}`;
+    fetch(`${API}/documentocomercial/pendientes${t1}`, { headers })
       .then((res) => res.json())
       .then((data) => { if (Array.isArray(data)) setDocumentos(data); })
       .catch((err) => console.error(err))
       .finally(() => setLoadingDocs(false));
 
-    fetch(`${API}/proveedor`, { headers }).then(r => r.json()).then(d => setProveedoresCatalogo(Array.isArray(d) ? d : [])).catch(() => setProveedoresCatalogo([]));
-    fetch(`${API}/receptor`, { headers }).then(r => r.json()).then(d => setReceptoresCatalogo(Array.isArray(d) ? d : [])).catch(() => setReceptoresCatalogo([]));
-    if (areasCatalogo.length === 0) fetch(`${API}/areas`, { headers }).then(r => r.json()).then(d => setAreasCatalogo(Array.isArray(d) ? d : [])).catch(() => {});
-    if (monedasCatalogo.length === 0) fetch(`${API}/monedas`, { headers }).then(r => r.json()).then(d => setMonedasCatalogo(Array.isArray(d) ? d : [])).catch(() => {});
-    fetch(`${API}/tipo-documento`, { headers }).then(r => r.json()).then(d => setTiposDocumentoCatalogo(Array.isArray(d) ? d : [])).catch(() => setTiposDocumentoCatalogo([]));
+    const t2 = `_t=${new Date().getTime()}`;
+    fetch(`${API}/proveedor?${t2}`, { headers }).then(r => r.json()).then(d => setProveedoresCatalogo(Array.isArray(d) ? d : [])).catch(() => setProveedoresCatalogo([]));
+    fetch(`${API}/receptor?${t2}`, { headers }).then(r => r.json()).then(d => setReceptoresCatalogo(Array.isArray(d) ? d : [])).catch(() => setReceptoresCatalogo([]));
+    if (areasCatalogo.length === 0) fetch(`${API}/areas?${t2}`, { headers }).then(r => r.json()).then(d => setAreasCatalogo(Array.isArray(d) ? d : [])).catch(() => {});
+    if (monedasCatalogo.length === 0) fetch(`${API}/monedas?${t2}`, { headers }).then(r => r.json()).then(d => setMonedasCatalogo(Array.isArray(d) ? d : [])).catch(() => {});
+    fetch(`${API}/tipo-documento?${t2}`, { headers }).then(r => r.json()).then(d => setTiposDocumentoCatalogo(Array.isArray(d) ? d : [])).catch(() => setTiposDocumentoCatalogo([]));
   }, [activeTab, obtenerToken]);
 
   useEffect(() => {
     if (!selectedDocId) return;
     setDocDetail(null);
-    fetch(`${API}/documentocomercial/${selectedDocId}`, { headers: { Authorization: `Bearer ${obtenerToken()}` } })
+    const t = `?_t=${new Date().getTime()}`;
+    fetch(`${API}/documentocomercial/${selectedDocId}${t}`, { headers: { Authorization: `Bearer ${obtenerToken()}` } })
       .then((res) => res.json())
       .then((data) => { if (data?.id) setDocDetail(data); })
       .catch((err) => console.error(err));

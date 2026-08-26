@@ -56,12 +56,12 @@ func (s *Service) Login(email, password string) (*db.Usuario, string, error) {
 	return &user, token, nil
 }
 
-func (s *Service) SSOLogin(email string) (*db.Usuario, string, error) {
+func (s *Service) SSOLogin(identifier string) (*db.Usuario, string, error) {
 	var user db.Usuario
 
 	err := s.db.
 		Preload("Rol").
-		Where("email = ?", email).
+		Where("email = ? OR nombre = ?", identifier, identifier).
 		First(&user).Error
 
 	if err != nil {
