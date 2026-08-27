@@ -48,7 +48,7 @@ import ModalNormaReparto from "./modals/ModalNormaReparto.jsx";
 import RenderFinanzas from "./RenderFinanzas.jsx";
 
 export default function ProcesosLogistica() {
-  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  const [isSidebarOpen, setIsSidebarOpen] = useState(true);
   const { userRol, userId, esAdmin, esUsuario, showDebug, puedeGestionarRecurso, obtenerToken } = useAuth();
   
   const initialTab = esAdmin ? "welcome" : (userRol === "Contabilidad" || userRol === "Tesorería") ? "finanzas" : "tareas";

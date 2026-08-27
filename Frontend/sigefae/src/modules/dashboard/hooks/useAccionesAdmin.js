@@ -4,6 +4,7 @@ export function useAccionesAdmin(obtenerToken, setRadicadoDetail) {
   const solicitarRechazo = async (documentoId) => {
     if (!confirm("¿Desea solicitar el rechazo de este documento?")) return;
     const motivo = prompt("Escriba un motivo (opcional):", "");
+    if (motivo === null) return;
     try {
       const res = await fetch(`${API}/documentoradicado/${documentoId}/solicitar-rechazo`, {
         method: "POST", headers: { "Content-Type": "application/json", Authorization: `Bearer ${obtenerToken()}` },
@@ -17,6 +18,7 @@ export function useAccionesAdmin(obtenerToken, setRadicadoDetail) {
   const marcarCompletado = async (radicadoId) => {
     if (!confirm("¿Marcar este radicado como completado? Esta acción es final.")) return;
     const motivo = prompt("Escriba un mensaje (opcional):", "");
+    if (motivo === null) return;
     try {
       const res = await fetch(`${API}/documentoradicado/${radicadoId}/completar`, {
         method: "POST", headers: { "Content-Type": "application/json", Authorization: `Bearer ${obtenerToken()}` },
@@ -32,6 +34,7 @@ export function useAccionesAdmin(obtenerToken, setRadicadoDetail) {
   const adminRechazar = async (radicadoId, onSuccess) => {
     if (!confirm("¿Confirmar rechazo definitivo de este radicado?")) return;
     const motivo = prompt("Motivo (opcional):", "");
+    if (motivo === null) return;
     try {
       const res = await fetch(`${API}/documentoradicado/${radicadoId}/rechazar`, {
         method: "POST", headers: { "Content-Type": "application/json", Authorization: `Bearer ${obtenerToken()}` },

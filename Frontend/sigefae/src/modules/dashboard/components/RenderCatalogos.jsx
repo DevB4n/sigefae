@@ -11,49 +11,49 @@ export default function RenderCatalogos({
     const value = catalogoForm[field] || "";
     if (field === "tipo_pago_id") return (
       <div className="modal-field" key={field}><label>Tipo de Pago <span className="required">*</span></label>
-        <select name={field} value={value} onChange={handleCatalogoFormChange}><option value="">Seleccione...</option>{tiposPagoCatalogo.map(tp => <option key={tp.id} value={tp.id}>{tp.nombre}</option>)}</select>
+        <select name={field} value={value} onChange={handleCatalogoFormChange} className="doc-input"><option value="">Seleccione...</option>{tiposPagoCatalogo.map(tp => <option key={tp.id} value={tp.id}>{tp.nombre}</option>)}</select>
       </div>
     );
     if (field === "area_id") return (
       <div className="modal-field" key={field}><label>Área <span className="required">*</span></label>
-        <select name={field} value={value} onChange={handleCatalogoFormChange}><option value="">Seleccione...</option>{areasCatalogo.map(a => <option key={a.id} value={a.id}>{a.nombre}</option>)}</select>
+        <select name={field} value={value} onChange={handleCatalogoFormChange} className="doc-input"><option value="">Seleccione...</option>{areasCatalogo.map(a => <option key={a.id} value={a.id}>{a.nombre}</option>)}</select>
       </div>
     );
     if (field === "ruta_id") return (
       <div className="modal-field" key={field}><label>Ruta <span className="required">*</span></label>
-        <select name={field} value={value} onChange={handleCatalogoFormChange}><option value="">Seleccione...</option>{rutasCatalogo.map(r => <option key={r.id} value={r.id}>{r.nombre}</option>)}</select>
+        <select name={field} value={value} onChange={handleCatalogoFormChange} className="doc-input"><option value="">Seleccione...</option>{rutasCatalogo.map(r => <option key={r.id} value={r.id}>{r.nombre}</option>)}</select>
       </div>
     );
     if (field === "usuario_id" || field === "usuario_aprobador_id") return (
       <div className="modal-field" key={field}><label>{field === "usuario_id" ? "Usuario Responsable" : "Usuario Aprobador"} <span className="required">*</span></label>
-        <select name={field} value={value} onChange={handleCatalogoFormChange}><option value="">Seleccione...</option>{usuariosCatalogo.map(u => <option key={u.id} value={u.id}>{u.nombre}</option>)}</select>
+        <select name={field} value={value} onChange={handleCatalogoFormChange} className="doc-input"><option value="">Seleccione...</option>{usuariosCatalogo.map(u => <option key={u.id} value={u.id}>{u.nombre}</option>)}</select>
       </div>
     );
-    if (field === "orden") return <div className="modal-field" key={field} style={{ maxWidth: 120 }}><label>Orden <span className="required">*</span></label><input type="number" name={field} value={value} onChange={handleCatalogoFormChange} min="1" /></div>;
-    if (field === "monto_minimo") return <div className="modal-field" key={field} style={{ maxWidth: 160 }}><label>Monto Mínimo <span className="required">*</span></label><input type="number" name={field} value={value} onChange={handleCatalogoFormChange} min="0" /></div>;
+    if (field === "orden") return <div className="modal-field" key={field} style={{ maxWidth: 120 }}><label>Orden <span className="required">*</span></label><input type="number" name={field} value={value} onChange={handleCatalogoFormChange} min="1" className="doc-input" /></div>;
+    if (field === "monto_minimo") return <div className="modal-field" key={field} style={{ maxWidth: 160 }}><label>Monto Mínimo <span className="required">*</span></label><input type="number" name={field} value={value} onChange={handleCatalogoFormChange} min="0" className="doc-input" /></div>;
     if (field === "moneda_id") return (
       <div className="modal-field" key={field}><label>Moneda <span className="required">*</span></label>
-        <select name={field} value={value} onChange={handleCatalogoFormChange}><option value="">Seleccione...</option>{monedasCatalogo.map(m => <option key={m.id} value={m.id}>{m.nombre} ({m.codigo})</option>)}</select>
+        <select name={field} value={value} onChange={handleCatalogoFormChange} className="doc-input"><option value="">Seleccione...</option>{monedasCatalogo.map(m => <option key={m.id} value={m.id}>{m.nombre} ({m.codigo})</option>)}</select>
       </div>
     );
     if (field === "posicion_insercion") return (
       <div className="modal-field" key={field}><label>Posición Inserción <span className="required">*</span></label>
-        <select name={field} value={value} onChange={handleCatalogoFormChange}><option value="">Seleccione...</option><option value="PRIMERO">Al inicio</option><option value="ANTES_FINAL">Antes del final</option><option value="ULTIMO">Al final</option></select>
+        <select name={field} value={value} onChange={handleCatalogoFormChange} className="doc-input"><option value="">Seleccione...</option><option value="PRIMERO">Al inicio</option><option value="ANTES_FINAL">Antes del final</option><option value="ULTIMO">Al final</option></select>
       </div>
     );
-    if (field === "prioridad") return <div className="modal-field" key={field} style={{ maxWidth: 120 }}><label>Prioridad <span className="required">*</span></label><input type="number" name={field} value={value} onChange={handleCatalogoFormChange} min="0" placeholder="0" title="Menor número = se ejecuta primero dentro de su posición" /></div>;
-    if (field === "codigo") return <div className="modal-field" key={field} style={{ flex: 1 }}><label>Código <span className="required">*</span></label><input type="text" name={field} value={value} onChange={handleCatalogoFormChange} placeholder="Ej: BU101" /></div>;
+    if (field === "prioridad") return <div className="modal-field" key={field} style={{ maxWidth: 120 }}><label>Prioridad <span className="required">*</span></label><input type="number" name={field} value={value} onChange={handleCatalogoFormChange} min="0" placeholder="0" title="Menor número = se ejecuta primero dentro de su posición" className="doc-input" /></div>;
+    if (field === "codigo") return <div className="modal-field" key={field} style={{ flex: 1 }}><label>Código <span className="required">*</span></label><input type="text" name={field} value={value} onChange={handleCatalogoFormChange} placeholder="Ej: BU101" className="doc-input" /></div>;
     if (field === "sucursal") {
       const sucursales = ["BUCARAMANGA", "MALAMBO", "CUCUTA", "CB", "CIENAGA DE ORO", "GENERAL"];
-      return <div className="modal-field" key={field}><label>Sucursal <span className="required">*</span></label><select name={field} value={value} onChange={handleCatalogoFormChange}><option value="">Seleccione...</option>{sucursales.map(s => <option key={s} value={s}>{s}</option>)}</select></div>;
+      return <div className="modal-field" key={field}><label>Sucursal <span className="required">*</span></label><select name={field} value={value} onChange={handleCatalogoFormChange} className="doc-input"><option value="">Seleccione...</option>{sucursales.map(s => <option key={s} value={s}>{s}</option>)}</select></div>;
     }
     if (field === "departamento") {
       const depts = ["ADMON", "VENTAS", "PRODUCCION"];
-      return <div className="modal-field" key={field}><label>Departamento <span className="required">*</span></label><select name={field} value={value} onChange={handleCatalogoFormChange}><option value="">Seleccione...</option>{depts.map(d => <option key={d} value={d}>{d}</option>)}</select></div>;
+      return <div className="modal-field" key={field}><label>Departamento <span className="required">*</span></label><select name={field} value={value} onChange={handleCatalogoFormChange} className="doc-input"><option value="">Seleccione...</option>{depts.map(d => <option key={d} value={d}>{d}</option>)}</select></div>;
     }
-    if (field === "tipo") return <div className="modal-field" key={field}><label>Tipo</label><select name={field} value={value} onChange={handleCatalogoFormChange}><option value="">Ninguno</option><option value="Servicio">Servicio</option><option value="Compra">Compra</option></select></div>;
-    if (field === "tarifa_iva") return <div className="modal-field" key={field} style={{ maxWidth: 120 }}><label>Tarifa IVA</label><select name={field} value={value} onChange={handleCatalogoFormChange}><option value="">Ninguna</option><option value="19%">19%</option><option value="5%">5%</option><option value="0%">0%</option></select></div>;
-    return <div className="modal-field" key={field} style={{ flex: 1 }}><label>Nombre <span className="required">*</span></label><input type="text" name={field} value={value} onChange={handleCatalogoFormChange} placeholder={`Nombre del ${cfg.label.toLowerCase()}`} /></div>;
+    if (field === "tipo") return <div className="modal-field" key={field}><label>Tipo</label><select name={field} value={value} onChange={handleCatalogoFormChange} className="doc-input"><option value="">Ninguno</option><option value="Servicio">Servicio</option><option value="Compra">Compra</option></select></div>;
+    if (field === "tarifa_iva") return <div className="modal-field" key={field} style={{ maxWidth: 120 }}><label>Tarifa IVA</label><select name={field} value={value} onChange={handleCatalogoFormChange} className="doc-input"><option value="">Ninguna</option><option value="19%">19%</option><option value="5%">5%</option><option value="0%">0%</option></select></div>;
+    return <div className="modal-field" key={field} style={{ flex: 1 }}><label>Nombre <span className="required">*</span></label><input type="text" name={field} value={value} onChange={handleCatalogoFormChange} placeholder={`Nombre del ${cfg.label.toLowerCase()}`} className="doc-input" /></div>;
   };
 
   const getColumnLabel = (field) => {
@@ -84,11 +84,18 @@ export default function RenderCatalogos({
         <button className="doc-btn doc-btn-primary" onClick={openCatalogoCreate}><i className="fa-solid fa-plus"></i> Nuevo {cfg.label}</button>
       </div>
       {showCatalogoForm && (
-        <div className="catalogo-form">
-          <h4>{catalogoEditing ? "Editar" : "Crear"} {cfg.label}</h4>
-          <div className="catalogo-form-row">
-            {cfg.fields.map(renderFormField)}
-            <div style={{ display: "flex", gap: 8, alignItems: "flex-end" }}>
+        <div className="modal-overlay">
+          <div className="modal-content" style={{ maxWidth: "700px" }}>
+            <div className="modal-header">
+              <h3><i className="fa-solid fa-sliders"></i> {catalogoEditing ? "Editar" : "Crear"} {cfg.label}</h3>
+              <button className="modal-close" onClick={() => setShowCatalogoForm(false)}><i className="fa-solid fa-xmark"></i></button>
+            </div>
+            <div className="modal-body">
+              <div className="catalogo-form-row" style={{ display: "flex", flexWrap: "wrap", gap: "16px" }}>
+                {cfg.fields.map(renderFormField)}
+              </div>
+            </div>
+            <div className="modal-footer">
               <button className="doc-btn doc-btn-secondary" onClick={() => setShowCatalogoForm(false)}>Cancelar</button>
               <button className="doc-btn doc-btn-primary" onClick={handleCatalogoSubmit}><i className="fa-solid fa-floppy-disk"></i> Guardar</button>
             </div>

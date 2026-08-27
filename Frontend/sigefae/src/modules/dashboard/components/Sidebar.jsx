@@ -2,7 +2,7 @@ export default function Sidebar({ isSidebarOpen, setIsSidebarOpen, activeTab, se
   return (
     <aside className={`sidebar ${isSidebarOpen ? "open" : ""}`}>
       <div className="sidebar-header">
-        <div className="sidebar-title"><i className="fa-solid fa-gear"></i></div>
+        <div className="sidebar-title"><i className="fa-solid fa-gear"></i> Menú</div>
       </div>
       <nav className="menu-nav">
         {esUsuario && userRole !== "Contabilidad" && userRole !== "Tesorería" && (
