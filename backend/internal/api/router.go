@@ -40,6 +40,7 @@ import (
 	"sigefae/internal/responsabilidad_fiscal"
 	"sigefae/internal/role"
 	"sigefae/internal/ruta"
+	"sigefae/internal/salario_minimo"
 	"sigefae/internal/tarea"
 	"sigefae/internal/tipo_documento"
 	"sigefae/internal/tipo_factura"
@@ -230,6 +231,9 @@ func New(database *gorm.DB) *gin.Engine {
 
 	normaRepartoService := norma_reparto.New(database)
 	normaRepartoHandler := norma_reparto.NewHandler(normaRepartoService)
+
+	salarioMinimoService := salario_minimo.New(database)
+	salarioMinimoHandler := salario_minimo.NewHandler(salarioMinimoService)
 
 	api := router.Group("/api")
 	{
@@ -620,6 +624,13 @@ func New(database *gorm.DB) *gin.Engine {
 			admin.POST("/normas-reparto", normaRepartoHandler.Create)
 			admin.PUT("/normas-reparto/:id", normaRepartoHandler.Update)
 			admin.PATCH("/normas-reparto/:id/activo", normaRepartoHandler.UpdateStatus)
+
+			// Salario Mínimo
+			admin.POST("/salario-minimo", salarioMinimoHandler.Create)
+			admin.GET("/salario-minimo", salarioMinimoHandler.List)
+			admin.PUT("/salario-minimo/:id", salarioMinimoHandler.Update)
+			admin.PATCH("/salario-minimo/:id/activo", salarioMinimoHandler.UpdateStatus)
+			admin.DELETE("/salario-minimo/:id", salarioMinimoHandler.Delete)
 
 		}
 	}

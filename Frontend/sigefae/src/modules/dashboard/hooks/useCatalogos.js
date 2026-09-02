@@ -61,7 +61,7 @@ export function useCatalogos(obtenerToken, activeTab) {
 
   const handleCatalogoFormChange = (e) => {
     const { name, value, type } = e.target;
-    setCatalogoForm(prev => ({ ...prev, [name]: type === "number" ? (value === "" ? 0 : parseInt(value)) : value }));
+    setCatalogoForm(prev => ({ ...prev, [name]: type === "number" ? (value === "" ? 0 : parseFloat(value)) : value }));
   };
 const handleCatalogoSubmit = async () => {
   const isEdit = !!catalogoEditing;
@@ -71,7 +71,7 @@ const handleCatalogoSubmit = async () => {
 
   cfg.fields.forEach(f => {
     const val = catalogoForm[f];
-    if (f === "orden" || f.includes("_id") || f === "monto_minimo" || f === "prioridad") {
+    if (f === "orden" || f.includes("_id") || f.includes("monto") || f === "prioridad" || f === "ano" || f === "valor") {
       // Solo parsear si hay un valor ingresado para evitar enviar 0 en campos requeridos por Gin
       if (val !== "" && val !== undefined && val !== null) {
         body[f] = parseFloat(val);

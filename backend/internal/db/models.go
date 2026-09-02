@@ -14,7 +14,7 @@ func BaseModels() []any {
 		&DetalleDocumentoComercial{}, &TipoFactura{}, &TipoPago{},
 		&MetodoPago{}, &TipoRadicacion{}, &CodigoQr{},
 		&EstadoDocumentoRadicado{}, &EstadoTarea{},
-		&NormaReparto{},
+		&NormaReparto{}, &SalarioMinimo{},
 	}
 }
 

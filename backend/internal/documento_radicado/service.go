@@ -351,20 +351,31 @@ func generarTareasDesdeRuta(tx *gorm.DB, radicado *db.DocumentoRadicado, rutaID 
 		return err
 	}
 
-	// ── 3. Reglas de monto aplicables ──
+	// ── 3. Obtener el SMMLV actual ──
+	var smmlv db.SalarioMinimo
+	if err := tx.Where("activo = ?", true).Order("ano desc").First(&smmlv).Error; err != nil {
+		return errors.New("no hay un salario mínimo vigente configurado en el sistema")
+	}
+	if smmlv.Valor <= 0 {
+		return errors.New("el salario mínimo vigente debe ser mayor a 0")
+	}
+	docTotalEnSmmlv := docCom.Total / smmlv.Valor
+
+	// ── 4. Reglas de monto aplicables ──
 	var reglas []db.ReglaMontoRuta
-	query := tx.Where("activo = ? AND monto_minimo <= ?", true, docCom.Total).
+	query := tx.Where("activo = ? AND monto_minimo_smmlv <= ?", true, docTotalEnSmmlv).
+		Where("(monto_maximo_smmlv = 0 OR monto_maximo_smmlv >= ?)", docTotalEnSmmlv).
 		Where("(area_id IS NULL OR area_id = ?)", docCom.IDArea).
 		Where("(ruta_id IS NULL OR ruta_id = ?)", rutaID).
 		Preload("UsuarioAprobador").
 		Preload("RolAprobador").
-		Order("monto_minimo desc")
+		Order("monto_minimo_smmlv desc")
 
 	if err := query.Find(&reglas).Error; err != nil {
 		return err
 	}
 
-	// ── 4. Clasificar reglas por posición ──
+	// ── 5. Clasificar reglas por posición ──
 	var alInicio, antesDelFinal, alFinal []db.ReglaMontoRuta
 	for _, r := range reglas {
 		switch r.PosicionInsercion {
@@ -396,6 +407,13 @@ func generarTareasDesdeRuta(tx *gorm.DB, radicado *db.DocumentoRadicado, rutaID 
 		return 0
 	}
 
+	formatoRegla := func(r db.ReglaMontoRuta) string {
+		if r.MontoMaximoSmmlv > 0 {
+			return fmt.Sprintf("Aprobación por monto (%.2f - %.2f SMMLV)", r.MontoMinimoSmmlv, r.MontoMaximoSmmlv)
+		}
+		return fmt.Sprintf("Aprobación por monto (≥ %.2f SMMLV)", r.MontoMinimoSmmlv)
+	}
+
 	type pasoFinal struct {
 		Nombre    string
 		UsuarioID uint
@@ -407,7 +425,7 @@ func generarTareasDesdeRuta(tx *gorm.DB, radicado *db.DocumentoRadicado, rutaID 
 	// 5.1 PRIMERO
 	for _, r := range alInicio {
 		flujo = append(flujo, pasoFinal{
-			Nombre:    fmt.Sprintf("Aprobación por monto ≥ %.2f", r.MontoMinimo),
+			Nombre:    formatoRegla(r),
 			UsuarioID: resolverUsuario(r),
 			EsRegla:   true,
 		})
@@ -426,7 +444,7 @@ func generarTareasDesdeRuta(tx *gorm.DB, radicado *db.DocumentoRadicado, rutaID 
 	// 5.3 ANTES_FINAL: justo antes del cierre del flujo base
 	for _, r := range antesDelFinal {
 		flujo = append(flujo, pasoFinal{
-			Nombre:    fmt.Sprintf("Aprobación por monto ≥ %.2f", r.MontoMinimo),
+			Nombre:    formatoRegla(r),
 			UsuarioID: resolverUsuario(r),
 			EsRegla:   true,
 		})
@@ -443,7 +461,7 @@ func generarTareasDesdeRuta(tx *gorm.DB, radicado *db.DocumentoRadicado, rutaID 
 	// 5.5 ULTIMO: después de todo
 	for _, r := range alFinal {
 		flujo = append(flujo, pasoFinal{
-			Nombre:    fmt.Sprintf("Aprobación por monto ≥ %.2f", r.MontoMinimo),
+			Nombre:    formatoRegla(r),
 			UsuarioID: resolverUsuario(r),
 			EsRegla:   true,
 		})

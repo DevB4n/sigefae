@@ -11,9 +11,8 @@ type ReglaMontoRuta struct {
 	Area               *Area     `gorm:"foreignKey:AreaID;references:ID" json:"area,omitempty"`
 	RutaID             *uint     `gorm:"column:ruta_id;index:idx_regla_ruta" json:"ruta_id,omitempty"`
 	Ruta               *Ruta     `gorm:"foreignKey:RutaID;references:ID" json:"ruta,omitempty"`
-	MontoMinimo        float64   `gorm:"column:monto_minimo" json:"monto_minimo"`
-	MonedaID           uint      `gorm:"column:moneda_id" json:"moneda_id"`
-	Moneda             *Moneda   `gorm:"foreignKey:MonedaID;references:ID" json:"moneda,omitempty"`
+	MontoMinimoSmmlv   float64   `gorm:"column:monto_minimo_smmlv" json:"monto_minimo_smmlv"`
+	MontoMaximoSmmlv   float64   `gorm:"column:monto_maximo_smmlv" json:"monto_maximo_smmlv"`
 	UsuarioAprobadorID *uint     `gorm:"column:usuario_aprobador_id;index:idx_regla_aprobador" json:"usuario_aprobador_id,omitempty"`
 	UsuarioAprobador   *Usuario  `gorm:"foreignKey:UsuarioAprobadorID;references:ID" json:"usuario_aprobador,omitempty"`
 	RolAprobadorID     *uint     `gorm:"column:rol_aprobador_id;index:idx_regla_rol" json:"rol_aprobador_id,omitempty"`

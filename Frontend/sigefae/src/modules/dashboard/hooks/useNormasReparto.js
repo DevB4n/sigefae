@@ -25,7 +25,7 @@ export function useNormasReparto(obtenerToken, esAdmin, puedeGestionarRecurso, n
       setNormaFiltroSede(""); setNormaFiltroArea("");
     }
     if (normasRepartoCatalogo.length === 0) {
-      fetch(`${API}/normas-reparto?activo=true`, { headers: { Authorization: `Bearer ${obtenerToken()}` } })
+      fetch(`${API}/normas-reparto?activo=true&_t=${new Date().getTime()}`, { headers: { Authorization: `Bearer ${obtenerToken()}` } })
         .then(r => r.json()).then(d => setNormasRepartoCatalogo(Array.isArray(d) ? d : []));
     }
     setShowNormaModal(true);
@@ -52,7 +52,7 @@ export function useNormasReparto(obtenerToken, esAdmin, puedeGestionarRecurso, n
       if (!res.ok) { const err = await res.json(); throw new Error(err.error || "Error guardando norma"); }
       alert(normaEditandoId ? "Norma actualizada correctamente" : "Norma agregada correctamente");
       setShowNormaModal(false); setNormaEditandoId(null);
-      const nrRes = await fetch(`${API}/documentoradicado/${radicadoId}/normas-reparto`, { headers: { Authorization: `Bearer ${obtenerToken()}` } });
+      const nrRes = await fetch(`${API}/documentoradicado/${radicadoId}/normas-reparto?_t=${new Date().getTime()}`, { headers: { Authorization: `Bearer ${obtenerToken()}` } });
       const nrData = await nrRes.json();
       setNormasRepartoRadicado(Array.isArray(nrData) ? nrData : []);
     } catch (err) { alert("Error: " + err.message); }
@@ -71,7 +71,7 @@ export function useNormasReparto(obtenerToken, esAdmin, puedeGestionarRecurso, n
       });
       if (!res.ok) { const err = await res.json(); throw new Error(err.error || "Error eliminando norma"); }
       alert("Norma eliminada");
-      const nrRes = await fetch(`${API}/documentoradicado/${radicadoId}/normas-reparto`, { headers: { Authorization: `Bearer ${obtenerToken()}` } });
+      const nrRes = await fetch(`${API}/documentoradicado/${radicadoId}/normas-reparto?_t=${new Date().getTime()}`, { headers: { Authorization: `Bearer ${obtenerToken()}` } });
       const nrData = await nrRes.json();
       setNormasRepartoRadicado(Array.isArray(nrData) ? nrData : []);
     } catch (err) { alert("Error: " + err.message); }

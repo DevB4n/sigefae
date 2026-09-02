@@ -16,16 +16,17 @@ export function useFlujoYTrazabilidad(obtenerToken, selectedRadicadoId, selected
       setTareasFlujo([]); setHistorialTrazabilidad([]); setNormasRepartoRadicado([]); setComentarios([]); return;
     }
     const headers = { Authorization: `Bearer ${obtenerToken()}` };
-    fetch(`${API}/documentoradicado/${radicadoId}/tareas`, { headers })
+    const t = new Date().getTime();
+    fetch(`${API}/documentoradicado/${radicadoId}/tareas?_t=${t}`, { headers })
       .then(r => r.json()).then(data => setTareasFlujo(Array.isArray(data) ? data : [])).catch(err => console.error(err));
-    fetch(`${API}/trazabilidad?documento_radicado_id=${radicadoId}`, { headers })
+    fetch(`${API}/trazabilidad?documento_radicado_id=${radicadoId}&_t=${t}`, { headers })
       .then(r => r.json()).then(data => setHistorialTrazabilidad(Array.isArray(data) ? data : [])).catch(err => console.error(err));
-    fetch(`${API}/documentoradicado/${radicadoId}/normas-reparto`, { headers })
+    fetch(`${API}/documentoradicado/${radicadoId}/normas-reparto?_t=${t}`, { headers })
       .then(r => r.json()).then(data => setNormasRepartoRadicado(Array.isArray(data) ? data : [])).catch(() => setNormasRepartoRadicado([]));
     
     let cancelled = false;
     setComentarios([]);
-    fetch(`${API}/comentario?documento_radicado_id=${radicadoId}`, { headers })
+    fetch(`${API}/comentario?documento_radicado_id=${radicadoId}&_t=${t}`, { headers })
       .then(r => r.json())
       .then(data => { if (!cancelled) setComentarios(Array.isArray(data) ? data : []); })
       .catch(err => { if (!cancelled) { console.error(err); setComentarios([]); } });
@@ -42,7 +43,7 @@ export function useFlujoYTrazabilidad(obtenerToken, selectedRadicadoId, selected
       });
       if (!res.ok) { const errData = await res.json(); throw new Error(errData.error || "Error enviando comentario"); }
       setNuevoComentario("");
-      const listRes = await fetch(`${API}/comentario?documento_radicado_id=${radicadoId}`, { headers: { Authorization: `Bearer ${obtenerToken()}` } });
+      const listRes = await fetch(`${API}/comentario?documento_radicado_id=${radicadoId}&_t=${new Date().getTime()}`, { headers: { Authorization: `Bearer ${obtenerToken()}` } });
       const listData = await listRes.json();
       setComentarios(Array.isArray(listData) ? listData : []);
     } catch (err) { alert("Error: " + err.message); }
@@ -50,25 +51,25 @@ export function useFlujoYTrazabilidad(obtenerToken, selectedRadicadoId, selected
   };
 
   const recargarComentarios = async (radicadoId) => {
-    const listRes = await fetch(`${API}/comentario?documento_radicado_id=${radicadoId}`, { headers: { Authorization: `Bearer ${obtenerToken()}` } });
+    const listRes = await fetch(`${API}/comentario?documento_radicado_id=${radicadoId}&_t=${new Date().getTime()}`, { headers: { Authorization: `Bearer ${obtenerToken()}` } });
     const listData = await listRes.json();
     setComentarios(Array.isArray(listData) ? listData : []);
   };
 
   const recargarNormas = async (radicadoId) => {
-    const nrRes = await fetch(`${API}/documentoradicado/${radicadoId}/normas-reparto`, { headers: { Authorization: `Bearer ${obtenerToken()}` } });
+    const nrRes = await fetch(`${API}/documentoradicado/${radicadoId}/normas-reparto?_t=${new Date().getTime()}`, { headers: { Authorization: `Bearer ${obtenerToken()}` } });
     const nrData = await nrRes.json();
     setNormasRepartoRadicado(Array.isArray(nrData) ? nrData : []);
   };
 
   const recargarFlujo = async (radicadoId) => {
-    const flujoRes = await fetch(`${API}/documentoradicado/${radicadoId}/tareas`, { headers: { Authorization: `Bearer ${obtenerToken()}` } });
+    const flujoRes = await fetch(`${API}/documentoradicado/${radicadoId}/tareas?_t=${new Date().getTime()}`, { headers: { Authorization: `Bearer ${obtenerToken()}` } });
     const flujoData = await flujoRes.json();
     setTareasFlujo(Array.isArray(flujoData) ? flujoData : []);
   };
 
   const recargarTrazabilidad = async (radicadoId) => {
-    const res = await fetch(`${API}/trazabilidad?documento_radicado_id=${radicadoId}`, { headers: { Authorization: `Bearer ${obtenerToken()}` } });
+    const res = await fetch(`${API}/trazabilidad?documento_radicado_id=${radicadoId}&_t=${new Date().getTime()}`, { headers: { Authorization: `Bearer ${obtenerToken()}` } });
     const data = await res.json();
     setHistorialTrazabilidad(Array.isArray(data) ? data : []);
   };

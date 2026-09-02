@@ -30,12 +30,11 @@ export default function RenderCatalogos({
       </div>
     );
     if (field === "orden") return <div className="modal-field" key={field} style={{ maxWidth: 120 }}><label>Orden <span className="required">*</span></label><input type="number" name={field} value={value} onChange={handleCatalogoFormChange} min="1" className="doc-input" /></div>;
-    if (field === "monto_minimo") return <div className="modal-field" key={field} style={{ maxWidth: 160 }}><label>Monto Mínimo <span className="required">*</span></label><input type="number" name={field} value={value} onChange={handleCatalogoFormChange} min="0" className="doc-input" /></div>;
-    if (field === "moneda_id") return (
-      <div className="modal-field" key={field}><label>Moneda <span className="required">*</span></label>
-        <select name={field} value={value} onChange={handleCatalogoFormChange} className="doc-input"><option value="">Seleccione...</option>{monedasCatalogo.map(m => <option key={m.id} value={m.id}>{m.nombre} ({m.codigo})</option>)}</select>
-      </div>
-    );
+    if (field === "monto_minimo_smmlv") return <div className="modal-field" key={field} style={{ maxWidth: 160 }}><label>Mínimo SMMLV <span className="required">*</span></label><input type="number" step="0.01" name={field} value={value} onChange={handleCatalogoFormChange} min="0" className="doc-input" /></div>;
+    if (field === "monto_maximo_smmlv") return <div className="modal-field" key={field} style={{ maxWidth: 160 }}><label>Máximo SMMLV <span className="required">*</span></label><input type="number" step="0.01" name={field} value={value} onChange={handleCatalogoFormChange} min="0" title="Dejar en 0 para sin límite" className="doc-input" /></div>;
+    if (field === "ano") return <div className="modal-field" key={field} style={{ maxWidth: 120 }}><label>Año <span className="required">*</span></label><input type="number" name={field} value={value} onChange={handleCatalogoFormChange} min="2000" className="doc-input" /></div>;
+    if (field === "valor") return <div className="modal-field" key={field} style={{ maxWidth: 200 }}><label>Valor ($) <span className="required">*</span></label><input type="number" name={field} value={value} onChange={handleCatalogoFormChange} min="0" className="doc-input" /></div>;
+
     if (field === "posicion_insercion") return (
       <div className="modal-field" key={field}><label>Posición Inserción <span className="required">*</span></label>
         <select name={field} value={value} onChange={handleCatalogoFormChange} className="doc-input"><option value="">Seleccione...</option><option value="PRIMERO">Al inicio</option><option value="ANTES_FINAL">Antes del final</option><option value="ULTIMO">Al final</option></select>
@@ -57,7 +56,7 @@ export default function RenderCatalogos({
   };
 
   const getColumnLabel = (field) => {
-    const map = { nombre: "Nombre", codigo: "Código", sucursal: "Sucursal", departamento: "Depto", tipo: "Tipo", tarifa_iva: "Tarifa IVA", tipo_pago: "Tipo de Pago", area: "Área", ruta: "Ruta", orden: "Orden", usuario: "Usuario", prioridad: "Prioridad", usuario_aprobador_id: "Aprobador", moneda_id: "Moneda", monto_minimo: "Monto Mínimo", posicion_insercion: "Posición" };
+    const map = { nombre: "Nombre", codigo: "Código", sucursal: "Sucursal", departamento: "Depto", tipo: "Tipo", tarifa_iva: "Tarifa IVA", tipo_pago: "Tipo de Pago", area: "Área", ruta: "Ruta", orden: "Orden", usuario: "Usuario", prioridad: "Prioridad", usuario_aprobador_id: "Aprobador", moneda_id: "Moneda", monto_minimo: "Monto Mínimo", monto_minimo_smmlv: "Mín. SMMLV", monto_maximo_smmlv: "Máx. SMMLV", posicion_insercion: "Posición", ano: "Año", valor: "Valor" };
     return map[field] || field;
   };
 
@@ -68,6 +67,8 @@ export default function RenderCatalogos({
     if (field === "usuario_id") return item.usuario || "—";
     if (field === "usuario_aprobador_id") return item.usuario_aprobador?.nombre || item.usuario_aprobador_id || "—";
     if (field === "moneda_id") return item.moneda ? `${item.moneda.nombre} (${item.moneda.codigo})` : item.moneda_id || "—";
+    if (field === "monto_minimo_smmlv" || field === "monto_maximo_smmlv") return item[field] !== undefined && item[field] !== null ? `${item[field]} SMMLV` : "0 SMMLV";
+    if (field === "valor") return item[field] !== undefined && item[field] !== null ? `$${Number(item[field]).toLocaleString()}` : "—";
     if ((field === "tipo" || field === "tarifa_iva") && !item[field]) return "—";
     return item[field] !== undefined ? item[field] : "—";
   };
