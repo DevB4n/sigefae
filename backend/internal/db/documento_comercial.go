@@ -19,6 +19,7 @@ type DocumentoComercial struct {
 	Asunto                   string                      `gorm:"column:asunto;type:varchar(255)" json:"asunto"`
 	FechaDocumento           time.Time                   `gorm:"column:fecha_documento;index:idx_doc_comercial_fecha" json:"fecha_documento"`
 	FechaVencimiento         *time.Time                  `gorm:"column:fecha_vencimiento;index:idx_doc_comercial_vencimiento" json:"fecha_vencimiento"`
+	FormaPago                string                      `gorm:"column:forma_pago;type:varchar(50)" json:"forma_pago"`
 	MonedaID                 uint                        `gorm:"column:moneda_id;index:idx_doc_comercial_moneda" json:"moneda_id"`
 	Moneda                   *Moneda                     `gorm:"foreignKey:MonedaID;references:ID" json:"moneda,omitempty"`
 	Subtotal                 float64                     `gorm:"column:subtotal" json:"subtotal"`

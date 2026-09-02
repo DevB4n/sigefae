@@ -86,6 +86,9 @@ export default function RenderSaiaModal({
                         <div className="doc-grid">
                           <div className="doc-field"><label>Tipo</label><span>{saiaRadicado.documento_comercial.tipo}</span></div>
                           <div className="doc-field"><label>Número</label><span>{saiaRadicado.documento_comercial.numero_documento}</span></div>
+                          <div className="doc-field"><label>Fecha Emisión</label><span>{new Date(saiaRadicado.documento_comercial.fecha_documento).toLocaleDateString()}</span></div>
+                          <div className="doc-field"><label>Fecha Venc.</label><span>{saiaRadicado.documento_comercial.fecha_vencimiento ? new Date(saiaRadicado.documento_comercial.fecha_vencimiento).toLocaleDateString() : '—'}</span></div>
+                          <div className="doc-field"><label>Forma Pago</label><span>{saiaRadicado.documento_comercial.forma_pago || '—'}</span></div>
                           <div className="doc-field"><label>Proveedor</label><span>{saiaRadicado.documento_comercial.proveedor?.razon_social || '—'}</span></div>
                           <div className="doc-field"><label>Receptor</label><span>{saiaRadicado.documento_comercial.receptor?.nombre || '—'}</span></div>
                         </div>

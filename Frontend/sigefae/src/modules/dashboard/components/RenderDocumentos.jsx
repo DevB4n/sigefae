@@ -54,6 +54,8 @@ export default function RenderDocumentos({
                   <div className="doc-field"><label>Tipo</label><span>{docDetail.tipo}</span></div>
                   <div className="doc-field"><label>Número Documento</label><span>{docDetail.numero_documento}</span></div>
                   <div className="doc-field"><label>Fecha Emisión</label><span>{new Date(docDetail.fecha_documento).toLocaleDateString()}</span></div>
+                  <div className="doc-field"><label>Fecha Vencimiento</label><span>{docDetail.fecha_vencimiento ? new Date(docDetail.fecha_vencimiento).toLocaleDateString() : "—"}</span></div>
+                  <div className="doc-field"><label>Forma Pago</label><span>{docDetail.forma_pago || "—"}</span></div>
                   <div className="doc-field"><label>Moneda</label><span>{docDetail.moneda?.nombre || "—"}</span></div>
                   <div className="doc-field"><label>Asunto</label><span>{docDetail.correo?.asunto || "—"}</span></div>
                 </div>

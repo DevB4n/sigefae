@@ -16,6 +16,12 @@ type Invoice struct {
 	IssueDate string `xml:"IssueDate"`
 	DueDate   string `xml:"DueDate"`
 
+	PaymentMeans []struct {
+		ID               string `xml:"ID"`
+		PaymentMeansCode string `xml:"PaymentMeansCode"`
+		PaymentDueDate   string `xml:"PaymentDueDate"`
+	} `xml:"PaymentMeans"`
+
 	// Emisor / Proveedor
 	AccountingSupplierParty struct {
 		Party struct {

@@ -186,6 +186,23 @@ func ProcesarFacturaXML(database *gorm.DB, invoice *Invoice, correoID uint) erro
 			}
 		}
 
+		formaPago := "No definida"
+		for _, pm := range invoice.PaymentMeans {
+			if pm.ID == "1" {
+				formaPago = "Contado"
+			} else if pm.ID == "2" {
+				formaPago = "Crédito"
+			} else if pm.PaymentMeansCode != "" {
+				formaPago = "Otro (" + pm.PaymentMeansCode + ")"
+			}
+			if pm.PaymentDueDate != "" && dueDate == nil {
+				d, err := time.Parse("2006-01-02", pm.PaymentDueDate)
+				if err == nil {
+					dueDate = &d
+				}
+			}
+		}
+
 		// Subtotal: preferir LineExtensionAmount (suma de líneas).
 		// Si viene en 0, calcular desde los detalles como fallback.
 		subtotal := invoice.LegalMonetaryTotal.LineExtensionAmount
@@ -212,6 +229,7 @@ func ProcesarFacturaXML(database *gorm.DB, invoice *Invoice, correoID uint) erro
 			IDArea:           area.ID,
 			FechaDocumento:   issueDate,
 			FechaVencimiento: dueDate,
+			FormaPago:        formaPago,
 			MonedaID:         moneda.ID,
 			Subtotal:         subtotal,
 			Iva:              iva,
