@@ -5,13 +5,14 @@ export function useAnexos(obtenerToken, puedeGestionarRecurso, esAdmin, activeTa
   const [generandoPdf, setGenerandoPdf] = useState(false);
 
   const handleVerAnexo = async (archivoId, nombre) => {
+    const win = window.open("", "_blank");
     try {
       const res = await fetch(`${API}/archivo/${archivoId}/download`, { headers: { Authorization: `Bearer ${obtenerToken()}` } });
-      if (!res.ok) throw new Error("Error obteniendo archivo");
+      if (!res.ok) { if (win) win.close(); throw new Error("Error obteniendo archivo"); }
       const blob = await res.blob(); const url = window.URL.createObjectURL(blob);
-      window.open(url, "_blank");
+      if (win) win.location.href = url; else window.open(url, "_blank");
       setTimeout(() => window.URL.revokeObjectURL(url), 60000);
-    } catch (err) { alert("Error: " + err.message); }
+    } catch (err) { if (win) win.close(); alert("Error: " + err.message); }
   };
 
   const handleDescargarAnexo = async (archivoId, nombre) => {
@@ -59,7 +60,17 @@ export function useAnexos(obtenerToken, puedeGestionarRecurso, esAdmin, activeTa
         try {
           const radRes = await fetch(`${API}/documentoradicado/${radicadoId}`, { headers: { Authorization: `Bearer ${obtenerToken()}` } });
           const updated = await radRes.json();
-          if (updated?.id) setSaiaRadicado(updated);
+          if (updated?.id) {
+            setSaiaRadicado(updated);
+            const viewables = (updated.archivos || []).filter(a => {
+              const ext = (a.extension || a.nombre?.split('.').pop() || '').toLowerCase();
+              return ['pdf', 'png', 'jpg', 'jpeg', 'webp', 'gif'].includes(ext);
+            });
+            if (viewables.length > 0) {
+              const idx = viewables.findIndex(a => a.nombre === file.name);
+              if (idx !== -1 && setSaiaAnexoIdx) setSaiaAnexoIdx(idx);
+            }
+          }
         } catch (e) { console.error(e); }
       }
     } catch (err) { alert("Error: " + err.message); }

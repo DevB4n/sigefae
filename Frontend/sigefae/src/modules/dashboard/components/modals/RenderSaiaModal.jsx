@@ -19,7 +19,10 @@ export default function RenderSaiaModal({
   openNormaModal, handleEliminarNorma, readOnly: externalReadOnly
 }) {
   if (!saiaModalOpen || !saiaRadicado) return null;
-  const archivosPdf = (saiaRadicado.archivos || []).filter(a => a.extension?.toLowerCase() === 'pdf' || a.nombre?.toLowerCase().endsWith('.pdf'));
+  const archivosPdf = (saiaRadicado.archivos || []).filter(a => {
+    const ext = (a.extension || a.nombre?.split('.').pop() || '').toLowerCase();
+    return ['pdf', 'png', 'jpg', 'jpeg', 'webp', 'gif'].includes(ext);
+  });
   const anexoActual = archivosPdf[saiaAnexoIdx];
   const readOnly = isFinalState(saiaRadicado.estado_posesion) || externalReadOnly;
   const esContabilidad = userRol === "Contabilidad";
@@ -45,8 +48,16 @@ export default function RenderSaiaModal({
         </div>
         <div className="saia-body">
           <div className="saia-pdf-area">
-            {saiaPdfUrl ? <iframe className="saia-pdf-frame" src={saiaPdfUrl} title="Visor PDF" /> : (
-              <div className="saia-pdf-empty"><i className="fa-solid fa-file-pdf" style={{ fontSize: '3em' }}></i><p>No hay anexos PDF disponibles</p></div>
+            {saiaPdfUrl ? (
+              anexoActual?.extension?.toLowerCase() !== 'pdf' && !anexoActual?.nombre?.toLowerCase().endsWith('.pdf') ? (
+                <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: '#0f172a' }}>
+                  <img src={saiaPdfUrl} alt={anexoActual?.nombre} style={{ maxWidth: '100%', maxHeight: '100%', objectFit: 'contain' }} />
+                </div>
+              ) : (
+                <iframe className="saia-pdf-frame" src={saiaPdfUrl} title="Visor de Documentos" />
+              )
+            ) : (
+              <div className="saia-pdf-empty"><i className="fa-solid fa-file-pdf" style={{ fontSize: '3em' }}></i><p>No hay anexos visualizables disponibles</p></div>
             )}
           </div>
           <div className="saia-sidebar">
@@ -143,8 +154,9 @@ export default function RenderSaiaModal({
                       <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
                         {saiaRadicado.archivos.map(arch => (
                           <div key={arch.id} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '6px 8px', background: '#f1f5f9', borderRadius: 6, fontSize: '0.8em' }}>
-                            <i className={`fa-solid fa-file${arch.extension?.toLowerCase() === 'pdf' ? '-pdf' : ''}`} style={{ color: 'var(--pardo-blue)' }}></i>
+                            <i className={`fa-solid fa-file${['pdf','png','jpg','jpeg','webp','gif'].includes((arch.extension||'').toLowerCase()) ? (arch.extension?.toLowerCase()==='pdf' ? '-pdf' : '-image') : ''}`} style={{ color: 'var(--pardo-blue)' }}></i>
                             <span style={{ flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={arch.nombre}>{arch.nombre}</span>
+                            <button className="btn-icon btn-edit" style={{ width: 26, height: 26, flexShrink: 0 }} onClick={() => handleVerAnexo(arch.id, arch.nombre)} title="Ver / Previsualizar"><i className="fa-solid fa-eye" style={{ fontSize: '0.75em' }}></i></button>
                             <button className="btn-icon btn-edit" style={{ width: 26, height: 26, flexShrink: 0 }} onClick={() => handleDescargarAnexo(arch.id, arch.nombre)} title="Descargar"><i className="fa-solid fa-download" style={{ fontSize: '0.75em' }}></i></button>
                             {(esAdmin || puedeGestionarRecurso(arch.creado_por_id || arch.creado_por?.id)) && !readOnly && (
                               <button className="btn-icon btn-toggle" style={{ width: 26, height: 26, flexShrink: 0 }} onClick={() => handleBorrarAnexo(arch, saiaRadicado.id)} title="Eliminar"><i className="fa-solid fa-xmark" style={{ fontSize: '0.75em' }}></i></button>

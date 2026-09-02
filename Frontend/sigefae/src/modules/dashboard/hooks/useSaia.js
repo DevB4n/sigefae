@@ -14,7 +14,10 @@ export function useSaia(obtenerToken) {
       if (saiaPdfUrl) { URL.revokeObjectURL(saiaPdfUrl); setSaiaPdfUrl(null); }
       return;
     }
-    const archivosPdf = (saiaRadicado.archivos || []).filter(a => a.extension?.toLowerCase() === 'pdf' || a.nombre?.toLowerCase().endsWith('.pdf'));
+    const archivosPdf = (saiaRadicado.archivos || []).filter(a => {
+      const ext = (a.extension || a.nombre?.split('.').pop() || '').toLowerCase();
+      return ['pdf', 'png', 'jpg', 'jpeg', 'webp', 'gif'].includes(ext);
+    });
     const anexoActual = archivosPdf[saiaAnexoIdx];
     if (!anexoActual) {
       if (saiaPdfUrl) { URL.revokeObjectURL(saiaPdfUrl); setSaiaPdfUrl(null); }
