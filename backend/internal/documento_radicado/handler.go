@@ -658,7 +658,7 @@ func (h *Handler) DecidirSolicitudCambioNorma(c *gin.Context) {
 			DocumentoRadicadoID: &sol.DocumentoRadicadoID,
 			Mensaje:             fmt.Sprintf("Su solicitud de cambio de norma fue %s. %s", estado, body.Mensaje),
 			Estado:              "Pendiente",
-			Tipo:                "Revisión",
+			Tipo:                "Sistema",
 			FechaCreacion:       time.Now(),
 		})
 	}

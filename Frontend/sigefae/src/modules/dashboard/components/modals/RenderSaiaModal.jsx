@@ -1,3 +1,4 @@
+import { useRef, useCallback, useEffect, useState } from "react";
 import { formatCurrency, isFinalState } from "../../helpers/formatters.js";
 import RenderFlujoAprobacion from "../RenderFlujoAprobacion.jsx";
 import RenderTrazabilidad from "../RenderTrazabilidad.jsx";
@@ -32,6 +33,55 @@ export default function RenderSaiaModal({
     return propietario > 0 && propietario === Number(userId);
   };
 
+  // ── Resizable sidebar ──────────────────────────────────────
+  const SIDEBAR_MIN = 320;
+  const SIDEBAR_MAX_RATIO = 0.75; // 75% del viewport
+  const STORAGE_KEY = "saia_sidebar_width";
+  const [sidebarWidth, setSidebarWidth] = useState(() => {
+    const saved = parseInt(localStorage.getItem(STORAGE_KEY));
+    return saved && saved >= SIDEBAR_MIN ? saved : 540;
+  });
+  const isDragging = useRef(false);
+  const dragStartX = useRef(0);
+  const dragStartWidth = useRef(0);
+  const sidebarRef = useRef(null);
+
+  const onMouseDown = useCallback((e) => {
+    e.preventDefault();
+    isDragging.current = true;
+    dragStartX.current = e.clientX;
+    dragStartWidth.current = sidebarWidth;
+    document.body.style.cursor = "ew-resize";
+    document.body.style.userSelect = "none";
+  }, [sidebarWidth]);
+
+  useEffect(() => {
+    const onMouseMove = (e) => {
+      if (!isDragging.current) return;
+      const delta = dragStartX.current - e.clientX; // sidebar crece hacia la izquierda
+      const maxW = Math.floor(window.innerWidth * SIDEBAR_MAX_RATIO);
+      const newW = Math.max(SIDEBAR_MIN, Math.min(maxW, dragStartWidth.current + delta));
+      setSidebarWidth(newW);
+    };
+    const onMouseUp = () => {
+      if (!isDragging.current) return;
+      isDragging.current = false;
+      document.body.style.cursor = "";
+      document.body.style.userSelect = "";
+      // Guardar en localStorage
+      if (sidebarRef.current) {
+        localStorage.setItem(STORAGE_KEY, sidebarRef.current.offsetWidth);
+      }
+    };
+    window.addEventListener("mousemove", onMouseMove);
+    window.addEventListener("mouseup", onMouseUp);
+    return () => {
+      window.removeEventListener("mousemove", onMouseMove);
+      window.removeEventListener("mouseup", onMouseUp);
+    };
+  }, []);
+  // ────────────────────────────────────────────────────────────
+
   return (
     <div className="saia-overlay" onClick={() => setSaiaModalOpen(false)}>
       <div className="saia-container" onClick={e => e.stopPropagation()}>
@@ -60,7 +110,13 @@ export default function RenderSaiaModal({
               <div className="saia-pdf-empty"><i className="fa-solid fa-file-pdf" style={{ fontSize: '3em' }}></i><p>No hay anexos visualizables disponibles</p></div>
             )}
           </div>
-          <div className="saia-sidebar">
+          {/* ── Drag handle ── */}
+          <div
+            className="saia-resize-handle"
+            onMouseDown={onMouseDown}
+            title="Arrastrar para redimensionar"
+          />
+          <div ref={sidebarRef} className="saia-sidebar" style={{ width: sidebarWidth, minWidth: SIDEBAR_MIN, flexShrink: 0 }}>
             <div className="saia-tabs">
               {['info', 'flujo', 'trazabilidad', 'normas', 'comentarios', 'acciones'].map(tab => (
                 <button key={tab} className={`saia-tab ${saiaActiveTab === tab ? 'active' : ''}`} onClick={() => setSaiaActiveTab(tab)} title={tab}>

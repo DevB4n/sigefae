@@ -1327,11 +1327,33 @@ body {
   gap: 12px;
 }
 .saia-sidebar {
-  width: 400px;
-  border-left: 1px solid #e2e8f0;
+  /* El ancho es controlado dinámicamente via JS + localStorage */
+  /* width: 540px por defecto se aplica desde React */
+  border-left: none; /* el handle ya separa visualmente */
   display: flex;
   flex-direction: column;
   background: #f8fafc;
+  overflow: hidden;
+}
+/* ── Drag handle (resize) ─────────────────────────────── */
+.saia-resize-handle {
+  width: 6px;
+  flex-shrink: 0;
+  background: #e2e8f0;
+  cursor: ew-resize;
+  position: relative;
+  transition: background 0.15s;
+  z-index: 10;
+}
+.saia-resize-handle::after {
+  content: "";
+  position: absolute;
+  inset: 0 -4px;
+  /* zona de click más amplia */
+}
+.saia-resize-handle:hover,
+.saia-resize-handle:active {
+  background: var(--pardo-blue);
 }
 .saia-tabs {
   display: flex;
@@ -1377,7 +1399,7 @@ body {
   padding-bottom: 6px;
 }
 .saia-tab-content .doc-grid {
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
   gap: 8px;
 }
 .saia-tab-content .doc-field label { font-size: 0.65em; }
@@ -1422,12 +1444,14 @@ body {
   margin-top: 10px;
 }
 @media (max-width: 1024px) {
-  .saia-sidebar { width: 320px; }
+  .saia-sidebar { min-width: 320px !important; }
+  .saia-resize-handle { display: none; }
 }
 @media (max-width: 768px) {
   .saia-container { width: 100vw; height: 100vh; border-radius: 0; }
-  .saia-sidebar { width: 100%; border-left: none; border-top: 1px solid #e2e8f0; }
+  .saia-sidebar { width: 100% !important; border-left: none; border-top: 1px solid #e2e8f0; }
   .saia-body { flex-direction: column; }
+  .saia-resize-handle { display: none; }
 }
 
 /* Acordeón colapsable dentro del modal SAIA */

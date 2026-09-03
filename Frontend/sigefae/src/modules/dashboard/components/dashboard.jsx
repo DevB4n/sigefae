@@ -29,6 +29,7 @@ import { useCompletarTarea } from "../hooks/useCompletarTarea.js";
 import { useAccionesAdmin } from "../hooks/useAccionesAdmin.js";
 import { usePdfExpediente } from "../hooks/usePdfExpediente.js";
 import { useFinanzas } from "../hooks/useFinanzas.js";
+import { useNotificaciones } from "../../../hooks/useNotificaciones.js";
 
 // Components
 import Sidebar from "./Sidebar.jsx";
@@ -94,6 +95,9 @@ export default function ProcesosLogistica() {
 
   // Finanzas
   const finanzasHook = useFinanzas(obtenerToken, radicadosHook);
+
+  // Notificaciones (única instancia — se pasan como props al dropdown)
+  const notifHook = useNotificaciones();
 
   const trazabilidadAreaHook = useTrazabilidadPorArea(obtenerToken);
 
@@ -194,8 +198,14 @@ export default function ProcesosLogistica() {
           >
             <i className="fa-solid fa-arrow-left"></i> Volver al Panel
           </a>
-          <NotificacionesDropdown onNavigate={(id) => { setActiveTab("tareas"); tareasHook.setSelectedTareaId(id); radicadosHook.setSelectedRadicadoId(null); }} />
-          <AdminToast />
+          <NotificacionesDropdown
+            notificaciones={notifHook.notificaciones}
+            noLeidas={notifHook.noLeidas}
+            marcarLeida={notifHook.marcarLeida}
+            recargar={notifHook.recargar}
+            onNavigate={(id) => { setActiveTab("tareas"); tareasHook.setSelectedTareaId(id); radicadosHook.setSelectedRadicadoId(null); }}
+          />
+          <AdminToast esAdmin={esAdmin} />
         </div>
       </header>
 
