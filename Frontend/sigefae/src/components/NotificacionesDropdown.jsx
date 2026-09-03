@@ -4,7 +4,7 @@ import "./notificaciones.css";
 // Recibe notificaciones, noLeidas, marcarLeida y recargar como props
 // desde el componente padre (que tiene la única instancia de useNotificaciones).
 // Esto evita que se creen múltiples instancias del hook con pollers duplicados.
-export default function NotificacionesDropdown({ notificaciones = [], noLeidas = 0, marcarLeida, recargar, onNavigate }) {
+export default function NotificacionesDropdown({ notificaciones = [], noLeidas = 0, marcarLeida, borrarNotificacion, recargar, onNavigate }) {
   const [open, setOpen] = useState(false);
   const dropdownRef = useRef(null);
 
@@ -68,6 +68,9 @@ export default function NotificacionesDropdown({ notificaciones = [], noLeidas =
                     </span>
                   </div>
                   {n.estado === "Pendiente" && <span className="notif-dot"></span>}
+                  <button className="notif-delete" onClick={(e) => { e.stopPropagation(); borrarNotificacion && borrarNotificacion(n.id); }} title="Eliminar notificacion">
+                    <i className="fa-solid fa-trash"></i>
+                  </button>
                 </div>
               ))
             )}

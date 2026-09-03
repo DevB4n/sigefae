@@ -71,6 +71,8 @@ type Response struct {
 
 	FechaDocumento   time.Time  `json:"fecha_documento"`
 	FechaVencimiento *time.Time `json:"fecha_vencimiento,omitempty"`
+	FormaPago        string     `json:"forma_pago"`
+
 
 	MonedaID uint            `json:"moneda_id"`
 	Moneda   *MonedaResponse `json:"moneda,omitempty"`
@@ -109,6 +111,7 @@ func toResponse(documento db.DocumentoComercial) Response {
 		Asunto:                   documento.Asunto,
 		FechaDocumento:           documento.FechaDocumento,
 		FechaVencimiento:         documento.FechaVencimiento,
+		FormaPago:                documento.FormaPago,
 		MonedaID:                 documento.MonedaID,
 		Subtotal:                 documento.Subtotal,
 		Iva:                      documento.Iva,

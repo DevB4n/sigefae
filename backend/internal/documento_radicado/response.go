@@ -72,6 +72,7 @@ type Response struct {
 	Qr                     *CodigoQrResponse                `json:"qr,omitempty"`
 	MetodoPagoID           uint                             `json:"metodo_pago_id"`
 	MetodoPago             *MetodoPagoResponse              `json:"metodo_pago,omitempty"`
+	Archivos               []ArchivoResponse                `json:"archivos,omitempty"`
 	UpdatedAt              time.Time                        `json:"updated_at"`
 }
 
@@ -175,6 +176,21 @@ func toResponse(documento db.DocumentoRadicado) Response {
 		}
 	}
 
+	if len(documento.Archivos) > 0 {
+		for _, arch := range documento.Archivos {
+			item := ArchivoResponse{
+				ID:        arch.ID,
+				Nombre:    arch.Nombre,
+				Extension: arch.Extension,
+				Peso:      arch.Peso,
+				Ruta:      arch.Ruta,
+				OrigenID:  arch.OrigenID,
+				CreatedAt: arch.CreatedAt,
+			}
+			response.Archivos = append(response.Archivos, item)
+		}
+	}
+
 	return response
 }
 
@@ -186,4 +202,14 @@ type NormaRepartoResponse struct {
 	Sucursal       string  `json:"sucursal"`
 	Departamento   string  `json:"departamento"`
 	Porcentaje     float64 `json:"porcentaje"`
+}
+
+type ArchivoResponse struct {
+	ID        uint      `json:"id"`
+	Nombre    string    `json:"nombre"`
+	Extension string    `json:"extension"`
+	Peso      int64     `json:"peso"`
+	Ruta      string    `json:"ruta"`
+	OrigenID  uint      `json:"origen_id"`
+	CreatedAt time.Time `json:"created_at"`
 }

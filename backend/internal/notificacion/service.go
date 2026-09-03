@@ -292,3 +292,11 @@ func (s *Service) CreateFromEvent(dto CreateDTO) (*Response, error) {
 	resp := toResponse(n)
 	return &resp, nil
 }
+
+func (s *Service) Delete(id uint) error {
+	var notificacion db.Notificacion
+	if err := s.db.First(&notificacion, id).Error; err != nil {
+		return err
+	}
+	return s.db.Delete(&notificacion).Error
+}

@@ -294,6 +294,7 @@ func New(database *gorm.DB) *gin.Engine {
 		protected.POST("/notificacion", notificacionHandler.Create)
 		protected.GET("/notificacion/mias", notificacionHandler.ListByUsuario)
 		protected.PATCH("/notificacion/:id/leida", notificacionHandler.MarkAsRead)
+		protected.DELETE("/notificacion/:id", notificacionHandler.Delete)
 
 		protected.GET("/documentoradicado/:id/normas-reparto", documentoRadicadoHandler.GetNormasReparto)
 		protected.POST("/documentoradicado/:id/normas-reparto", documentoRadicadoHandler.AsignarNormasReparto)

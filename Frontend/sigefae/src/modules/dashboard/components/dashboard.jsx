@@ -202,6 +202,7 @@ export default function ProcesosLogistica() {
             notificaciones={notifHook.notificaciones}
             noLeidas={notifHook.noLeidas}
             marcarLeida={notifHook.marcarLeida}
+            borrarNotificacion={notifHook.borrarNotificacion}
             recargar={notifHook.recargar}
             onNavigate={(id) => { setActiveTab("tareas"); tareasHook.setSelectedTareaId(id); radicadosHook.setSelectedRadicadoId(null); }}
           />

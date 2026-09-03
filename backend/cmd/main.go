@@ -8,6 +8,7 @@ import (
 	"sigefae/internal/api"
 	"sigefae/internal/db"
 	"sigefae/procesos_aplicacion/descarga_correos"
+	"sigefae/procesos_aplicacion/notificaciones_vencimiento"
 )
 
 func main() {
@@ -47,6 +48,9 @@ func main() {
 
 	// Iniciar la tarea de descarga de correos en segundo plano
 	go descarga_correos.Start(cfg, database)
+
+	// Iniciar la tarea de notificaciones de vencimiento
+	go notificaciones_vencimiento.Start(database)
 
 	router := api.New(database)
 

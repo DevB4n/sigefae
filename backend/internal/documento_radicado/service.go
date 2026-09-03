@@ -351,28 +351,35 @@ func generarTareasDesdeRuta(tx *gorm.DB, radicado *db.DocumentoRadicado, rutaID 
 		return err
 	}
 
-	// ── 3. Obtener el SMMLV actual ──
-	var smmlv db.SalarioMinimo
-	if err := tx.Where("activo = ?", true).Order("ano desc").First(&smmlv).Error; err != nil {
-		return errors.New("no hay un salario mínimo vigente configurado en el sistema")
-	}
-	if smmlv.Valor <= 0 {
-		return errors.New("el salario mínimo vigente debe ser mayor a 0")
-	}
-	docTotalEnSmmlv := docCom.Total / smmlv.Valor
+	// ── 3. Verificar si hay reglas de monto activas aplicables ──
+	var countReglas int64
+	tx.Model(&db.ReglaMontoRuta{}).
+		Where("activo = ?", true).
+		Count(&countReglas)
 
-	// ── 4. Reglas de monto aplicables ──
 	var reglas []db.ReglaMontoRuta
-	query := tx.Where("activo = ? AND monto_minimo_smmlv <= ?", true, docTotalEnSmmlv).
-		Where("(monto_maximo_smmlv = 0 OR monto_maximo_smmlv >= ?)", docTotalEnSmmlv).
-		Where("(area_id IS NULL OR area_id = ?)", docCom.IDArea).
-		Where("(ruta_id IS NULL OR ruta_id = ?)", rutaID).
-		Preload("UsuarioAprobador").
-		Preload("RolAprobador").
-		Order("monto_minimo_smmlv desc")
 
-	if err := query.Find(&reglas).Error; err != nil {
-		return err
+	if countReglas > 0 {
+		// Obtener SMMLV solo si hay reglas que evaluar
+		var smmlv db.SalarioMinimo
+		if err := tx.Where("activo = ?", true).Order("ano desc").First(&smmlv).Error; err != nil {
+			return errors.New("no hay un salario mínimo vigente configurado en el sistema")
+		}
+		if smmlv.Valor <= 0 {
+			return errors.New("el salario mínimo vigente debe ser mayor a 0")
+		}
+		docTotalEnSmmlv := docCom.Total / smmlv.Valor
+
+		// ── 4. Obtener reglas de monto aplicables por SMMLV ──
+		query := tx.Where("activo = ? AND monto_minimo_smmlv <= ?", true, docTotalEnSmmlv).
+			Where("(monto_maximo_smmlv = 0 OR monto_maximo_smmlv >= ?)", docTotalEnSmmlv).
+			Preload("UsuarioAprobador").
+			Preload("RolAprobador").
+			Order("monto_minimo_smmlv desc")
+
+		if err := query.Find(&reglas).Error; err != nil {
+			return err
+		}
 	}
 
 	// ── 5. Clasificar reglas por posición ──

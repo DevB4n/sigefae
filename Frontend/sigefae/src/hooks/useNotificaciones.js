@@ -58,17 +58,29 @@ export function useNotificaciones() {
     }
   }, []);
 
-  const marcarLeida = async (id) => {
-    try {
-      const res = await fetch(`${API}/notificacion/${id}/leida`, {
-        method: "PATCH",
-        headers: { Authorization: `Bearer ${obtenerToken()}` },
-      });
-      if (res.ok) cargar();
-    } catch (err) {
-      console.error(err);
-    }
-  };
+	const marcarLeida = async (id) => {
+		try {
+			const res = await fetch(`${API}/notificacion/${id}/leida`, {
+				method: "PATCH",
+				headers: { Authorization: `Bearer ${obtenerToken()}` },
+			});
+			if (res.ok) cargar();
+		} catch (err) {
+			console.error(err);
+		}
+	};
+
+	const borrarNotificacion = async (id) => {
+		try {
+			const res = await fetch(`${API}/notificacion/${id}`, {
+				method: "DELETE",
+				headers: { Authorization: `Bearer ${obtenerToken()}` },
+			});
+			if (res.ok) cargar();
+		} catch (err) {
+			console.error(err);
+		}
+	};
 
   useEffect(() => {
     pedirPermisoNotificaciones();
@@ -81,5 +93,5 @@ export function useNotificaciones() {
     return () => clearInterval(interval);
   }, [cargar]);
 
-  return { notificaciones, noLeidas, loading, marcarLeida, recargar: cargar };
+	return { notificaciones, noLeidas, loading, marcarLeida, borrarNotificacion, recargar: cargar };
 }
