@@ -23,6 +23,8 @@ func (s *Service) Create(dto CreateDTO) (*db.NormaReparto, error) {
 		Departamento: dto.Departamento,
 		Tipo:         dto.Tipo,
 		TarifaIva:    dto.TarifaIva,
+		Proyecto:     dto.Proyecto,
+		Descripcion:  dto.Descripcion,
 		Activo:       true,
 	}
 	if err := s.db.Create(&norma).Error; err != nil {
@@ -71,6 +73,14 @@ func (s *Service) Update(id uint, dto UpdateDTO) (*db.NormaReparto, error) {
 	}
 	if dto.Departamento != "" {
 		updates["departamento"] = dto.Departamento
+	}
+	if dto.Proyecto != "" {
+		updates["proyecto"] = dto.Proyecto
+	}
+	if dto.Descripcion != nil {
+		updates["descripcion"] = *dto.Descripcion
+	} else {
+		updates["descripcion"] = nil
 	}
 	if dto.Tipo != nil {
 		updates["tipo"] = *dto.Tipo

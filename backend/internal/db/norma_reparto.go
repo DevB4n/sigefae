@@ -10,6 +10,8 @@ type NormaReparto struct {
 	Departamento string    `gorm:"column:departamento;type:varchar(50);not null" json:"departamento"`
 	Tipo         *string   `gorm:"column:tipo;type:varchar(20)" json:"tipo,omitempty"`
 	TarifaIva    *string   `gorm:"column:tarifa_iva;type:varchar(10)" json:"tarifa_iva,omitempty"`
+	Proyecto     string    `gorm:"column:proyecto;type:varchar(100);not null;default:''" json:"proyecto"`
+	Descripcion  *string   `gorm:"column:descripcion;type:text" json:"descripcion,omitempty"`
 	Activo       bool      `gorm:"column:activo;default:true" json:"activo"`
 	CreatedAt    time.Time `gorm:"column:created_at;autoCreateTime" json:"created_at"`
 }

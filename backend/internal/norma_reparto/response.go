@@ -10,6 +10,8 @@ type Response struct {
 	Departamento string  `json:"departamento"`
 	Tipo         *string `json:"tipo,omitempty"`
 	TarifaIva    *string `json:"tarifa_iva,omitempty"`
+	Proyecto     string  `json:"proyecto"`
+	Descripcion  *string `json:"descripcion,omitempty"`
 	Activo       bool    `json:"activo"`
 }
 
@@ -22,6 +24,8 @@ func toResponse(n db.NormaReparto) Response {
 		Departamento: n.Departamento,
 		Tipo:         n.Tipo,
 		TarifaIva:    n.TarifaIva,
+		Proyecto:     n.Proyecto,
+		Descripcion:  n.Descripcion,
 		Activo:       n.Activo,
 	}
 }

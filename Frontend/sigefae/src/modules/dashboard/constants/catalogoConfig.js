@@ -6,6 +6,6 @@ export const catalogoConfig = {
   "rutas":           { endpoint: "rutas",           label: "Ruta",              method: "PUT",   fields: ["nombre", "area_id"] },
   "pasos-ruta":      { endpoint: "pasos-ruta",      label: "Paso de Ruta",      method: "PUT",   fields: ["ruta_id", "orden", "nombre", "usuario_id"] },
   "reglas-monto":    { endpoint: "regla-monto-ruta",label: "Regla de Monto",    method: "PUT",   fields: ["monto_minimo_smmlv", "monto_maximo_smmlv", "posicion_insercion", "prioridad", "usuario_aprobador_id"] },
-  "normas-reparto":  { endpoint: "normas-reparto",  label: "Norma de Reparto",  method: "PUT",   fields: ["codigo", "nombre", "sucursal", "departamento", "tipo", "tarifa_iva"] },
+  "normas-reparto":  { endpoint: "normas-reparto",  label: "Norma de Reparto",  method: "PUT",   fields: ["codigo", "nombre", "proyecto", "sucursal", "departamento", "tipo", "tarifa_iva", "descripcion"] },
   "salario-minimo":  { endpoint: "salario-minimo",  label: "Salario Mínimo",    method: "PUT",   fields: ["ano", "valor"] },
 };

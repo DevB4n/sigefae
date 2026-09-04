@@ -171,6 +171,8 @@ func toResponse(documento db.DocumentoRadicado) Response {
 				item.Nombre = nr.NormaReparto.Nombre
 				item.Sucursal = nr.NormaReparto.Sucursal
 				item.Departamento = nr.NormaReparto.Departamento
+				item.Proyecto = nr.NormaReparto.Proyecto
+				item.Descripcion = nr.NormaReparto.Descripcion
 			}
 			response.NormasReparto = append(response.NormasReparto, item)
 		}
@@ -201,6 +203,8 @@ type NormaRepartoResponse struct {
 	Nombre         string  `json:"nombre"`
 	Sucursal       string  `json:"sucursal"`
 	Departamento   string  `json:"departamento"`
+	Proyecto       string  `json:"proyecto,omitempty"`
+	Descripcion    *string `json:"descripcion,omitempty"`
 	Porcentaje     float64 `json:"porcentaje"`
 }
 

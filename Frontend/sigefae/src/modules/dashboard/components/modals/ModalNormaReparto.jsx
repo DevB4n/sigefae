@@ -63,7 +63,7 @@ export default function ModalNormaReparto({
             <label>Norma <span className="required">*</span></label>
             <select className="doc-input" value={normaFormDetalle.norma_reparto_id} onChange={(e) => setNormaFormDetalle(prev => ({ ...prev, norma_reparto_id: e.target.value }))}>
               <option value="">Seleccione norma...</option>
-              {normasFiltradas.map(n => <option key={n.id} value={String(n.id)}>{n.codigo} — {n.nombre} ({n.sucursal} / {n.departamento})</option>)}
+              {normasFiltradas.map(n => <option key={n.id} value={String(n.id)}>{n.codigo} — {n.nombre} {n.proyecto ? `[${n.proyecto}]` : ''} ({n.sucursal} / {n.departamento})</option>)}
             </select>
           </div>
           <div style={{ display: "flex", gap: 10, marginTop: 10 }}>

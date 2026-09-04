@@ -7,6 +7,8 @@ type CreateDTO struct {
 	Departamento string  `json:"departamento" binding:"required"`
 	Tipo         *string `json:"tipo"`
 	TarifaIva    *string `json:"tarifa_iva"`
+	Proyecto     string  `json:"proyecto" binding:"required"`
+	Descripcion  *string `json:"descripcion"`
 }
 
 type UpdateDTO struct {
@@ -16,6 +18,8 @@ type UpdateDTO struct {
 	Departamento string  `json:"departamento"`
 	Tipo         *string `json:"tipo"`
 	TarifaIva    *string `json:"tarifa_iva"`
+	Proyecto     string  `json:"proyecto"`
+	Descripcion  *string `json:"descripcion"`
 }
 
 type UpdateStatusDTO struct {
