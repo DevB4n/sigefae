@@ -124,7 +124,7 @@ func (s *Service) Create(dto CreateDTO, usuarioID uint) (*db.DocumentoRadicado, 
 		}
 
 		// ── 9. Generar tareas desde la ruta ──
-		if err := generarTareasDesdeRuta(tx, &radicado, dto.RutaID, dto.DocumentoComercialID); err != nil {
+		if err := generarTareasDesdeRuta(tx, &radicado, dto.RutaID, dto.DocumentoComercialID, dto.EsMalambo); err != nil {
 			return err
 		}
 
@@ -335,7 +335,7 @@ func (s *Service) Update(id uint, dto UpdateDTO) (*db.DocumentoRadicado, error) 
 // ─────────────────────────────────────────────────────────────
 // generarTareasDesdeRuta
 // ─────────────────────────────────────────────────────────────
-func generarTareasDesdeRuta(tx *gorm.DB, radicado *db.DocumentoRadicado, rutaID uint, docComercialID uint) error {
+func generarTareasDesdeRuta(tx *gorm.DB, radicado *db.DocumentoRadicado, rutaID uint, docComercialID uint, esMalambo bool) error {
 	// ── 1. Pasos base de la ruta ──
 	var pasos []db.PasoRuta
 	if err := tx.Where("ruta_id = ? AND activo = ?", rutaID, true).Order("orden asc, id asc").Find(&pasos).Error; err != nil {
@@ -473,6 +473,36 @@ func generarTareasDesdeRuta(tx *gorm.DB, radicado *db.DocumentoRadicado, rutaID 
 			EsRegla:   true,
 		})
 	}
+
+	// ── 5.6 PREFIJO DE CORREOS (Oriente / Malambo) ──
+	buscarUsuarioIDPorEmail := func(email string) uint {
+		var u db.Usuario
+		if err := tx.Where("email = ? AND activo = ?", email, true).First(&u).Error; err == nil {
+			return u.ID
+		}
+		return 0
+	}
+
+	idAuxOriente := buscarUsuarioIDPorEmail("auxadmonoriente@harinerapardo.co")
+	idAnalistaCompras := buscarUsuarioIDPorEmail("analistacomprasoriente@harinerapardo.co")
+
+	var idPaso2 uint
+	var nombrePaso2 string
+	if esMalambo {
+		idPaso2 = buscarUsuarioIDPorEmail("auxadmonnorte@harinerapardo.co")
+		nombrePaso2 = "Revisión Auxiliar Admon Norte (Malambo)"
+	} else {
+		idPaso2 = buscarUsuarioIDPorEmail("analistaadmonoriente@harinerapardo.co")
+		nombrePaso2 = "Revisión Analista Admon Oriente"
+	}
+
+	prefijoFlujo := []pasoFinal{
+		{Nombre: "Revisión Auxiliar Admon Oriente", UsuarioID: idAuxOriente, EsRegla: false},
+		{Nombre: nombrePaso2, UsuarioID: idPaso2, EsRegla: false},
+		{Nombre: "Revisión Analista Compras Oriente", UsuarioID: idAnalistaCompras, EsRegla: false},
+	}
+
+	flujo = append(prefijoFlujo, flujo...)
 
 	// ── 6. Estados base ──
 	var estadoPendiente db.EstadoTarea

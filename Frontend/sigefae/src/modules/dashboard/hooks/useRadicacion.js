@@ -4,7 +4,7 @@ import { API } from "../constants/api";
 export function useRadicacion(obtenerToken, userId, setDocumentos, setActiveTab, setSelectedDocId, setDocDetail) {
   const [showRadicarModal, setShowRadicarModal] = useState(false);
   const [radicarDocId, setRadicarDocId] = useState(null);
-  const [radicarForm, setRadicarForm] = useState({ tipo_radicacion_id: "", ruta_id: "", metodo_pago_id: "", numero_radicado: "", normas_reparto: [] });
+  const [radicarForm, setRadicarForm] = useState({ tipo_radicacion_id: "", ruta_id: "", metodo_pago_id: "", numero_radicado: "", es_malambo: false, normas_reparto: [] });
   const [radicando, setRadicando] = useState(false);
   const [normasRepartoAutoMsg, setNormasRepartoAutoMsg] = useState("");
 
@@ -76,7 +76,7 @@ export function useRadicacion(obtenerToken, userId, setDocumentos, setActiveTab,
 const openRadicarModal = async (docId, subtotal = 0) => {
     setRadicarDocId(docId);
     setSubtotalDoc(parseFloat(subtotal) || 0);
-    setRadicarForm({ tipo_radicacion_id: "", ruta_id: "", metodo_pago_id: "", numero_radicado: "", normas_reparto: [] });
+    setRadicarForm({ tipo_radicacion_id: "", ruta_id: "", metodo_pago_id: "", numero_radicado: "", es_malambo: false, normas_reparto: [] });
     setNormasRepartoAutoMsg("");
     setNormasPredeterminadas([]);
     setUsarNormasPredeterminadas(null);
@@ -184,6 +184,7 @@ const openRadicarModal = async (docId, subtotal = 0) => {
       ruta_id: parseInt(radicarForm.ruta_id),
       metodo_pago_id: parseInt(radicarForm.metodo_pago_id),
       numero_radicado: radicarForm.numero_radicado?.trim() || "",
+      es_malambo: Boolean(radicarForm.es_malambo),
       normas_reparto: (radicarForm.normas_reparto || []).filter(n => n.norma_reparto_id && n.porcentaje).map(n => ({ norma_reparto_id: parseInt(n.norma_reparto_id), porcentaje: parseFloat(n.porcentaje) })),
     };
     try {

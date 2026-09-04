@@ -7,6 +7,7 @@ type CreateDTO struct {
 	MetodoPagoID         uint                   `json:"metodo_pago_id" binding:"required"`
 	NormasReparto        []NormaRepartoInputDTO `json:"normas_reparto"`
 	NumeroRadicado       string                 `json:"numero_radicado"` // opcional, si vacío se autogenera
+	EsMalambo            bool                   `json:"es_malambo"`
 }
 type UpdateDTO struct {
 	TipoRadicacionID uint   `json:"tipo_radicacion_id"`

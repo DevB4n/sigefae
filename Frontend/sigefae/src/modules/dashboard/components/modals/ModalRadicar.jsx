@@ -63,6 +63,24 @@ export default function ModalRadicar({
             </select>
           </div>
 
+          <div className="modal-field" style={{ padding: "12px", borderRadius: 8, background: "#f8fafc", border: "1px solid #e2e8f0" }}>
+            <label style={{ display: "flex", alignItems: "center", gap: 10, cursor: "pointer", margin: 0, fontWeight: 600, color: "#1e293b" }}>
+              <input
+                type="checkbox"
+                name="es_malambo"
+                checked={Boolean(radicarForm.es_malambo)}
+                onChange={(e) => handleRadicarChange({ target: { name: "es_malambo", value: e.target.checked } })}
+                style={{ width: 18, height: 18, accentColor: "#2563eb", cursor: "pointer" }}
+              />
+              <span><i className="fa-solid fa-location-dot" style={{ color: "#2563eb" }}></i> Aplicar Flujo Sede Malambo</span>
+            </label>
+            <p style={{ margin: "4px 0 0 28px", fontSize: "0.82em", color: "#64748b" }}>
+              {radicarForm.es_malambo
+                ? "El 2º paso de revisión se asignará a auxadmonnorte@harinerapardo.co"
+                : "El 2º paso de revisión se asignará a analistaadmonoriente@harinerapardo.co"}
+            </p>
+          </div>
+
           {/* ── NUEVO: aviso de normas predeterminadas ── */}
           {normasPredeterminadas.length > 0 && usarNormasPredeterminadas === null && (
             <div className="modal-field" style={{
