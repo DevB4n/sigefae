@@ -6,7 +6,8 @@ export default function ModalRadicar({
   normasRepartoCatalogo,
   normaFiltroSede, setNormaFiltroSede, normaFiltroArea, setNormaFiltroArea,
   normaSeleccionadaId, setNormaSeleccionadaId, normaPorcentajeInput, setNormaPorcentajeInput,
-  normaValorInput, setNormaValorInput, subtotalDoc,
+  normaValorInput, setNormaValorInput, normaProyectoInput, setNormaProyectoInput,
+  normaDescripcionInput, setNormaDescripcionInput, subtotalDoc,
   sedesDisponibles, areasDisponibles, normasFiltradas, totalPorcentajeNormas,
   // ── NUEVO ──
   normasPredeterminadas, usarNormasPredeterminadas,
@@ -180,7 +181,7 @@ export default function ModalRadicar({
                 <option value="">Todas las áreas</option>{areasDisponibles.map(a => <option key={a} value={a}>{a}</option>)}
               </select>
             </div>
-            <div style={{ display: "flex", gap: 8, marginBottom: 10, alignItems: "center", flexWrap: "wrap" }}>
+            <div style={{ display: "flex", gap: 8, marginBottom: 8, alignItems: "center", flexWrap: "wrap" }}>
               <select className="doc-input" style={{ flex: 2, minWidth: 150 }} value={normaSeleccionadaId} onChange={(e) => setNormaSeleccionadaId(e.target.value)} disabled={!normaFiltroSede || !normaFiltroArea}>
                 <option value="">Seleccione norma...</option>{normasFiltradas.map(n => <option key={n.id} value={String(n.id)}>{n.codigo} — {n.nombre}</option>)}
               </select>
@@ -191,42 +192,50 @@ export default function ModalRadicar({
               </button>
             </div>
 
-            {normaSeleccionadaInfo && (
-              <div style={{ display: "flex", gap: 10, marginBottom: 10, background: "#f8fafc", padding: "8px 10px", borderRadius: 6, border: "1px solid #e2e8f0" }}>
-                <div style={{ flex: 1 }}>
-                  <label style={{ fontSize: "0.75em", color: "#64748b", fontWeight: 600, display: "block", marginBottom: 2 }}>Proyecto</label>
-                  <input type="text" readOnly className="doc-input" value={normaSeleccionadaInfo.proyecto || "Sin proyecto"} style={{ background: "#f1f5f9", fontSize: "0.85em" }} />
-                </div>
-                <div style={{ flex: 2 }}>
-                  <label style={{ fontSize: "0.75em", color: "#64748b", fontWeight: 600, display: "block", marginBottom: 2 }}>Descripción</label>
-                  <input type="text" readOnly className="doc-input" value={normaSeleccionadaInfo.descripcion || "Sin descripción"} style={{ background: "#f1f5f9", fontSize: "0.85em" }} />
-                </div>
-              </div>
-            )}
+            <div style={{ display: "flex", gap: 8, marginBottom: 10 }}>
+              <input
+                type="text"
+                className="doc-input"
+                style={{ flex: 1, fontSize: "0.85em", borderColor: !normaProyectoInput ? "#ef4444" : undefined }}
+                placeholder="Proyecto *"
+                value={normaProyectoInput}
+                onChange={(e) => setNormaProyectoInput(e.target.value)}
+                required
+              />
+              <input
+                type="text"
+                className="doc-input"
+                style={{ flex: 2, fontSize: "0.85em" }}
+                placeholder="Descripción (opcional)"
+                value={normaDescripcionInput}
+                onChange={(e) => setNormaDescripcionInput(e.target.value)}
+              />
+            </div>
 
             {(radicarForm.normas_reparto || []).length === 0 ? (
               <p style={{ fontSize: "0.85em", color: "#6b7280" }}>No se han asignado normas de reparto.</p>
             ) : (
-              <div style={{ display: "flex", flexDirection: "column", gap: 6, marginBottom: 10 }}>
+              <div style={{ display: "flex", flexDirection: "column", gap: 8, marginBottom: 10 }}>
                 {radicarForm.normas_reparto.map((norma, idx) => {
-                  const info = normasRepartoCatalogo.find(n => String(n.id) === norma.norma_reparto_id);
+                  const info = normasRepartoCatalogo.find(n => String(n.id) === String(norma.norma_reparto_id));
                   const pctVal = parseFloat(norma.porcentaje) || 0;
                   const calculatedVal = subtotalDoc > 0 ? (pctVal / 100) * subtotalDoc : parseFloat(norma.valor) || 0;
                   return (
-                    <div key={idx} style={{ display: "flex", gap: 8, alignItems: "center", padding: "8px 10px", background: "#f9fafb", borderRadius: 6, border: "1px solid #e5e7eb" }}>
-                      <div style={{ flex: 2, display: "flex", flexDirection: "column" }}>
-                        <span style={{ fontSize: "0.85em", fontWeight: 600, color: "#1f2937" }}>{info ? `${info.codigo} — ${info.nombre}` : "Norma desconocida"}</span>
-                        {info && (info.proyecto || info.descripcion) && (
-                          <span style={{ fontSize: "0.75em", color: "#64748b" }}>
-                            {info.proyecto ? `Proj: ${info.proyecto}` : ""} {info.descripcion ? `| Desc: ${info.descripcion}` : ""}
-                          </span>
-                        )}
+                    <div key={idx} style={{ display: "flex", flexDirection: "column", gap: 6, padding: "8px 10px", background: "#f9fafb", borderRadius: 6, border: "1px solid #e5e7eb" }}>
+                      <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+                        <div style={{ flex: 2, display: "flex", flexDirection: "column" }}>
+                          <span style={{ fontSize: "0.85em", fontWeight: 600, color: "#1f2937" }}>{info ? `${info.codigo} — ${info.nombre}` : "Norma desconocida"}</span>
+                          <span style={{ fontSize: "0.75em", color: "#6b7280" }}>{info ? `${info.sucursal} / ${info.departamento}` : ""}</span>
+                        </div>
+                        <input type="number" min="0" max="100" step="0.01" value={norma.porcentaje} onChange={(e) => handleNormaRepartoChange(idx, "porcentaje", e.target.value)} className="doc-input" style={{ width: 70, textAlign: "right", fontSize: "0.85em" }} />
+                        <span style={{ fontSize: "0.85em", fontWeight: 700 }}>%</span>
+                        <span style={{ fontSize: "0.8em", color: "#059669", fontWeight: 600, minWidth: 90, textAlign: "right" }}>{formatCurrency(calculatedVal)}</span>
+                        <button className="btn-icon btn-toggle" onClick={() => handleRemoveNormaReparto(idx)} title="Quitar" style={{ width: 28, height: 28, flexShrink: 0 }}><i className="fa-solid fa-xmark"></i></button>
                       </div>
-                      <span style={{ flex: 1, fontSize: "0.8em", color: "#6b7280" }}>{info ? `${info.sucursal} / ${info.departamento}` : ""}</span>
-                      <input type="number" min="0" max="100" step="0.01" value={norma.porcentaje} onChange={(e) => handleNormaRepartoChange(idx, "porcentaje", e.target.value)} className="doc-input" style={{ width: 70, textAlign: "right", fontSize: "0.85em" }} />
-                      <span style={{ fontSize: "0.85em", fontWeight: 700 }}>%</span>
-                      <span style={{ fontSize: "0.8em", color: "#059669", fontWeight: 600, minWidth: 90, textAlign: "right" }}>{formatCurrency(calculatedVal)}</span>
-                      <button className="btn-icon btn-toggle" onClick={() => handleRemoveNormaReparto(idx)} title="Quitar" style={{ width: 28, height: 28, flexShrink: 0 }}><i className="fa-solid fa-xmark"></i></button>
+                      <div style={{ display: "flex", gap: 8 }}>
+                        <input type="text" className="doc-input" placeholder="Proyecto" style={{ flex: 1, fontSize: "0.8em", padding: "4px 8px" }} value={norma.proyecto || ""} onChange={(e) => handleNormaRepartoChange(idx, "proyecto", e.target.value)} />
+                        <input type="text" className="doc-input" placeholder="Descripción" style={{ flex: 2, fontSize: "0.8em", padding: "4px 8px" }} value={norma.descripcion || ""} onChange={(e) => handleNormaRepartoChange(idx, "descripcion", e.target.value)} />
+                      </div>
                     </div>
                   );
                 })}

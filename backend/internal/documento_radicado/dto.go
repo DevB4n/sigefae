@@ -23,4 +23,6 @@ type UpdateDTO struct {
 type NormaRepartoInputDTO struct {
 	NormaRepartoID uint    `json:"norma_reparto_id" binding:"required"`
 	Porcentaje     float64 `json:"porcentaje" binding:"required"`
+	Proyecto       string  `json:"proyecto"`
+	Descripcion    string  `json:"descripcion"`
 }

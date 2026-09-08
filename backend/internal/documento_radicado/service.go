@@ -151,6 +151,8 @@ func (s *Service) Create(dto CreateDTO, usuarioID uint) (*db.DocumentoRadicado, 
 					DocumentoRadicadoID: radicado.ID,
 					NormaRepartoID:      n.NormaRepartoID,
 					Porcentaje:          n.Porcentaje,
+					Proyecto:            n.Proyecto,
+					Descripcion:         n.Descripcion,
 					CreadoPorID:         usuarioID,
 				}
 				if err := tx.Create(&nr).Error; err != nil {
@@ -693,6 +695,7 @@ func (s *Service) AsignarNormasReparto(radicadoID uint, dtos []NormaRepartoInput
 			dtoMap[d.NormaRepartoID] = d
 		}
 
+		// Validar que no-admins no modifiquen normas ajenas
 		if !isAdmin {
 			for _, e := range existentes {
 				if e.CreadoPorID != 0 && e.CreadoPorID != usuarioID {
@@ -703,11 +706,14 @@ func (s *Service) AsignarNormasReparto(radicadoID uint, dtos []NormaRepartoInput
 			}
 		}
 
+		// Crear o actualizar normas del DTO
 		for _, d := range dtos {
 			existente, ok := porNorma[d.NormaRepartoID]
 			if ok {
 				if isAdmin || existente.CreadoPorID == 0 || existente.CreadoPorID == usuarioID {
 					existente.Porcentaje = d.Porcentaje
+					existente.Proyecto = d.Proyecto
+					existente.Descripcion = d.Descripcion
 					if existente.CreadoPorID == 0 {
 						existente.CreadoPorID = usuarioID
 					}
@@ -722,6 +728,8 @@ func (s *Service) AsignarNormasReparto(radicadoID uint, dtos []NormaRepartoInput
 				DocumentoRadicadoID: radicadoID,
 				NormaRepartoID:      d.NormaRepartoID,
 				Porcentaje:          d.Porcentaje,
+				Proyecto:            d.Proyecto,
+				Descripcion:         d.Descripcion,
 				CreadoPorID:         usuarioID,
 			}
 			if err := tx.Create(&nr).Error; err != nil {
@@ -729,13 +737,13 @@ func (s *Service) AsignarNormasReparto(radicadoID uint, dtos []NormaRepartoInput
 			}
 		}
 
-		if !isAdmin {
-			for _, e := range existentes {
-				if e.CreadoPorID == 0 || e.CreadoPorID == usuarioID {
-					if _, exists := dtoMap[e.NormaRepartoID]; !exists {
-						if err := tx.Delete(&e).Error; err != nil {
-							return err
-						}
+		// Eliminar normas que ya no están en el DTO
+		// Admins pueden eliminar cualquier norma; no-admins solo las propias
+		for _, e := range existentes {
+			if _, exists := dtoMap[e.NormaRepartoID]; !exists {
+				if isAdmin || e.CreadoPorID == 0 || e.CreadoPorID == usuarioID {
+					if err := tx.Delete(&e).Error; err != nil {
+						return err
 					}
 				}
 			}
@@ -744,6 +752,7 @@ func (s *Service) AsignarNormasReparto(radicadoID uint, dtos []NormaRepartoInput
 		return nil
 	})
 }
+
 
 // ─────────────────────────────────────────────────────────────
 // MemorizarNormasProveedorRuta

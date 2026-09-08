@@ -4,7 +4,7 @@ import { API } from "../constants/api";
 export function useNormasReparto(obtenerToken, esAdmin, puedeGestionarRecurso, normasRepartoRadicado, setNormasRepartoRadicado) {
   const [showNormaModal, setShowNormaModal] = useState(false);
   const [normaEditandoId, setNormaEditandoId] = useState(null);
-  const [normaFormDetalle, setNormaFormDetalle] = useState({ norma_reparto_id: "", porcentaje: "" });
+  const [normaFormDetalle, setNormaFormDetalle] = useState({ norma_reparto_id: "", porcentaje: "", proyecto: "", descripcion: "" });
   const [normaModalRadicadoId, setNormaModalRadicadoId] = useState(null);
   const [normaFiltroSede, setNormaFiltroSede] = useState("");
   const [normaFiltroArea, setNormaFiltroArea] = useState("");
@@ -17,11 +17,16 @@ export function useNormasReparto(obtenerToken, esAdmin, puedeGestionarRecurso, n
     setNormaModalRadicadoId(radicadoId);
     if (normaExistente) {
       setNormaEditandoId(normaExistente.id);
-      setNormaFormDetalle({ norma_reparto_id: String(normaExistente.norma_reparto_id || normaExistente.norma_reparto?.id || ""), porcentaje: String(normaExistente.porcentaje || "") });
+      setNormaFormDetalle({
+        norma_reparto_id: String(normaExistente.norma_reparto_id || normaExistente.norma_reparto?.id || ""),
+        porcentaje: String(normaExistente.porcentaje || ""),
+        proyecto: normaExistente.proyecto || "",
+        descripcion: normaExistente.descripcion || ""
+      });
       const norma = normasRepartoCatalogo.find(n => n.id === (normaExistente.norma_reparto_id || normaExistente.norma_reparto?.id));
       if (norma) { setNormaFiltroSede(norma.sucursal || ""); setNormaFiltroArea(norma.departamento || ""); }
     } else {
-      setNormaEditandoId(null); setNormaFormDetalle({ norma_reparto_id: "", porcentaje: "" });
+      setNormaEditandoId(null); setNormaFormDetalle({ norma_reparto_id: "", porcentaje: "", proyecto: "", descripcion: "" });
       setNormaFiltroSede(""); setNormaFiltroArea("");
     }
     if (normasRepartoCatalogo.length === 0) {
@@ -33,18 +38,53 @@ export function useNormasReparto(obtenerToken, esAdmin, puedeGestionarRecurso, n
 
   const handleGuardarNormaDetalle = async (radicadoId) => {
     if (!normaFormDetalle.norma_reparto_id || normaFormDetalle.porcentaje === "") { alert("Seleccione una norma y el porcentaje"); return; }
+    if (!normaFormDetalle.proyecto || !normaFormDetalle.proyecto.trim()) { alert("El campo Proyecto es obligatorio"); return; }
     try {
-      let nuevasNormas = normasRepartoRadicado.map(n => ({ id: n.id, norma_reparto_id: n.norma_reparto_id || n.norma_reparto?.id, porcentaje: parseFloat(n.porcentaje) }));
-      const payloadNorma = { id: normaEditandoId || undefined, norma_reparto_id: parseInt(normaFormDetalle.norma_reparto_id), porcentaje: parseFloat(normaFormDetalle.porcentaje) };
+      // Norma editada / nueva
+      const payloadNorma = {
+        norma_reparto_id: parseInt(normaFormDetalle.norma_reparto_id),
+        porcentaje: parseFloat(normaFormDetalle.porcentaje),
+        proyecto: normaFormDetalle.proyecto.trim(),
+        descripcion: normaFormDetalle.descripcion?.trim() || ""
+      };
+
+      // Construir lista final preservando datos de las normas no editadas
+      let nuevasNormas;
       if (normaEditandoId) {
-        const idx = normasRepartoRadicado.findIndex(n => n.id === normaEditandoId);
-        if (idx !== -1) nuevasNormas[idx] = payloadNorma;
-        else { const idx2 = nuevasNormas.findIndex(n => n.norma_reparto_id === payloadNorma.norma_reparto_id); if (idx2 !== -1) nuevasNormas[idx2] = payloadNorma; else nuevasNormas.push(payloadNorma); }
+        nuevasNormas = normasRepartoRadicado.map(n => {
+          const nId = n.id;
+          if (nId === normaEditandoId) {
+            // Reemplazar con datos del form
+            return payloadNorma;
+          }
+          // Preservar datos existentes exactamente
+          return {
+            norma_reparto_id: n.norma_reparto_id || n.norma_reparto?.id,
+            porcentaje: parseFloat(n.porcentaje),
+            proyecto: n.proyecto || "",
+            descripcion: n.descripcion || ""
+          };
+        });
+        // Si no encontró por id, agregar al final (fallback)
+        const encontrado = normasRepartoRadicado.some(n => n.id === normaEditandoId);
+        if (!encontrado) nuevasNormas.push(payloadNorma);
       } else {
-        const yaExiste = nuevasNormas.find(n => n.norma_reparto_id === payloadNorma.norma_reparto_id);
+        // Nueva norma: verificar duplicado
+        const yaExiste = normasRepartoRadicado.find(n =>
+          (n.norma_reparto_id || n.norma_reparto?.id) === payloadNorma.norma_reparto_id
+        );
         if (yaExiste) { alert("Esta norma ya fue agregada"); return; }
-        nuevasNormas.push(payloadNorma);
+        nuevasNormas = [
+          ...normasRepartoRadicado.map(n => ({
+            norma_reparto_id: n.norma_reparto_id || n.norma_reparto?.id,
+            porcentaje: parseFloat(n.porcentaje),
+            proyecto: n.proyecto || "",
+            descripcion: n.descripcion || ""
+          })),
+          payloadNorma
+        ];
       }
+
       const res = await fetch(`${API}/documentoradicado/${radicadoId}/normas-reparto`, {
         method: "POST", headers: { "Content-Type": "application/json", Authorization: `Bearer ${obtenerToken()}` },
         body: JSON.stringify({ normas: nuevasNormas })
@@ -64,7 +104,12 @@ export function useNormasReparto(obtenerToken, esAdmin, puedeGestionarRecurso, n
     if (!esAdmin && !puedeGestionarRecurso(creadorId)) { alert("No tienes permisos para eliminar esta norma de reparto."); return; }
     if (!confirm("¿Está seguro de eliminar esta norma de reparto?")) return;
     try {
-      const normasRestantes = normasRepartoRadicado.filter(n => n.id !== norma.id).map(n => ({ norma_reparto_id: n.norma_reparto_id || n.norma_reparto?.id, porcentaje: parseFloat(n.porcentaje) }));
+      const normasRestantes = normasRepartoRadicado.filter(n => n.id !== norma.id).map(n => ({
+        norma_reparto_id: n.norma_reparto_id || n.norma_reparto?.id,
+        porcentaje: parseFloat(n.porcentaje),
+        proyecto: n.proyecto || "",
+        descripcion: n.descripcion || ""
+      }));
       const res = await fetch(`${API}/documentoradicado/${radicadoId}/normas-reparto`, {
         method: "POST", headers: { "Content-Type": "application/json", Authorization: `Bearer ${obtenerToken()}` },
         body: JSON.stringify({ normas: normasRestantes })

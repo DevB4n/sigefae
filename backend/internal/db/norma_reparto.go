@@ -23,6 +23,8 @@ type RadicadoNormaReparto struct {
 	DocumentoRadicadoID uint          `gorm:"column:documento_radicado_id;not null;index:idx_rnr_radicado" json:"documento_radicado_id"`
 	NormaRepartoID      uint          `gorm:"column:norma_reparto_id;not null;index:idx_rnr_norma" json:"norma_reparto_id"`
 	Porcentaje          float64       `gorm:"column:porcentaje;type:decimal(5,2);not null" json:"porcentaje"`
+	Proyecto            string        `gorm:"column:proyecto;type:varchar(100);default:''" json:"proyecto"`
+	Descripcion         string        `gorm:"column:descripcion;type:text;default:''" json:"descripcion"`
 	CreadoPorID         uint          `gorm:"column:creado_por_id;index:idx_rnr_creado_por" json:"creado_por_id"`
 	CreadoPor           *Usuario      `gorm:"foreignKey:CreadoPorID;references:ID" json:"creado_por,omitempty"`
 	NormaReparto        *NormaReparto `gorm:"foreignKey:NormaRepartoID;references:ID" json:"norma_reparto,omitempty"`

@@ -26,6 +26,7 @@ export default function RenderNormasReparto({
                 <th>Código</th>
                 <th>Nombre</th>
                 <th>Proyecto</th>
+                <th>Descripción</th>
                 <th>Sede</th>
                 <th>Área</th>
                 <th style={{ textAlign: "right" }}>%</th>
@@ -37,7 +38,12 @@ export default function RenderNormasReparto({
                 <tr key={n.id}>
                   <td><strong>{n.norma_reparto?.codigo || n.codigo}</strong></td>
                   <td>{n.norma_reparto?.nombre || n.nombre}</td>
-                  <td>{n.norma_reparto?.proyecto || n.proyecto || "—"}</td>
+                  <td style={{ color: n.proyecto ? "#1e293b" : "#94a3b8", fontStyle: n.proyecto ? "normal" : "italic" }}>
+                    {n.proyecto || "—"}
+                  </td>
+                  <td style={{ color: n.descripcion ? "#1e293b" : "#94a3b8", fontStyle: n.descripcion ? "normal" : "italic", maxWidth: 200, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+                    {n.descripcion || "—"}
+                  </td>
                   <td>{n.norma_reparto?.sucursal || n.sucursal}</td>
                   <td>{n.norma_reparto?.departamento || n.departamento}</td>
                   <td style={{ textAlign: "right", fontWeight: 700 }}>{parseFloat(n.porcentaje).toFixed(2)}%</td>

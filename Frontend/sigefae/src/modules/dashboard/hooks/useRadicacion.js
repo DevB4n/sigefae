@@ -19,6 +19,8 @@ export function useRadicacion(obtenerToken, userId, setDocumentos, setActiveTab,
   const [normaSeleccionadaId, setNormaSeleccionadaId] = useState("");
   const [normaPorcentajeInput, setNormaPorcentajeInput] = useState("");
   const [normaValorInput, setNormaValorInput] = useState("");
+  const [normaProyectoInput, setNormaProyectoInput] = useState("");
+  const [normaDescripcionInput, setNormaDescripcionInput] = useState("");
   const [subtotalDoc, setSubtotalDoc] = useState(0);
 
   // ── NUEVO: normas predeterminadas del proveedor-ruta ──
@@ -85,6 +87,7 @@ const openRadicarModal = async (docId, subtotal = 0) => {
     setUsarNormasPredeterminadas(null);
     setNormaFiltroSede(""); setNormaFiltroArea("");
     setNormaSeleccionadaId(""); setNormaPorcentajeInput(""); setNormaValorInput("");
+    setNormaProyectoInput(""); setNormaDescripcionInput("");
     
     // ── NUEVO: obtener proveedor del documento comercial ──
     try {
@@ -112,7 +115,9 @@ const openRadicarModal = async (docId, subtotal = 0) => {
     const nuevasNormas = normasPredeterminadas.map(n => ({
       norma_reparto_id: String(n.norma_reparto_id),
       porcentaje: n.porcentaje.toFixed(2),
-      valor: subtotalDoc > 0 ? ((n.porcentaje / 100) * subtotalDoc).toFixed(2) : "0"
+      valor: subtotalDoc > 0 ? ((n.porcentaje / 100) * subtotalDoc).toFixed(2) : "0",
+      proyecto: "",
+      descripcion: ""
     }));
     setRadicarForm(prev => ({ ...prev, normas_reparto: nuevasNormas }));
     setUsarNormasPredeterminadas(true);
@@ -133,6 +138,7 @@ const openRadicarModal = async (docId, subtotal = 0) => {
   const handleAgregarNormaModal = () => {
     if (!normaSeleccionadaId) { alert("Selecciona una norma"); return; }
     if (!normaPorcentajeInput && !normaValorInput) { alert("Ingresa un porcentaje o un valor"); return; }
+    if (!normaProyectoInput || !normaProyectoInput.trim()) { alert("El campo Proyecto es obligatorio"); return; }
     
     let pct = parseFloat(normaPorcentajeInput);
     let val = parseFloat(normaValorInput);
@@ -151,8 +157,9 @@ const openRadicarModal = async (docId, subtotal = 0) => {
     
     const yaExiste = radicarForm.normas_reparto.find(n => n.norma_reparto_id === normaSeleccionadaId);
     if (yaExiste) { alert("Esta norma ya fue agregada"); return; }
-    setRadicarForm(prev => ({ ...prev, normas_reparto: [...prev.normas_reparto, { norma_reparto_id: normaSeleccionadaId, porcentaje: pct.toFixed(2), valor: val.toFixed(2) }] }));
+    setRadicarForm(prev => ({ ...prev, normas_reparto: [...prev.normas_reparto, { norma_reparto_id: normaSeleccionadaId, porcentaje: pct.toFixed(2), valor: val.toFixed(2), proyecto: normaProyectoInput || "", descripcion: normaDescripcionInput || "" }] }));
     setNormaSeleccionadaId(""); setNormaPorcentajeInput(""); setNormaValorInput("");
+    setNormaProyectoInput(""); setNormaDescripcionInput("");
   };
 
   const handleNormaRepartoChange = (index, field, value) => {
@@ -188,7 +195,12 @@ const openRadicarModal = async (docId, subtotal = 0) => {
       metodo_pago_id: parseInt(radicarForm.metodo_pago_id),
       numero_radicado: radicarForm.numero_radicado?.trim() || "",
       es_malambo: Boolean(radicarForm.es_malambo),
-      normas_reparto: (radicarForm.normas_reparto || []).filter(n => n.norma_reparto_id && n.porcentaje).map(n => ({ norma_reparto_id: parseInt(n.norma_reparto_id), porcentaje: parseFloat(n.porcentaje) })),
+      normas_reparto: (radicarForm.normas_reparto || []).filter(n => n.norma_reparto_id && n.porcentaje).map(n => ({
+        norma_reparto_id: parseInt(n.norma_reparto_id),
+        porcentaje: parseFloat(n.porcentaje),
+        proyecto: n.proyecto || "",
+        descripcion: n.descripcion || ""
+      })),
     };
     try {
       const res = await fetch(`${API}/documentoradicado`, {
@@ -217,7 +229,8 @@ const openRadicarModal = async (docId, subtotal = 0) => {
     tiposRadicacion, rutas, tiposPago, metodosPago, normasRepartoCatalogo,
     normaFiltroSede, setNormaFiltroSede, normaFiltroArea, setNormaFiltroArea,
     normaSeleccionadaId, setNormaSeleccionadaId, normaPorcentajeInput, setNormaPorcentajeInput,
-    normaValorInput, setNormaValorInput, subtotalDoc,
+    normaValorInput, setNormaValorInput, normaProyectoInput, setNormaProyectoInput,
+    normaDescripcionInput, setNormaDescripcionInput, subtotalDoc,
     sedesDisponibles, areasDisponibles, normasFiltradas, totalPorcentajeNormas,
     // ── NUEVO ──
     proveedorIdActual, normasPredeterminadas, usarNormasPredeterminadas,

@@ -69,18 +69,29 @@ export default function ModalNormaReparto({
             </select>
           </div>
 
-          {normaSeleccionadaInfo && (
-            <div style={{ display: "flex", gap: 10, marginTop: 10, background: "#f8fafc", padding: "8px 10px", borderRadius: 6, border: "1px solid #e2e8f0" }}>
-              <div style={{ flex: 1 }}>
-                <label style={{ fontSize: "0.75em", color: "#64748b", fontWeight: 600, display: "block", marginBottom: 2 }}>Proyecto</label>
-                <input type="text" readOnly className="doc-input" value={normaSeleccionadaInfo.proyecto || "Sin proyecto"} style={{ background: "#f1f5f9", fontSize: "0.85em" }} />
-              </div>
-              <div style={{ flex: 2 }}>
-                <label style={{ fontSize: "0.75em", color: "#64748b", fontWeight: 600, display: "block", marginBottom: 2 }}>Descripción</label>
-                <input type="text" readOnly className="doc-input" value={normaSeleccionadaInfo.descripcion || "Sin descripción"} style={{ background: "#f1f5f9", fontSize: "0.85em" }} />
-              </div>
+          <div style={{ display: "flex", gap: 10, marginTop: 10 }}>
+            <div className="modal-field" style={{ flex: 1 }}>
+              <label>Proyecto <span className="required">*</span></label>
+              <input
+                type="text"
+                className="doc-input"
+                style={{ borderColor: !normaFormDetalle.proyecto?.trim() ? "#ef4444" : undefined }}
+                value={normaFormDetalle.proyecto || ""}
+                onChange={(e) => setNormaFormDetalle(prev => ({ ...prev, proyecto: e.target.value }))}
+                placeholder="Nombre del proyecto (requerido)..."
+              />
             </div>
-          )}
+            <div className="modal-field" style={{ flex: 2 }}>
+              <label>Descripción</label>
+              <input
+                type="text"
+                className="doc-input"
+                value={normaFormDetalle.descripcion || ""}
+                onChange={(e) => setNormaFormDetalle(prev => ({ ...prev, descripcion: e.target.value }))}
+                placeholder="Descripción..."
+              />
+            </div>
+          </div>
           <div style={{ display: "flex", gap: 10, marginTop: 10 }}>
             <div className="modal-field" style={{ flex: 1 }}>
               <label>Porcentaje <span className="required">*</span></label>

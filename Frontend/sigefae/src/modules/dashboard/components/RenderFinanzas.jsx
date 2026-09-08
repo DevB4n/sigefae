@@ -237,13 +237,23 @@ export default function RenderFinanzas({
                           <span style={{ fontStyle: "italic", color: "#94a3b8" }}>Sin normas</span>
                         ) : (
                           <div style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
-                            {rad.normas_reparto.map((nr, idx) => (
-                              <div key={idx} style={{ background: "#f8fafc", padding: "4px 8px", borderRadius: "4px", border: "1px solid #e2e8f0" }}>
-                                <strong>{nr.norma_reparto?.nombre || "N/A"}</strong> ({nr.porcentaje}%)
-                                <br/>
-                                <span style={{ color: "#1e293b", fontWeight: "600" }}>{formatCurrency((doc?.subtotal || 0) * (nr.porcentaje / 100), doc?.moneda?.codigo)}</span>
-                              </div>
-                            ))}
+                            {rad.normas_reparto.map((nr, idx) => {
+                              const proj = nr.proyecto || nr.norma_reparto?.proyecto;
+                              const desc = nr.descripcion || nr.norma_reparto?.descripcion;
+                              return (
+                                <div key={idx} style={{ background: "#f8fafc", padding: "4px 8px", borderRadius: "4px", border: "1px solid #e2e8f0" }}>
+                                  <strong>{nr.norma_reparto?.nombre || "N/A"}</strong> ({nr.porcentaje}%)
+                                  <br/>
+                                  <span style={{ color: "#1e293b", fontWeight: "600" }}>{formatCurrency((doc?.subtotal || 0) * (nr.porcentaje / 100), doc?.moneda?.codigo)}</span>
+                                  {(proj || desc) && (
+                                    <div style={{ fontSize: "0.8em", color: "#64748b", marginTop: "2px" }}>
+                                      {proj ? <span><strong>Proj:</strong> {proj} </span> : null}
+                                      {desc ? <span>| <strong>Desc:</strong> {desc}</span> : null}
+                                    </div>
+                                  )}
+                                </div>
+                              );
+                            })}
                           </div>
                         )}
                       </td>
