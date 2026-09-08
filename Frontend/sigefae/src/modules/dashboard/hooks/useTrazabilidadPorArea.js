@@ -11,7 +11,13 @@ export function useTrazabilidadPorArea(obtenerToken) {
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    fetch(`${API}/areas`, { headers: { Authorization: `Bearer ${obtenerToken()}` } })
+    fetch(`${API}/areas?_t=${Date.now()}`, { 
+      headers: { 
+        Authorization: `Bearer ${obtenerToken()}`,
+        "Cache-Control": "no-cache, no-store, must-revalidate",
+        "Pragma": "no-cache"
+      } 
+    })
       .then(r => r.json())
       .then(data => setAreas(Array.isArray(data) ? data : []))
       .catch(err => console.error(err));
@@ -24,8 +30,22 @@ export function useTrazabilidadPorArea(obtenerToken) {
     }
     setLoading(true);
     try {
-      const url = `${API}/trazabilidad/por-area?area_id=${areaSeleccionada}&fecha_desde=${fechaDesde}&fecha_hasta=${fechaHasta}`;
-      const res = await fetch(url, { headers: { Authorization: `Bearer ${obtenerToken()}` } });
+      // Recargar áreas en cada búsqueda para garantizar que la lista esté actualizada
+      fetch(`${API}/areas?_t=${Date.now()}`, { 
+        headers: { Authorization: `Bearer ${obtenerToken()}`, "Cache-Control": "no-cache" } 
+      })
+        .then(r => r.json())
+        .then(data => { if (Array.isArray(data)) setAreas(data); })
+        .catch(err => console.error(err));
+
+      const url = `${API}/trazabilidad/por-area?area_id=${areaSeleccionada}&fecha_desde=${fechaDesde}&fecha_hasta=${fechaHasta}&_t=${Date.now()}`;
+      const res = await fetch(url, { 
+        headers: { 
+          Authorization: `Bearer ${obtenerToken()}`,
+          "Cache-Control": "no-cache, no-store, must-revalidate",
+          "Pragma": "no-cache"
+        } 
+      });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Error del servidor");
       setRadicados(Array.isArray(data) ? data : []);

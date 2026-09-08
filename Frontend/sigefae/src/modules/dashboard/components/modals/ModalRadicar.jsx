@@ -2,7 +2,7 @@ import { formatCurrency } from "../../helpers/formatters";
 
 export default function ModalRadicar({
   showRadicarModal, setShowRadicarModal, radicarForm, radicando,
-  normasRepartoAutoMsg, tiposRadicacion, rutas, metodosPago,
+  normasRepartoAutoMsg, tiposRadicacion, rutas, tiposPago = [], metodosPago,
   normasRepartoCatalogo,
   normaFiltroSede, setNormaFiltroSede, normaFiltroArea, setNormaFiltroArea,
   normaSeleccionadaId, setNormaSeleccionadaId, normaPorcentajeInput, setNormaPorcentajeInput,
@@ -15,6 +15,8 @@ export default function ModalRadicar({
   handleRadicarChange, handleAgregarNormaModal, handleNormaRepartoChange, handleRemoveNormaReparto, handleRadicarSubmit
 }) {
   if (!showRadicarModal) return null;
+
+  const normaSeleccionadaInfo = normasRepartoCatalogo.find(n => String(n.id) === String(normaSeleccionadaId));
 
   const handlePctChange = (e) => {
     const val = e.target.value;
@@ -57,9 +59,34 @@ export default function ModalRadicar({
             </select>
           </div>
           <div className="modal-field">
+            <label>Tipo de Pago <span className="required">*</span></label>
+            <select
+              name="tipo_pago_id"
+              value={radicarForm.tipo_pago_id || ""}
+              onChange={(e) => {
+                handleRadicarChange({ target: { name: "tipo_pago_id", value: e.target.value } });
+                handleRadicarChange({ target: { name: "metodo_pago_id", value: "" } });
+              }}
+              className="doc-input"
+            >
+              <option value="">Seleccione...</option>
+              {tiposPago.map(tp => <option key={tp.id} value={tp.id}>{tp.nombre}</option>)}
+            </select>
+          </div>
+          <div className="modal-field">
             <label>Método de Pago <span className="required">*</span></label>
-            <select name="metodo_pago_id" value={radicarForm.metodo_pago_id} onChange={handleRadicarChange} className="doc-input">
-              <option value="">Seleccione...</option>{metodosPago.map(mp => <option key={mp.id} value={mp.id}>{mp.nombre}</option>)}
+            <select
+              name="metodo_pago_id"
+              value={radicarForm.metodo_pago_id || ""}
+              onChange={handleRadicarChange}
+              className="doc-input"
+              disabled={!radicarForm.tipo_pago_id}
+            >
+              <option value="">{!radicarForm.tipo_pago_id ? "Primero seleccione un tipo de pago..." : "Seleccione..."}</option>
+              {metodosPago
+                .filter(mp => String(mp.tipo_pago_id) === String(radicarForm.tipo_pago_id))
+                .map(mp => <option key={mp.id} value={mp.id}>{mp.nombre}</option>)
+              }
             </select>
           </div>
 
@@ -163,6 +190,20 @@ export default function ModalRadicar({
                 <i className="fa-solid fa-plus"></i> Agregar
               </button>
             </div>
+
+            {normaSeleccionadaInfo && (
+              <div style={{ display: "flex", gap: 10, marginBottom: 10, background: "#f8fafc", padding: "8px 10px", borderRadius: 6, border: "1px solid #e2e8f0" }}>
+                <div style={{ flex: 1 }}>
+                  <label style={{ fontSize: "0.75em", color: "#64748b", fontWeight: 600, display: "block", marginBottom: 2 }}>Proyecto</label>
+                  <input type="text" readOnly className="doc-input" value={normaSeleccionadaInfo.proyecto || "Sin proyecto"} style={{ background: "#f1f5f9", fontSize: "0.85em" }} />
+                </div>
+                <div style={{ flex: 2 }}>
+                  <label style={{ fontSize: "0.75em", color: "#64748b", fontWeight: 600, display: "block", marginBottom: 2 }}>Descripción</label>
+                  <input type="text" readOnly className="doc-input" value={normaSeleccionadaInfo.descripcion || "Sin descripción"} style={{ background: "#f1f5f9", fontSize: "0.85em" }} />
+                </div>
+              </div>
+            )}
+
             {(radicarForm.normas_reparto || []).length === 0 ? (
               <p style={{ fontSize: "0.85em", color: "#6b7280" }}>No se han asignado normas de reparto.</p>
             ) : (
@@ -173,7 +214,14 @@ export default function ModalRadicar({
                   const calculatedVal = subtotalDoc > 0 ? (pctVal / 100) * subtotalDoc : parseFloat(norma.valor) || 0;
                   return (
                     <div key={idx} style={{ display: "flex", gap: 8, alignItems: "center", padding: "8px 10px", background: "#f9fafb", borderRadius: 6, border: "1px solid #e5e7eb" }}>
-                      <span style={{ flex: 2, fontSize: "0.85em", fontWeight: 600, color: "#1f2937" }}>{info ? `${info.codigo} — ${info.nombre}` : "Norma desconocida"}</span>
+                      <div style={{ flex: 2, display: "flex", flexDirection: "column" }}>
+                        <span style={{ fontSize: "0.85em", fontWeight: 600, color: "#1f2937" }}>{info ? `${info.codigo} — ${info.nombre}` : "Norma desconocida"}</span>
+                        {info && (info.proyecto || info.descripcion) && (
+                          <span style={{ fontSize: "0.75em", color: "#64748b" }}>
+                            {info.proyecto ? `Proj: ${info.proyecto}` : ""} {info.descripcion ? `| Desc: ${info.descripcion}` : ""}
+                          </span>
+                        )}
+                      </div>
                       <span style={{ flex: 1, fontSize: "0.8em", color: "#6b7280" }}>{info ? `${info.sucursal} / ${info.departamento}` : ""}</span>
                       <input type="number" min="0" max="100" step="0.01" value={norma.porcentaje} onChange={(e) => handleNormaRepartoChange(idx, "porcentaje", e.target.value)} className="doc-input" style={{ width: 70, textAlign: "right", fontSize: "0.85em" }} />
                       <span style={{ fontSize: "0.85em", fontWeight: 700 }}>%</span>

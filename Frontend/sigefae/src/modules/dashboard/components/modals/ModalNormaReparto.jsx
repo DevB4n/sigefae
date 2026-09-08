@@ -38,6 +38,8 @@ export default function ModalNormaReparto({
     setNormaFormDetalle(newForm);
   };
 
+  const normaSeleccionadaInfo = normasRepartoCatalogo.find(n => String(n.id) === String(normaFormDetalle.norma_reparto_id));
+
   return (
     <div className="modal-overlay" onClick={() => setShowNormaModal(false)}>
       <div className="modal-content" onClick={(e) => e.stopPropagation()}>
@@ -66,6 +68,19 @@ export default function ModalNormaReparto({
               {normasFiltradas.map(n => <option key={n.id} value={String(n.id)}>{n.codigo} — {n.nombre} {n.proyecto ? `[${n.proyecto}]` : ''} ({n.sucursal} / {n.departamento})</option>)}
             </select>
           </div>
+
+          {normaSeleccionadaInfo && (
+            <div style={{ display: "flex", gap: 10, marginTop: 10, background: "#f8fafc", padding: "8px 10px", borderRadius: 6, border: "1px solid #e2e8f0" }}>
+              <div style={{ flex: 1 }}>
+                <label style={{ fontSize: "0.75em", color: "#64748b", fontWeight: 600, display: "block", marginBottom: 2 }}>Proyecto</label>
+                <input type="text" readOnly className="doc-input" value={normaSeleccionadaInfo.proyecto || "Sin proyecto"} style={{ background: "#f1f5f9", fontSize: "0.85em" }} />
+              </div>
+              <div style={{ flex: 2 }}>
+                <label style={{ fontSize: "0.75em", color: "#64748b", fontWeight: 600, display: "block", marginBottom: 2 }}>Descripción</label>
+                <input type="text" readOnly className="doc-input" value={normaSeleccionadaInfo.descripcion || "Sin descripción"} style={{ background: "#f1f5f9", fontSize: "0.85em" }} />
+              </div>
+            </div>
+          )}
           <div style={{ display: "flex", gap: 10, marginTop: 10 }}>
             <div className="modal-field" style={{ flex: 1 }}>
               <label>Porcentaje <span className="required">*</span></label>

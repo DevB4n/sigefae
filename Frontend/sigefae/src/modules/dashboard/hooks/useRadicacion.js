@@ -4,12 +4,13 @@ import { API } from "../constants/api";
 export function useRadicacion(obtenerToken, userId, setDocumentos, setActiveTab, setSelectedDocId, setDocDetail) {
   const [showRadicarModal, setShowRadicarModal] = useState(false);
   const [radicarDocId, setRadicarDocId] = useState(null);
-  const [radicarForm, setRadicarForm] = useState({ tipo_radicacion_id: "", ruta_id: "", metodo_pago_id: "", numero_radicado: "", es_malambo: false, normas_reparto: [] });
+  const [radicarForm, setRadicarForm] = useState({ tipo_radicacion_id: "", ruta_id: "", tipo_pago_id: "", metodo_pago_id: "", numero_radicado: "", es_malambo: false, normas_reparto: [] });
   const [radicando, setRadicando] = useState(false);
   const [normasRepartoAutoMsg, setNormasRepartoAutoMsg] = useState("");
 
   const [tiposRadicacion, setTiposRadicacion] = useState([]);
   const [rutas, setRutas] = useState([]);
+  const [tiposPago, setTiposPago] = useState([]);
   const [metodosPago, setMetodosPago] = useState([]);
   const [normasRepartoCatalogo, setNormasRepartoCatalogo] = useState([]);
 
@@ -35,11 +36,13 @@ export function useRadicacion(obtenerToken, userId, setDocumentos, setActiveTab,
     Promise.all([
       fetch(`${API}/tipo-radicacion?${t}`, { headers }).then(r => r.json()),
       fetch(`${API}/rutas?${t}`, { headers }).then(r => r.json()),
+      fetch(`${API}/tipos-pago?${t}`, { headers }).then(r => r.json()),
       fetch(`${API}/metodos-pago?${t}`, { headers }).then(r => r.json()),
       fetch(`${API}/normas-reparto?activo=true&${t}`, { headers }).then(r => r.json()),
-    ]).then(([tr, r, mp, nr]) => {
+    ]).then(([tr, r, tp, mp, nr]) => {
       setTiposRadicacion(Array.isArray(tr) ? tr : []);
       setRutas(Array.isArray(r) ? r : []);
+      setTiposPago(Array.isArray(tp) ? tp : []);
       setMetodosPago(Array.isArray(mp) ? mp : []);
       setNormasRepartoCatalogo(Array.isArray(nr) ? nr : []);
     }).catch(err => console.error("Error cargando catálogos:", err));
@@ -76,7 +79,7 @@ export function useRadicacion(obtenerToken, userId, setDocumentos, setActiveTab,
 const openRadicarModal = async (docId, subtotal = 0) => {
     setRadicarDocId(docId);
     setSubtotalDoc(parseFloat(subtotal) || 0);
-    setRadicarForm({ tipo_radicacion_id: "", ruta_id: "", metodo_pago_id: "", numero_radicado: "", es_malambo: false, normas_reparto: [] });
+    setRadicarForm({ tipo_radicacion_id: "", ruta_id: "", tipo_pago_id: "", metodo_pago_id: "", numero_radicado: "", es_malambo: false, normas_reparto: [] });
     setNormasRepartoAutoMsg("");
     setNormasPredeterminadas([]);
     setUsarNormasPredeterminadas(null);
@@ -211,7 +214,7 @@ const openRadicarModal = async (docId, subtotal = 0) => {
   return {
     showRadicarModal, setShowRadicarModal, radicarDocId, setRadicarDocId,
     radicarForm, setRadicarForm, radicando, normasRepartoAutoMsg,
-    tiposRadicacion, rutas, metodosPago, normasRepartoCatalogo,
+    tiposRadicacion, rutas, tiposPago, metodosPago, normasRepartoCatalogo,
     normaFiltroSede, setNormaFiltroSede, normaFiltroArea, setNormaFiltroArea,
     normaSeleccionadaId, setNormaSeleccionadaId, normaPorcentajeInput, setNormaPorcentajeInput,
     normaValorInput, setNormaValorInput, subtotalDoc,
