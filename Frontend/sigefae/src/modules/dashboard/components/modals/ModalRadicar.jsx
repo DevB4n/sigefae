@@ -41,12 +41,12 @@ export default function ModalRadicar({
 
   return (
     <div className="modal-overlay" onClick={() => setShowRadicarModal(false)}>
-      <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+      <div className="modal-content" onClick={(e) => e.stopPropagation()} style={{ maxHeight: "85vh", display: "flex", flexDirection: "column" }}>
         <div className="modal-header">
           <h3><i className="fa-solid fa-stamp"></i> Radicar Documento</h3>
           <button className="modal-close" onClick={() => setShowRadicarModal(false)}><i className="fa-solid fa-xmark"></i></button>
         </div>
-        <div className="modal-body">
+        <div className="modal-body" style={{ overflowY: "auto", flex: 1 }}>
           <div className="modal-field">
             <label>Tipo de Radicación <span className="required">*</span></label>
             <select name="tipo_radicacion_id" value={radicarForm.tipo_radicacion_id} onChange={handleRadicarChange} className="doc-input">
@@ -56,7 +56,13 @@ export default function ModalRadicar({
           <div className="modal-field">
             <label>Ruta <span className="required">*</span></label>
             <select name="ruta_id" value={radicarForm.ruta_id} onChange={handleRadicarChange} className="doc-input">
-              <option value="">Seleccione...</option>{rutas.map(r => <option key={r.id} value={r.id}>{r.nombre}</option>)}
+              <option value="">Seleccione...</option>
+              <optgroup label="BUCARAMANGA">
+                {rutas.filter(r => !r.zona || r.zona === "BUCARAMANGA").map(r => <option key={r.id} value={r.id}>{r.nombre}</option>)}
+              </optgroup>
+              <optgroup label="MALAMBO">
+                {rutas.filter(r => r.zona === "MALAMBO").map(r => <option key={r.id} value={r.id}>{r.nombre}</option>)}
+              </optgroup>
             </select>
           </div>
           <div className="modal-field">
@@ -159,10 +165,7 @@ export default function ModalRadicar({
           {normasRepartoAutoMsg && (
             <div className="modal-field" style={{ padding: "10px 12px", borderRadius: 8, background: "#fef3c7", border: "1px solid #f59e0b", color: "#92400e", fontSize: "0.92em", fontWeight: 600 }}>{normasRepartoAutoMsg}</div>
           )}
-          <div className="modal-field">
-            <label>Número de Radicado <small>(opcional, se autogenera si está vacío)</small></label>
-            <input type="text" name="numero_radicado" value={radicarForm.numero_radicado} onChange={handleRadicarChange} className="doc-input" placeholder="Ej: RAD-2026-00001" />
-          </div>
+
           <div className="modal-field">
             <label style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
               <span><i className="fa-solid fa-chart-pie"></i> Normas de Reparto</span>
@@ -206,7 +209,8 @@ export default function ModalRadicar({
                 type="text"
                 className="doc-input"
                 style={{ flex: 2, fontSize: "0.85em" }}
-                placeholder="Descripción (opcional)"
+                maxLength={300}
+                placeholder="Descripción (opcional, máx 300)"
                 value={normaDescripcionInput}
                 onChange={(e) => setNormaDescripcionInput(e.target.value)}
               />
@@ -234,7 +238,7 @@ export default function ModalRadicar({
                       </div>
                       <div style={{ display: "flex", gap: 8 }}>
                         <input type="text" className="doc-input" placeholder="Proyecto" style={{ flex: 1, fontSize: "0.8em", padding: "4px 8px" }} value={norma.proyecto || ""} onChange={(e) => handleNormaRepartoChange(idx, "proyecto", e.target.value)} />
-                        <input type="text" className="doc-input" placeholder="Descripción" style={{ flex: 2, fontSize: "0.8em", padding: "4px 8px" }} value={norma.descripcion || ""} onChange={(e) => handleNormaRepartoChange(idx, "descripcion", e.target.value)} />
+                        <input type="text" className="doc-input" placeholder="Descripción" maxLength={300} style={{ flex: 2, fontSize: "0.8em", padding: "4px 8px" }} value={norma.descripcion || ""} onChange={(e) => handleNormaRepartoChange(idx, "descripcion", e.target.value)} />
                       </div>
                     </div>
                   );

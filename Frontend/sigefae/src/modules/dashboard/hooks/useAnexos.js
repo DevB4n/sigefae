@@ -53,9 +53,10 @@ export function useAnexos(obtenerToken, puedeGestionarRecurso, esAdmin, activeTa
         method: "POST", headers: { Authorization: `Bearer ${obtenerToken()}` }, body: formData,
       });
       if (!res.ok) { const err = await res.json(); throw new Error(err.error || "Error subiendo archivo"); }
-      alert("Archivo subido correctamente");
+      // 1. Actualizar estado y refetch de inmediato
       if (activeTab === "tareas") { setSelectedTareaId(null); setTimeout(() => setSelectedTareaId(radicadoId), 10); }
       else if (activeTab === "radicados") { setSelectedRadicadoId(null); setTimeout(() => setSelectedRadicadoId(radicadoId), 10); }
+
       if (saiaModalOpen && saiaRadicado?.id === radicadoId) {
         try {
           const radRes = await fetch(`${API}/documentoradicado/${radicadoId}`, { headers: { Authorization: `Bearer ${obtenerToken()}` } });
@@ -73,6 +74,11 @@ export function useAnexos(obtenerToken, puedeGestionarRecurso, esAdmin, activeTa
           }
         } catch (e) { console.error(e); }
       }
+
+      // 2. Mostrar alerta sin bloquear el ciclo de renderizado
+      setTimeout(() => {
+        alert("Archivo subido correctamente");
+      }, 50);
     } catch (err) { alert("Error: " + err.message); }
     e.target.value = "";
   };

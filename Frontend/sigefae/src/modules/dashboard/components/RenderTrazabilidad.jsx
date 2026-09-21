@@ -1,13 +1,15 @@
 export default function RenderTrazabilidad({ historialTrazabilidad }) {
   return (
-    <div className="doc-section">
+    <div className="doc-section" style={{ display: "flex", flexDirection: "column", flex: 1, minHeight: 0 }}>
       <h4>
         <i className="fa-solid fa-clock-rotate-left"></i>{" "}
         Historial de Trazabilidad ({historialTrazabilidad.length})
       </h4>
       <div
         style={{
-          maxHeight: 250,
+          flex: 1,
+          minHeight: 250,
+          maxHeight: "550px",
           overflowY: "auto",
           marginBottom: 12,
           paddingRight: 4

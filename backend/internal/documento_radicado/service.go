@@ -87,7 +87,11 @@ func (s *Service) Create(dto CreateDTO, usuarioID uint) (*db.DocumentoRadicado, 
 			year := time.Now().Year()
 			var count int64
 			tx.Model(&db.DocumentoRadicado{}).Where("YEAR(fecha_radicacion) = ?", year).Count(&count)
-			numeroRadicado = fmt.Sprintf("RAD-%d-%05d", year, count+1)
+			prefix := "BU"
+			if dto.EsMalambo {
+				prefix = "MB"
+			}
+			numeroRadicado = fmt.Sprintf("%s-%d-%05d", prefix, year, count+1)
 		}
 
 		var existingNum db.DocumentoRadicado
@@ -137,7 +141,7 @@ func (s *Service) Create(dto CreateDTO, usuarioID uint) (*db.DocumentoRadicado, 
 			Scan(&correoID)
 
 		if correoID != nil && *correoID != 0 {
-			if err := adjuntarArchivosDesdeCorreo(tx, &radicado, *correoID); err != nil {
+			if err := adjuntarArchivosDesdeCorreo(tx, &radicado, *correoID, usuarioID); err != nil {
 				fmt.Printf("[RADICADO %s] warning: no se pudieron adjuntar archivos del correo: %v\n", radicado.NumeroRadicado, err)
 			}
 		} else {
@@ -373,11 +377,12 @@ func generarTareasDesdeRuta(tx *gorm.DB, radicado *db.DocumentoRadicado, rutaID 
 		docTotalEnSmmlv := docCom.Total / smmlv.Valor
 
 		// ── 4. Obtener reglas de monto aplicables por SMMLV ──
-		query := tx.Where("activo = ? AND monto_minimo_smmlv <= ?", true, docTotalEnSmmlv).
-			Where("(monto_maximo_smmlv = 0 OR monto_maximo_smmlv >= ?)", docTotalEnSmmlv).
+		query := tx.Where("activo = ? AND COALESCE(monto_minimo_smmlv, 0) <= ?", true, docTotalEnSmmlv).
+			Where("(COALESCE(monto_maximo_smmlv, 0) = 0 OR monto_maximo_smmlv >= ?)", docTotalEnSmmlv).
 			Preload("UsuarioAprobador").
 			Preload("RolAprobador").
 			Order("monto_minimo_smmlv desc")
+
 
 		if err := query.Find(&reglas).Error; err != nil {
 			return err
@@ -486,22 +491,31 @@ func generarTareasDesdeRuta(tx *gorm.DB, radicado *db.DocumentoRadicado, rutaID 
 	}
 
 	idAuxOriente := buscarUsuarioIDPorEmail("auxadmonoriente@harinerapardo.co")
-	idAnalistaCompras := buscarUsuarioIDPorEmail("analistacomprasoriente@harinerapardo.co")
-
-	var idPaso2 uint
-	var nombrePaso2 string
-	if esMalambo {
-		idPaso2 = buscarUsuarioIDPorEmail("auxadmonnorte@harinerapardo.co")
-		nombrePaso2 = "Revisión Auxiliar Admon Norte (Malambo)"
-	} else {
-		idPaso2 = buscarUsuarioIDPorEmail("analistaadmonoriente@harinerapardo.co")
-		nombrePaso2 = "Revisión Analista Admon Oriente"
-	}
 
 	prefijoFlujo := []pasoFinal{
 		{Nombre: "Revisión Auxiliar Admon Oriente", UsuarioID: idAuxOriente, EsRegla: false},
-		{Nombre: nombrePaso2, UsuarioID: idPaso2, EsRegla: false},
-		{Nombre: "Revisión Analista Compras Oriente", UsuarioID: idAnalistaCompras, EsRegla: false},
+	}
+
+	if esMalambo {
+		idAuxNorte := buscarUsuarioIDPorEmail("auxadmonnorte@harinerapardo.co")
+		idAnalistaNorte := buscarUsuarioIDPorEmail("analistacomprasnorte@harinerapardo.co")
+		prefijoFlujo = append(prefijoFlujo, pasoFinal{
+			Nombre:    "Revisión Auxiliar Admon Norte (Malambo)",
+			UsuarioID: idAuxNorte,
+			EsRegla:   false,
+		})
+		prefijoFlujo = append(prefijoFlujo, pasoFinal{
+			Nombre:    "Revisión Analista Compras Norte",
+			UsuarioID: idAnalistaNorte,
+			EsRegla:   false,
+		})
+	} else {
+		idAnalistaOriente := buscarUsuarioIDPorEmail("analistacomprasoriente@harinerapardo.co")
+		prefijoFlujo = append(prefijoFlujo, pasoFinal{
+			Nombre:    "Revisión Analista Compras Oriente",
+			UsuarioID: idAnalistaOriente,
+			EsRegla:   false,
+		})
 	}
 
 	flujo = append(prefijoFlujo, flujo...)
@@ -548,7 +562,7 @@ func generarTareasDesdeRuta(tx *gorm.DB, radicado *db.DocumentoRadicado, rutaID 
 // ─────────────────────────────────────────────────────────────
 // adjuntarArchivosDesdeCorreo
 // ─────────────────────────────────────────────────────────────
-func adjuntarArchivosDesdeCorreo(tx *gorm.DB, radicado *db.DocumentoRadicado, correoID uint) error {
+func adjuntarArchivosDesdeCorreo(tx *gorm.DB, radicado *db.DocumentoRadicado, correoID uint, usuarioID uint) error {
 	// 1. Cargar el correo para obtener id_mensaje
 	var correo db.Correo
 	if err := tx.First(&correo, correoID).Error; err != nil {
@@ -558,14 +572,19 @@ func adjuntarArchivosDesdeCorreo(tx *gorm.DB, radicado *db.DocumentoRadicado, co
 		return errors.New("correo no tiene id_mensaje definido")
 	}
 
-	// 2. Buscar origen "Sistema"
+	// 2. Buscar o crear origen "Sistema"
 	var origen db.ArchivoOrigen
-	origenID := uint(0)
-	if err := tx.Where("nombre = ? AND activo = ?", "Sistema", true).First(&origen).Error; err != nil {
-		fmt.Printf("[RADICADO %d] WARNING: origen 'Sistema' no encontrado: %v\n", radicado.ID, err)
-	} else {
-		origenID = origen.ID
+	if err := tx.Where("nombre = ?", "Sistema").First(&origen).Error; err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			origen = db.ArchivoOrigen{Nombre: "Sistema", Activo: true}
+			if err := tx.Create(&origen).Error; err != nil {
+				return fmt.Errorf("no se pudo crear origen 'Sistema': %w", err)
+			}
+		} else {
+			return fmt.Errorf("error buscando origen 'Sistema': %w", err)
+		}
 	}
+	origenID := origen.ID
 
 	// 3. Directorio fuente
 	srcDir := filepath.Join("storage", "mails", correo.IDMensaje)
@@ -615,6 +634,7 @@ func adjuntarArchivosDesdeCorreo(tx *gorm.DB, radicado *db.DocumentoRadicado, co
 			Ruta:                dstPath,
 			Peso:                peso,
 			OrigenID:            origenID,
+			CreadoPorID:         usuarioID,
 		}
 		if err := tx.Create(&archivo).Error; err != nil {
 			fmt.Printf("[RADICADO %d] ERROR guardando registro BD de %s: %v\n", radicado.ID, name, err)

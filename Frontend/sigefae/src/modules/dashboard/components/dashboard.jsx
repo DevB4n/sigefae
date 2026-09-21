@@ -55,6 +55,13 @@ export default function ProcesosLogistica() {
   const initialTab = esAdmin ? "welcome" : (userRol === "Contabilidad" || userRol === "Tesorería") ? "finanzas" : "tareas";
   const [activeTab, setActiveTab] = useState(initialTab);
 
+  const [fontSize, setFontSize] = useState(() => localStorage.getItem("sigefae_font_size") || "16px");
+
+  useEffect(() => {
+    document.documentElement.style.fontSize = fontSize;
+    localStorage.setItem("sigefae_font_size", fontSize);
+  }, [fontSize]);
+
   // PDF Editor
   const [pdfEditor, setPdfEditor] = useState({ open: false, archivoId: null, archivoNombre: null, radicadoId: null });
 
@@ -198,6 +205,11 @@ export default function ProcesosLogistica() {
           >
             <i className="fa-solid fa-arrow-left"></i> Volver al Panel
           </a>
+          <div className="font-size-selector" title="Tamaño de Letra" style={{ display: "inline-flex", alignItems: "center", gap: "2px", background: "rgba(255, 255, 255, 0.15)", borderRadius: "6px", padding: "2px", marginRight: "10px", border: "1px solid rgba(255, 255, 255, 0.25)" }}>
+            <button title="Fuente Pequeña" onClick={() => setFontSize("14px")} style={{ background: fontSize === "14px" ? "rgba(255,255,255,0.35)" : "transparent", border: "none", color: "white", padding: "3px 7px", borderRadius: "4px", cursor: "pointer", fontSize: "11px", fontWeight: "bold" }}>A-</button>
+            <button title="Fuente Normal" onClick={() => setFontSize("16px")} style={{ background: fontSize === "16px" ? "rgba(255,255,255,0.35)" : "transparent", border: "none", color: "white", padding: "3px 7px", borderRadius: "4px", cursor: "pointer", fontSize: "13px", fontWeight: "bold" }}>A</button>
+            <button title="Fuente Grande" onClick={() => setFontSize("18px")} style={{ background: fontSize === "18px" ? "rgba(255,255,255,0.35)" : "transparent", border: "none", color: "white", padding: "3px 7px", borderRadius: "4px", cursor: "pointer", fontSize: "15px", fontWeight: "bold" }}>A+</button>
+          </div>
           <NotificacionesDropdown
             notificaciones={notifHook.notificaciones}
             noLeidas={notifHook.noLeidas}

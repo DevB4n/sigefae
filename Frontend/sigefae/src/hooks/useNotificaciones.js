@@ -59,26 +59,40 @@ export function useNotificaciones() {
   }, []);
 
 	const marcarLeida = async (id) => {
+		setNotificaciones((prev) =>
+			prev.map((n) => (n.id === id ? { ...n, estado: "Leida" } : n))
+		);
+		setNoLeidas((prev) => Math.max(0, prev - 1));
 		try {
 			const res = await fetch(`${API}/notificacion/${id}/leida`, {
 				method: "PATCH",
 				headers: { Authorization: `Bearer ${obtenerToken()}` },
 			});
-			if (res.ok) cargar();
+			if (!res.ok) cargar();
 		} catch (err) {
 			console.error(err);
+			cargar();
 		}
 	};
 
 	const borrarNotificacion = async (id) => {
+		idsVistosRef.current.delete(id);
+		setNotificaciones((prev) => {
+			const target = prev.find((n) => n.id === id);
+			if (target && target.estado === "Pendiente") {
+				setNoLeidas((nl) => Math.max(0, nl - 1));
+			}
+			return prev.filter((n) => n.id !== id);
+		});
 		try {
 			const res = await fetch(`${API}/notificacion/${id}`, {
 				method: "DELETE",
 				headers: { Authorization: `Bearer ${obtenerToken()}` },
 			});
-			if (res.ok) cargar();
+			if (!res.ok) cargar();
 		} catch (err) {
 			console.error(err);
+			cargar();
 		}
 	};
 

@@ -44,6 +44,10 @@ export default function RenderCatalogos({
     if (field === "codigo") return <div className="modal-field" key={field} style={{ flex: 1 }}><label>Código <span className="required">*</span></label><input type="text" name={field} value={value} onChange={handleCatalogoFormChange} placeholder="Ej: BU101" className="doc-input" /></div>;
     if (field === "proyecto") return <div className="modal-field" key={field} style={{ flex: 1 }}><label>Proyecto <span className="required">*</span></label><input type="text" name={field} value={value} onChange={handleCatalogoFormChange} placeholder="Ej: PROY-001" className="doc-input" required /></div>;
     if (field === "descripcion") return <div className="modal-field" key={field} style={{ width: "100%" }}><label>Descripción</label><textarea name={field} value={value} onChange={handleCatalogoFormChange} placeholder="Descripción opcional..." className="doc-input" rows="2" /></div>;
+    if (field === "zona") {
+      const zonas = ["BUCARAMANGA", "MALAMBO"];
+      return <div className="modal-field" key={field}><label>Zona <span className="required">*</span></label><select name={field} value={value} onChange={handleCatalogoFormChange} className="doc-input"><option value="">Seleccione...</option>{zonas.map(z => <option key={z} value={z}>{z}</option>)}</select></div>;
+    }
     if (field === "sucursal") {
       const sucursales = ["BUCARAMANGA", "MALAMBO", "CUCUTA", "CB", "CIENAGA DE ORO", "GENERAL"];
       return <div className="modal-field" key={field}><label>Sucursal <span className="required">*</span></label><select name={field} value={value} onChange={handleCatalogoFormChange} className="doc-input"><option value="">Seleccione...</option>{sucursales.map(s => <option key={s} value={s}>{s}</option>)}</select></div>;
@@ -58,7 +62,7 @@ export default function RenderCatalogos({
   };
 
   const getColumnLabel = (field) => {
-    const map = { nombre: "Nombre", codigo: "Código", proyecto: "Proyecto", descripcion: "Descripción", sucursal: "Sucursal", departamento: "Depto", tipo: "Tipo", tarifa_iva: "Tarifa IVA", tipo_pago: "Tipo de Pago", area: "Área", ruta: "Ruta", orden: "Orden", usuario: "Usuario", prioridad: "Prioridad", usuario_aprobador_id: "Aprobador", moneda_id: "Moneda", monto_minimo: "Monto Mínimo", monto_minimo_smmlv: "Mín. SMMLV", monto_maximo_smmlv: "Máx. SMMLV", posicion_insercion: "Posición", ano: "Año", valor: "Valor" };
+    const map = { nombre: "Nombre", codigo: "Código", proyecto: "Proyecto", descripcion: "Descripción", zona: "Zona", sucursal: "Sucursal", departamento: "Depto", tipo: "Tipo", tarifa_iva: "Tarifa IVA", tipo_pago: "Tipo de Pago", area: "Área", ruta: "Ruta", orden: "Orden", usuario: "Usuario", prioridad: "Prioridad", usuario_aprobador_id: "Aprobador", moneda_id: "Moneda", monto_minimo: "Monto Mínimo", monto_minimo_smmlv: "Mín. SMMLV", monto_maximo_smmlv: "Máx. SMMLV", posicion_insercion: "Posición", ano: "Año", valor: "Valor" };
     return map[field] || field;
   };
 
@@ -71,6 +75,7 @@ export default function RenderCatalogos({
     if (field === "moneda_id") return item.moneda ? `${item.moneda.nombre} (${item.moneda.codigo})` : item.moneda_id || "—";
     if (field === "monto_minimo_smmlv" || field === "monto_maximo_smmlv") return item[field] !== undefined && item[field] !== null ? `${item[field]} SMMLV` : "0 SMMLV";
     if (field === "valor") return item[field] !== undefined && item[field] !== null ? `$${Number(item[field]).toLocaleString()}` : "—";
+    if (field === "zona") return item.zona || "BUCARAMANGA";
     if ((field === "tipo" || field === "tarifa_iva") && !item[field]) return "—";
     return item[field] !== undefined ? item[field] : "—";
   };

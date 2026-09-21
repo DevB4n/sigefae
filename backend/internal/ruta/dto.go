@@ -3,6 +3,7 @@ package ruta
 type CreateRequest struct {
 	Nombre string `json:"nombre" binding:"required"`
 	AreaID uint   `json:"area_id" binding:"required"`
+	Zona   string `json:"zona"`
 }
 
 type UpdateStatusRequest struct {
@@ -12,4 +13,5 @@ type UpdateStatusRequest struct {
 type UpdateRequest struct {
 	Nombre string `json:"nombre" binding:"required"`
 	AreaID uint   `json:"area_id" binding:"required"`
+	Zona   string `json:"zona"`
 }

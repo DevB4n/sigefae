@@ -82,13 +82,14 @@ export default function ModalNormaReparto({
               />
             </div>
             <div className="modal-field" style={{ flex: 2 }}>
-              <label>Descripción</label>
+              <label>Descripción <small style={{ float: "right", color: (normaFormDetalle.descripcion || "").length >= 300 ? "#ef4444" : "#6b7280" }}>{(normaFormDetalle.descripcion || "").length}/300</small></label>
               <input
                 type="text"
                 className="doc-input"
+                maxLength={300}
                 value={normaFormDetalle.descripcion || ""}
                 onChange={(e) => setNormaFormDetalle(prev => ({ ...prev, descripcion: e.target.value }))}
-                placeholder="Descripción..."
+                placeholder="Descripción (máx 300 caracteres)..."
               />
             </div>
           </div>

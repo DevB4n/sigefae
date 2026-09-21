@@ -27,6 +27,7 @@ func (Usuario) TableName() string { return "usuario" }
 type Ruta struct {
 	ID        uint       `gorm:"primaryKey;column:id" json:"id"`
 	Nombre    string     `gorm:"column:nombre;type:varchar(255)" json:"nombre"`
+	Zona      string     `gorm:"column:zona;type:varchar(100);default:'BUCARAMANGA'" json:"zona"`
 	Version   float64    `gorm:"column:version" json:"version"`
 	AreaID    uint       `gorm:"column:area_id;index:idx_ruta_area" json:"area_id"`
 	Area      *Area      `gorm:"foreignKey:AreaID;references:ID" json:"area,omitempty"`

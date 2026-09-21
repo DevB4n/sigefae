@@ -24,11 +24,11 @@ func (s *Service) Create(req CreateRequest) (*Response, error) {
 	var existing db.Ruta
 
 	err := s.db.
-		Where("nombre = ?", req.Nombre).
+		Where("nombre = ? AND area_id = ?", req.Nombre, req.AreaID).
 		First(&existing).Error
 
 	if err == nil {
-		return nil, errors.New("la ruta ya existe")
+		return nil, errors.New("la ruta ya existe para esta área")
 	} else if !errors.Is(err, gorm.ErrRecordNotFound) {
 		return nil, err
 	}
@@ -46,8 +46,14 @@ func (s *Service) Create(req CreateRequest) (*Response, error) {
 		return nil, err
 	}
 
+	zona := req.Zona
+	if zona == "" {
+		zona = "BUCARAMANGA"
+	}
+
 	ruta := db.Ruta{
 		Nombre:  req.Nombre,
+		Zona:    zona,
 		Version: 1,
 		AreaID:  req.AreaID,
 		Activo:  true,
@@ -166,13 +172,18 @@ func (s *Service) Update(id uint, req UpdateRequest) (*Response, error) {
 	// Actualizar
 	// ==========================
 
+	updatesMap := map[string]any{
+		"nombre":  req.Nombre,
+		"area_id": req.AreaID,
+	}
+	if req.Zona != "" {
+		updatesMap["zona"] = req.Zona
+	}
+
 	err = s.db.
 		Model(&db.Ruta{}).
 		Where("id = ?", id).
-		Updates(map[string]any{
-			"nombre":  req.Nombre,
-			"area_id": req.AreaID,
-		}).Error
+		Updates(updatesMap).Error
 
 	if err != nil {
 		return nil, err

@@ -15,8 +15,8 @@ func New(database *gorm.DB) *Service {
 
 func (s *Service) List() ([]db.ReglaMontoRuta, error) {
 	var items []db.ReglaMontoRuta
-	err := s.db.Preload("Area").Preload("Ruta").Preload("Moneda").Preload("UsuarioAprobador").Preload("RolAprobador").
-		Where("activo = ?", true).Find(&items).Error
+	err := s.db.Preload("Area").Preload("Ruta").Preload("UsuarioAprobador").Preload("RolAprobador").
+		Where("activo = ?", true).Order("monto_minimo_smmlv ASC").Find(&items).Error
 	return items, err
 }
 

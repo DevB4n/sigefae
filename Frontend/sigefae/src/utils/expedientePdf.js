@@ -33,7 +33,8 @@ export async function generarExpedientePDF(radicado, flujo, trazabilidad, anexos
       totalCalculado += valorAplicado;
       
       const proj = n.proyecto || n.norma_reparto?.proyecto || "";
-      const desc = n.descripcion || n.norma_reparto?.descripcion || "";
+      const rawDesc = n.descripcion || n.norma_reparto?.descripcion || "";
+      const desc = rawDesc.length > 120 ? rawDesc.substring(0, 117) + "..." : rawDesc;
       
       return [
         n.norma_reparto?.nombre || n.nombre || "",
@@ -61,6 +62,7 @@ export async function generarExpedientePDF(radicado, flujo, trazabilidad, anexos
       headStyles: { fillColor: [200, 160, 30] },
       styles: { fontSize: 8 },
       columnStyles: { 
+        3: { cellWidth: 55 },
         4: { halign: 'right', fontStyle: 'bold' },
         5: { halign: 'right', fontStyle: 'bold' }
       }
